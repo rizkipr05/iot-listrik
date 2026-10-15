@@ -120,61 +120,69 @@ Buka web interface gateway (biasanya di `192.168.1.x`) dan atur:
 
 ---
 
-## 🚀 Instalasi Aplikasi
+## 🚀 Instalasi Aplikasi (Windows)
 
 ### Kebutuhan Sistem
 
-| Komponen | Versi |
+| Komponen | Keterangan |
 |---|---|
-| PHP | 8.2 atau 8.3 |
-| Ekstensi PHP | `pdo_sqlite`, `sockets`, `curl`, `mbstring`, `bcmath`, `fileinfo` |
-| Composer | 2.x |
-| Database | SQLite (sudah terintegrasi, tidak perlu install terpisah) |
-| OS | Linux, macOS, atau Windows |
+| **PHP** | Versi 8.2 atau 8.3 — download di [windows.php.net](https://windows.php.net/download/) (pilih **Thread Safe x64**) |
+| **Composer** | Download installer di [getcomposer.org](https://getcomposer.org/download/) |
+| **Database** | SQLite — sudah terintegrasi, **tidak perlu install database server** |
+| **OS** | Windows 10 / 11 (64-bit) |
+
+> **Ekstensi PHP yang harus diaktifkan** di `php.ini` (hapus tanda `;` di depan baris berikut):
+> ```ini
+> extension=pdo_sqlite
+> extension=sqlite3
+> extension=curl
+> extension=mbstring
+> extension=fileinfo
+> extension=openssl
+> extension=sockets
+> ```
 
 ---
 
-### Metode 1 — Script Otomatis (Linux / macOS)
+### Metode 1 — Script Otomatis (Direkomendasikan)
 
-```bash
-# Beri izin eksekusi (sekali saja)
-chmod +x run.sh
+Cukup **klik dua kali** file `run.bat` di folder proyek:
 
-# Jalankan
-./run.sh
-```
-
-Script akan otomatis: memeriksa database, inisialisasi jika belum ada, lalu menjalankan server di `http://127.0.0.1:8000`.
-
----
-
-### Metode 2 — Script Otomatis (Windows)
-
-Klik dua kali file:
 ```
 run.bat
 ```
 
+Script akan otomatis:
+1. Memeriksa apakah database SQLite sudah ada
+2. Menjalankan migrasi & seeding jika database belum ada
+3. Menyalakan web server di `http://127.0.0.1:8000`
+
+Buka browser dan akses `http://127.0.0.1:8000` — selesai.
+
 ---
 
-### Metode 3 — Manual Step-by-Step
+### Metode 2 — Manual via Command Prompt
 
-#### Step 1 — Masuk ke Direktori Proyek
+Buka **Command Prompt** (`cmd`) atau **PowerShell**, lalu jalankan satu per satu:
 
-```bash
-cd /path/ke/iotlistrik
+#### Step 1 — Masuk ke Folder Proyek
+
+```cmd
+cd C:\path\ke\iotlistrik
 ```
+
+> Contoh nyata: `cd C:\Users\Rizky\Documents\iotlistrik`
 
 #### Step 2 — Install Dependensi PHP
 
-```bash
+```cmd
 composer install
 ```
 
 #### Step 3 — Buat File Environment
 
-```bash
-cp .env.example .env
+```cmd
+copy .env.example .env
 php artisan key:generate
 ```
 
@@ -182,7 +190,7 @@ php artisan key:generate
 
 Perintah ini membuat semua tabel dan mengisi data awal **5 unit hardware** beserta **konfigurasi register Modbus**-nya:
 
-```bash
+```cmd
 php artisan migrate:fresh --seed --force
 ```
 
@@ -190,11 +198,13 @@ php artisan migrate:fresh --seed --force
 > - `DeviceAndRegisterSeeder` — mendaftarkan 5 perangkat + semua register Modbus
 > - `MeterLogHistorySeeder` — mengisi riwayat log simulasi agar grafik langsung tampil
 
-#### Step 5 — Jalankan Server
+#### Step 5 — Jalankan Web Server
 
-```bash
+```cmd
 php artisan serve --host=127.0.0.1 --port=8000
 ```
+
+> Jangan tutup jendela Command Prompt ini selama aplikasi digunakan.
 
 #### Step 6 — Buka di Browser
 
@@ -249,36 +259,32 @@ Tekan `Ctrl + C` untuk menghentikan.
 
 ---
 
-### Jalankan Logger di Background Tanpa Menutup Terminal (Linux)
+### Jalankan Logger di Background (Windows — CMD Terpisah)
 
-```bash
-nohup php artisan meter:log --loop >> storage/logs/meter-logger.log 2>&1 &
-echo "Logger berjalan dengan PID: $!"
+Buka **jendela Command Prompt baru** (jangan tutup cmd yang menjalankan server), lalu:
+
+```cmd
+cd C:\path\ke\iotlistrik
+php artisan meter:log --loop
 ```
 
-Untuk melihat output log:
-```bash
-tail -f storage/logs/meter-logger.log
-```
-
-Untuk menghentikan:
-```bash
-# Cari PID
-ps aux | grep "meter:log"
-
-# Hentikan
-kill <PID>
-```
+Jendela cmd ini akan terus berjalan sebagai logger. Tekan `Ctrl + C` untuk menghentikan.
 
 ---
 
-### Jadwal Otomatis via Cron (Production / Server)
+### Jadwal Otomatis via Windows Task Scheduler (Production)
 
-Tambahkan **satu baris** ini ke crontab server (`crontab -e`):
+Agar logger otomatis berjalan setiap menit tanpa perlu buka cmd secara manual:
 
-```cron
-* * * * * cd /path/ke/iotlistrik && php artisan schedule:run >> /dev/null 2>&1
-```
+1. Buka **Task Scheduler** (`taskschd.msc`) dari menu Start.
+2. Klik **Create Basic Task...**
+3. Isi nama: `IoT Meter Logger`
+4. Trigger: pilih **Daily** → set waktu mulai, centang **Repeat task every: 1 minute**
+5. Action: pilih **Start a program**
+   - Program: `php`
+   - Arguments: `artisan schedule:run`
+   - Start in: `C:\path\ke\iotlistrik`
+6. Klik **Finish**.
 
 Laravel Scheduler akan menangani interval logger sesuai pengaturan di menu **Pengaturan Sistem** aplikasi.
 
