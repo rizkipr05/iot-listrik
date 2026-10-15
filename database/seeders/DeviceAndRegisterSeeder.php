@@ -9,16 +9,16 @@ use Illuminate\Database\Seeder;
 class DeviceAndRegisterSeeder extends Seeder
 {
     /**
-     * Seed 5 perangkat meter dan konfigurasi register standar.
+     * Seed 4 perangkat meter SCADA: 3 Flowmeter & 1 pH Sensor.
      */
     public function run(): void
     {
         $hardwareDevices = [
             [
                 'device' => [
-                    'name' => 'Meter Air RS485',
-                    'category' => 'water_meter',
-                    'description' => '1 unit Meter Air mekanik/elektromagnetik RS485 via Gateway TCP/IP',
+                    'name' => 'FLOWMETER 8" - AREA RMS',
+                    'category' => 'flow_meter',
+                    'description' => 'Electromagnetic Flowmeter 8 inch - Area RMS (Nominal Size: 8 inch | Range: 0 ~ 300 m³/h)',
                     'ip_address' => '192.168.1.100',
                     'port' => 502,
                     'slave_id' => 1,
@@ -27,9 +27,19 @@ class DeviceAndRegisterSeeder extends Seeder
                 ],
                 'registers' => [
                     [
-                        'name' => 'Totalizer Volume Air (m³)',
-                        'parameter_key' => 'totalizer',
+                        'name' => 'Laju Aliran / Flowrate (m³/h)',
+                        'parameter_key' => 'flow_rate',
                         'register_address' => 0,
+                        'function_code' => 3,
+                        'data_type' => 'float32',
+                        'byte_order' => 'CDAB',
+                        'multiplier' => 1.0,
+                        'unit' => 'm³/h',
+                    ],
+                    [
+                        'name' => 'Totality / Totalizer Akumulatif (m³)',
+                        'parameter_key' => 'totalizer',
+                        'register_address' => 2,
                         'function_code' => 3,
                         'data_type' => 'float32',
                         'byte_order' => 'CDAB',
@@ -40,9 +50,9 @@ class DeviceAndRegisterSeeder extends Seeder
             ],
             [
                 'device' => [
-                    'name' => 'Meter Air Digital RS485',
-                    'category' => 'digital_water_meter',
-                    'description' => '1 unit Meter Air Digital ultrasonik/elektromagnetik RS485 via Gateway TCP/IP',
+                    'name' => 'FLOWMETER 8" - AREA MHS',
+                    'category' => 'flow_meter',
+                    'description' => 'Electromagnetic Flowmeter 8 inch - Area MHS (Nominal Size: 8 inch | Range: 0 ~ 300 m³/h)',
                     'ip_address' => '192.168.1.100',
                     'port' => 502,
                     'slave_id' => 2,
@@ -51,32 +61,32 @@ class DeviceAndRegisterSeeder extends Seeder
                 ],
                 'registers' => [
                     [
-                        'name' => 'Totalizer Volume Air (m³)',
-                        'parameter_key' => 'totalizer',
-                        'register_address' => 0,
-                        'function_code' => 3,
-                        'data_type' => 'float32',
-                        'byte_order' => 'CDAB',
-                        'multiplier' => 1.0,
-                        'unit' => 'm³',
-                    ],
-                    [
-                        'name' => 'Laju Alir / Flow Rate (m³/h)',
+                        'name' => 'Laju Aliran / Flowrate (m³/h)',
                         'parameter_key' => 'flow_rate',
-                        'register_address' => 2,
+                        'register_address' => 0,
                         'function_code' => 3,
                         'data_type' => 'float32',
                         'byte_order' => 'CDAB',
                         'multiplier' => 1.0,
                         'unit' => 'm³/h',
                     ],
+                    [
+                        'name' => 'Totality / Totalizer Akumulatif (m³)',
+                        'parameter_key' => 'totalizer',
+                        'register_address' => 2,
+                        'function_code' => 3,
+                        'data_type' => 'float32',
+                        'byte_order' => 'CDAB',
+                        'multiplier' => 1.0,
+                        'unit' => 'm³',
+                    ],
                 ],
             ],
             [
                 'device' => [
-                    'name' => 'Flow Meter RS485',
+                    'name' => 'FLOWMETER 8" - AREA H-RMS',
                     'category' => 'flow_meter',
-                    'description' => '1 unit Flow Meter pipa industri RS485 via Gateway TCP/IP',
+                    'description' => 'Electromagnetic Flowmeter 8 inch - Area H-RMS (Nominal Size: 8 inch | Range: 0 ~ 300 m³/h)',
                     'ip_address' => '192.168.1.100',
                     'port' => 502,
                     'slave_id' => 3,
@@ -85,32 +95,32 @@ class DeviceAndRegisterSeeder extends Seeder
                 ],
                 'registers' => [
                     [
-                        'name' => 'Totalizer Akumulatif (m³)',
-                        'parameter_key' => 'totalizer',
-                        'register_address' => 0,
-                        'function_code' => 3,
-                        'data_type' => 'float32',
-                        'byte_order' => 'CDAB',
-                        'multiplier' => 1.0,
-                        'unit' => 'm³',
-                    ],
-                    [
-                        'name' => 'Laju Aliran Sesaat / Flow Rate (m³/h)',
+                        'name' => 'Laju Aliran / Flowrate (m³/h)',
                         'parameter_key' => 'flow_rate',
-                        'register_address' => 2,
+                        'register_address' => 0,
                         'function_code' => 3,
                         'data_type' => 'float32',
                         'byte_order' => 'CDAB',
                         'multiplier' => 1.0,
                         'unit' => 'm³/h',
                     ],
+                    [
+                        'name' => 'Totality / Totalizer Akumulatif (m³)',
+                        'parameter_key' => 'totalizer',
+                        'register_address' => 2,
+                        'function_code' => 3,
+                        'data_type' => 'float32',
+                        'byte_order' => 'CDAB',
+                        'multiplier' => 1.0,
+                        'unit' => 'm³',
+                    ],
                 ],
             ],
             [
                 'device' => [
-                    'name' => 'kWh Meter RS485',
-                    'category' => 'kwh_meter',
-                    'description' => '1 unit kWh Meter listrik digital RS485 via Gateway TCP/IP',
+                    'name' => 'pH SENSOR',
+                    'category' => 'ph_sensor',
+                    'description' => 'Sensor pH Cairan Industri (Range: 0 ~ 14 pH | Normal: 7.0 ~ 8.0)',
                     'ip_address' => '192.168.1.100',
                     'port' => 502,
                     'slave_id' => 4,
@@ -119,98 +129,31 @@ class DeviceAndRegisterSeeder extends Seeder
                 ],
                 'registers' => [
                     [
-                        'name' => 'Total Energi Listrik (Total kWh)',
-                        'parameter_key' => 'energy',
-                        'register_address' => 3200,
+                        'name' => 'Nilai pH (pH Value)',
+                        'parameter_key' => 'ph',
+                        'register_address' => 0,
                         'function_code' => 3,
                         'data_type' => 'float32',
                         'byte_order' => 'CDAB',
                         'multiplier' => 1.0,
-                        'unit' => 'kWh',
-                    ],
-                    [
-                        'name' => 'Tegangan Listrik (V)',
-                        'parameter_key' => 'voltage',
-                        'register_address' => 3000,
-                        'function_code' => 3,
-                        'data_type' => 'float32',
-                        'byte_order' => 'CDAB',
-                        'multiplier' => 1.0,
-                        'unit' => 'V',
-                    ],
-                    [
-                        'name' => 'Arus Beban Listrik (A)',
-                        'parameter_key' => 'current',
-                        'register_address' => 3002,
-                        'function_code' => 3,
-                        'data_type' => 'float32',
-                        'byte_order' => 'CDAB',
-                        'multiplier' => 1.0,
-                        'unit' => 'A',
-                    ],
-                ],
-            ],
-            [
-                'device' => [
-                    'name' => 'Power Meter RS485',
-                    'category' => 'power_meter',
-                    'description' => '1 unit Multifunction Power Meter Analyzer RS485 via Gateway TCP/IP',
-                    'ip_address' => '192.168.1.100',
-                    'port' => 502,
-                    'slave_id' => 5,
-                    'timeout_ms' => 1500,
-                    'is_active' => true,
-                ],
-                'registers' => [
-                    [
-                        'name' => 'Total Energi Listrik (Total kWh)',
-                        'parameter_key' => 'energy',
-                        'register_address' => 3200,
-                        'function_code' => 3,
-                        'data_type' => 'float32',
-                        'byte_order' => 'CDAB',
-                        'multiplier' => 1.0,
-                        'unit' => 'kWh',
-                    ],
-                    [
-                        'name' => 'Tegangan Listrik (V)',
-                        'parameter_key' => 'voltage',
-                        'register_address' => 3000,
-                        'function_code' => 3,
-                        'data_type' => 'float32',
-                        'byte_order' => 'CDAB',
-                        'multiplier' => 1.0,
-                        'unit' => 'V',
-                    ],
-                    [
-                        'name' => 'Arus Beban Listrik (A)',
-                        'parameter_key' => 'current',
-                        'register_address' => 3002,
-                        'function_code' => 3,
-                        'data_type' => 'float32',
-                        'byte_order' => 'CDAB',
-                        'multiplier' => 1.0,
-                        'unit' => 'A',
-                    ],
-                    [
-                        'name' => 'Daya Aktif Total (kW)',
-                        'parameter_key' => 'power',
-                        'register_address' => 3006,
-                        'function_code' => 3,
-                        'data_type' => 'float32',
-                        'byte_order' => 'CDAB',
-                        'multiplier' => 1.0,
-                        'unit' => 'kW',
+                        'unit' => 'pH',
                     ],
                 ],
             ],
         ];
 
+        // Hapus device lama yang bukan bagian dari 4 instrumen SCADA (Slave ID 1-4)
+        Device::whereNotIn('slave_id', [1, 2, 3, 4])->delete();
+
         foreach ($hardwareDevices as $item) {
             $device = Device::updateOrCreate(
-                ['name' => $item['device']['name']],
+                ['slave_id' => $item['device']['slave_id']],
                 $item['device']
             );
+
+            // Bersihkan register lama yang tidak ada di mapping baru untuk device ini
+            $activeKeys = collect($item['registers'])->pluck('parameter_key')->toArray();
+            $device->registers()->whereNotIn('parameter_key', $activeKeys)->delete();
 
             // Perbarui atau tambahkan register
             foreach ($item['registers'] as $regData) {

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Device;
+use App\Services\ModbusTcpService;
 use Illuminate\Http\Request;
 
 class DeviceController extends Controller
@@ -99,8 +100,9 @@ class DeviceController extends Controller
     /**
      * Tes koneksi socket TCP ke IP dan Port gateway device.
      */
-    public function testConnection(Device $device)
+    public function testConnection(Device $device, ModbusTcpService $modbusService)
     {
+        $modbusService->clearGatewayCache($device->ip_address, $device->port);
         $timeoutSeconds = ($device->timeout_ms ?? 1500) / 1000;
         $errno = 0;
         $errstr = '';

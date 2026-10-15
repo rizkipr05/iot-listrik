@@ -86,26 +86,7 @@
                 </div>
                 <div>
                     <h3 class="fw-bold mb-0 mono-font text-dark">{{ number_format($totalLogs) }} <span class="fs-6 fw-normal text-muted">Baris</span></h3>
-                    <small class="text-muted" style="font-size: 0.74rem;">Sampel data tersimpan</small>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Delta Akumulasi Energi Listrik (kWh) -->
-    <div class="col-sm-6 col-xl-3">
-        <div class="card kpi-card-hist kpi-voltage p-3 h-100">
-            <div class="d-flex align-items-center justify-content-between mb-2">
-                <span class="text-muted small fw-bold text-uppercase" style="font-size: 0.7rem;">Konsumsi Listrik</span>
-                <span class="badge bg-success-subtle text-success rounded-pill small" style="font-size: 0.7rem;">kWh &Delta;</span>
-            </div>
-            <div class="d-flex align-items-center gap-3 my-1">
-                <div class="p-2 bg-success-subtle text-success rounded-3 fs-4">
-                    <i class="bi bi-battery-charging"></i>
-                </div>
-                <div>
-                    <h3 class="fw-bold mb-0 mono-font text-success">{{ $energyConsumed }} <span class="fs-6 fw-normal text-muted">kWh</span></h3>
-                    <small class="text-muted" style="font-size: 0.74rem;">Rata-rata: {{ $avgPower }} kW</small>
+                    <small class="text-muted" style="font-size: 0.74rem;">Sampel telemetri tersimpan</small>
                 </div>
             </div>
         </div>
@@ -123,8 +104,8 @@
                     <i class="bi bi-droplet-fill"></i>
                 </div>
                 <div>
-                    <h3 class="fw-bold mb-0 mono-font text-info">{{ $totalWaterVolume }} <span class="fs-6 fw-normal text-muted">m³</span></h3>
-                    <small class="text-muted" style="font-size: 0.74rem;">Delta volume meter air</small>
+                    <h3 class="fw-bold mb-0 mono-font text-info">{{ number_format($totalWaterVolume, 1) }} <span class="fs-6 fw-normal text-muted">m³</span></h3>
+                    <small class="text-muted" style="font-size: 0.74rem;">Delta volume flowmeter</small>
                 </div>
             </div>
         </div>
@@ -142,8 +123,27 @@
                     <i class="bi bi-water"></i>
                 </div>
                 <div>
-                    <h3 class="fw-bold mb-0 mono-font text-primary">{{ $avgFlowRate }} <span class="fs-6 fw-normal text-muted">m³/h</span></h3>
+                    <h3 class="fw-bold mb-0 mono-font text-primary">{{ number_format($avgFlowRate, 1) }} <span class="fs-6 fw-normal text-muted">m³/h</span></h3>
                     <small class="text-muted" style="font-size: 0.74rem;">Kecepatan aliran rata-rata</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rata-rata pH Sensor -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card kpi-card-hist kpi-voltage p-3 h-100">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="text-muted small fw-bold text-uppercase" style="font-size: 0.7rem;">Rata-rata pH Sensor</span>
+                <span class="badge bg-success-subtle text-success rounded-pill small" style="font-size: 0.7rem;">pH Range</span>
+            </div>
+            <div class="d-flex align-items-center gap-3 my-1">
+                <div class="p-2 bg-success-subtle text-success rounded-3 fs-4">
+                    <i class="bi bi-activity"></i>
+                </div>
+                <div>
+                    <h3 class="fw-bold mb-0 mono-font text-success">{{ number_format($avgPh, 2) }} <span class="fs-6 fw-normal text-muted">pH</span></h3>
+                    <small class="text-muted" style="font-size: 0.74rem;">Status: <span class="text-success fw-bold">NORMAL (7.0 - 8.0)</span></small>
                 </div>
             </div>
         </div>
@@ -214,7 +214,7 @@
 </div>
 
 @if(count($chartLabels) > 0)
-<!-- Grafik Tren Historis Beban Daya & Arus -->
+<!-- Grafik Tren Historis Beban Daya, Flow Rate & pH -->
 <div class="card shadow-sm border-0 mb-4" style="border-radius: 16px;">
     <div class="card-header bg-white py-3 px-4 d-flex justify-content-between align-items-center border-bottom">
         <div class="d-flex align-items-center gap-2">
@@ -222,8 +222,8 @@
                 <i class="bi bi-graph-up"></i>
             </div>
             <div>
-                <span class="fw-bold text-dark d-block">Grafik Tren Historis Beban Daya & Arus</span>
-                <small class="text-muted fw-normal" style="font-size: 0.74rem;">Visualisasi fluktuasi kW dan Ampere sepanjang rentang waktu terpilih</small>
+                <span class="fw-bold text-dark d-block">Grafik Tren Historis Telemetri Instrument</span>
+                <small class="text-muted fw-normal" style="font-size: 0.74rem;">Visualisasi fluktuasi laju alir (m³/h), nilai pH, dan beban sepanjang rentang waktu terpilih</small>
             </div>
         </div>
         <span class="badge bg-light text-muted border mono-font px-2 py-1">{{ count($chartLabels) }} Titik Sampel</span>
@@ -258,9 +258,10 @@
                 <tr>
                     <th class="ps-4" style="width: 50px;">#</th>
                     <th>Waktu Log</th>
-                    <th>Device Meter</th>
+                    <th>Device Instrument</th>
                     <th>Totalizer (m³)</th>
                     <th>Flow Rate (m³/h)</th>
+                    <th>Nilai pH</th>
                     <th>Tegangan (V)</th>
                     <th>Arus (A)</th>
                     <th>Daya (kW)</th>
@@ -279,8 +280,10 @@
                         <td>
                             <div class="d-flex align-items-center gap-1">
                                 <span class="fw-bold text-dark">{{ $log->device->name ?? 'Meter Dihapus' }}</span>
-                                @if($log->device && $log->device->isWater())
-                                    <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill py-0 px-1" style="font-size: 0.65rem;">Air/Flow</span>
+                                @if($log->device && $log->device->isPhSensor())
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill py-0 px-1" style="font-size: 0.65rem;">pH Sensor</span>
+                                @elseif($log->device && ($log->device->isFlowMeter() || $log->device->isWater()))
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill py-0 px-1" style="font-size: 0.65rem;">Flowmeter 8"</span>
                                 @else
                                     <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill py-0 px-1" style="font-size: 0.65rem;">Listrik</span>
                                 @endif
@@ -289,14 +292,21 @@
                         </td>
                         <td>
                             @if($log->totalizer !== null)
-                                <span class="mono-font fw-bold text-info">{{ number_format($log->totalizer, 3) }} m³</span>
+                                <span class="mono-font fw-bold text-info">{{ number_format($log->totalizer, 1) }} m³</span>
                             @else
                                 <span class="text-muted">-</span>
                             @endif
                         </td>
                         <td>
                             @if($log->flow_rate !== null)
-                                <span class="mono-font fw-semibold text-primary">{{ number_format($log->flow_rate, 2) }} m³/h</span>
+                                <span class="mono-font fw-semibold text-primary">{{ number_format($log->flow_rate, 1) }} m³/h</span>
+                            @else
+                                <span class="text-muted">-</span>
+                            @endif
+                        </td>
+                        <td>
+                            @if($log->ph !== null)
+                                <span class="mono-font fw-bold text-success">{{ number_format($log->ph, 2) }} pH</span>
                             @else
                                 <span class="text-muted">-</span>
                             @endif
@@ -343,7 +353,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="10" class="text-center py-5 text-muted">
+                        <td colspan="11" class="text-center py-5 text-muted">
                             <i class="bi bi-clock-history fs-1 d-block mb-2 text-secondary opacity-50"></i>
                             <h6 class="fw-bold mb-1">Tidak Ada Data Log</h6>
                             <p class="small text-muted mb-0">Tidak ada data log yang ditemukan untuk periode filter yang dipilih.</p>
@@ -445,43 +455,100 @@
     const chartLabels = @json($chartLabels);
     const chartPowers = @json($chartPowers);
     const chartCurrents = @json($chartCurrents);
+    const chartFlowRates = @json($chartFlowRates);
+    const chartPhs = @json($chartPhs);
 
     if (chartLabels.length > 0 && document.getElementById('historyTrendChart')) {
         const ctx = document.getElementById('historyTrendChart').getContext('2d');
-        
-        const gradPower = ctx.createLinearGradient(0, 0, 0, 240);
-        gradPower.addColorStop(0, 'rgba(37, 99, 235, 0.2)');
-        gradPower.addColorStop(1, 'rgba(37, 99, 235, 0.0)');
+        const hasFlow = chartFlowRates.some(v => v > 0);
+        const hasPh = chartPhs.some(v => v > 0);
+        const hasPower = chartPowers.some(v => v > 0);
+
+        let datasets = [];
+        let yUnit = 'kW';
+        let y1Unit = 'A';
+
+        if (hasFlow || hasPh) {
+            const gradFlow = ctx.createLinearGradient(0, 0, 0, 240);
+            gradFlow.addColorStop(0, 'rgba(2, 132, 199, 0.25)');
+            gradFlow.addColorStop(1, 'rgba(2, 132, 199, 0.0)');
+
+            datasets.push({
+                label: 'Flow Rate (m³/h)',
+                data: chartFlowRates,
+                borderColor: '#0284c7',
+                backgroundColor: gradFlow,
+                borderWidth: 2.2,
+                tension: 0.35,
+                fill: true,
+                pointRadius: 2,
+                yAxisID: 'y'
+            });
+
+            datasets.push({
+                label: 'Nilai pH',
+                data: chartPhs,
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.05)',
+                borderWidth: 2,
+                borderDash: [3, 3],
+                tension: 0.35,
+                fill: false,
+                pointRadius: 2,
+                yAxisID: 'y1'
+            });
+
+            if (hasPower) {
+                datasets.push({
+                    label: 'Daya Aktif (kW)',
+                    data: chartPowers,
+                    borderColor: '#f59e0b',
+                    borderWidth: 1.5,
+                    tension: 0.35,
+                    fill: false,
+                    pointRadius: 2,
+                    yAxisID: 'y'
+                });
+            }
+
+            yUnit = 'm³/h';
+            y1Unit = 'pH';
+        } else {
+            const gradPower = ctx.createLinearGradient(0, 0, 0, 240);
+            gradPower.addColorStop(0, 'rgba(37, 99, 235, 0.2)');
+            gradPower.addColorStop(1, 'rgba(37, 99, 235, 0.0)');
+
+            datasets.push({
+                label: 'Daya Aktif (kW)',
+                data: chartPowers,
+                borderColor: '#2563eb',
+                backgroundColor: gradPower,
+                borderWidth: 2.2,
+                tension: 0.35,
+                fill: true,
+                pointRadius: 2,
+                yAxisID: 'y'
+            });
+
+            datasets.push({
+                label: 'Arus (A)',
+                data: chartCurrents,
+                borderColor: '#f59e0b',
+                backgroundColor: 'rgba(245, 158, 11, 0.05)',
+                borderWidth: 1.8,
+                borderDash: [4, 4],
+                tension: 0.35,
+                fill: false,
+                pointRadius: 2,
+                yAxisID: 'y1'
+            });
+        }
 
         new Chart(ctx, {
             type: 'line',
             data: {
                 labels: chartLabels,
-                datasets: [
-                    {
-                        label: 'Daya Aktif (kW)',
-                        data: chartPowers,
-                        borderColor: '#2563eb',
-                        backgroundColor: gradPower,
-                        borderWidth: 2.2,
-                        tension: 0.35,
-                        fill: true,
-                        pointRadius: 2,
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Arus (A)',
-                        data: chartCurrents,
-                        borderColor: '#f59e0b',
-                        backgroundColor: 'rgba(245, 158, 11, 0.05)',
-                        borderWidth: 1.8,
-                        borderDash: [4, 4],
-                        tension: 0.35,
-                        fill: false,
-                        pointRadius: 2,
-                        yAxisID: 'y1'
-                    }
-                ]
+                datasets: datasets
             },
             options: {
                 responsive: true,
@@ -514,8 +581,8 @@
                         grid: { color: '#f1f5f9' },
                         ticks: {
                             font: { family: 'JetBrains Mono', size: 10 },
-                            color: '#2563eb',
-                            callback: function(v) { return v + ' kW'; }
+                            color: '#0284c7',
+                            callback: function(v) { return v + ' ' + yUnit; }
                         }
                     },
                     y1: {
@@ -525,8 +592,8 @@
                         grid: { drawOnChartArea: false },
                         ticks: {
                             font: { family: 'JetBrains Mono', size: 10 },
-                            color: '#f59e0b',
-                            callback: function(v) { return v + ' A'; }
+                            color: hasFlow || hasPh ? '#10b981' : '#f59e0b',
+                            callback: function(v) { return v + ' ' + y1Unit; }
                         }
                     }
                 }

@@ -16,7 +16,7 @@ class ModbusTcpService
     protected const OFFLINE_CACHE_TTL = 60;
 
     /**
-     * Cek apakah gateway IP:Port dapat dijangkau dalam waktu singkat (maks 50ms).
+     * Cek apakah gateway IP:Port dapat dijangkau dalam waktu singkat (maks 200ms).
      */
     public function isGatewayReachable(string $ip, int $port): bool
     {
@@ -25,12 +25,12 @@ class ModbusTcpService
         return Cache::remember($cacheKey, self::OFFLINE_CACHE_TTL, function () use ($ip, $port) {
             $errno = 0;
             $errstr = '';
-            // Timeout kilat 0.05 detik (50ms) agar tidak membebani respons web
+            // Timeout 200ms (0.2 detik) agar reliable di jaringan LAN fisik
             $socket = @stream_socket_client(
                 "tcp://{$ip}:{$port}",
                 $errno,
                 $errstr,
-                0.05
+                0.2
             );
 
             if ($socket) {
@@ -342,10 +342,41 @@ class ModbusTcpService
     {
         $index = $device->slave_id;
         $seed = time() + $index;
+        $nameLower = strtolower($device->name);
+
+        if ($register->parameter_key === 'ph' || $device->isPhSensor()) {
+            return round(7.62 + (sin($seed / 25) * 0.06), 2);
+        }
+
+        if ($register->parameter_key === 'flow_rate') {
+            if ($index === 1 || (str_contains($nameLower, 'rms') && ! str_contains($nameLower, 'h-rms'))) {
+                return round(185.6 + (sin($seed / 15) * 2.5), 1);
+            }
+            if ($index === 2 || str_contains($nameLower, 'mhs')) {
+                return round(142.7 + (cos($seed / 15) * 2.0), 1);
+            }
+            if ($index === 3 || str_contains($nameLower, 'h-rms')) {
+                return round(97.4 + (sin($seed / 12) * 1.5), 1);
+            }
+
+            return round(max(0.1, 80.0 + (sin($seed / 8) * 15.0) + ($index * 10)), 1);
+        }
+
+        if ($register->parameter_key === 'totalizer') {
+            if ($index === 1 || (str_contains($nameLower, 'rms') && ! str_contains($nameLower, 'h-rms'))) {
+                return round(8542.3 + ((time() % 86400) * 0.003), 1);
+            }
+            if ($index === 2 || str_contains($nameLower, 'mhs')) {
+                return round(6783.5 + ((time() % 86400) * 0.0025), 1);
+            }
+            if ($index === 3 || str_contains($nameLower, 'h-rms')) {
+                return round(4126.8 + ((time() % 86400) * 0.002), 1);
+            }
+
+            return round(5000.0 + ($index * 1200) + ((time() % 86400) * 0.002), 1);
+        }
 
         return match ($register->parameter_key) {
-            'totalizer' => round(124.500 + ($index * 42.3) + ((time() % 3600) * 0.002), 3),
-            'flow_rate' => round(max(0.1, 3.8 + (sin($seed / 8) * 1.2) + (($index % 2) * 1.5)), 2),
             'voltage' => round(221.5 + (sin($seed / 10) * 1.5) + (($index % 3) * 0.8), 1),
             'current' => round(14.0 + (cos($seed / 15) * 3.0) + ($index * 2.5), 1),
             'power' => round(5.2 + (sin($seed / 20) * 1.5) + ($index * 1.8), 2),

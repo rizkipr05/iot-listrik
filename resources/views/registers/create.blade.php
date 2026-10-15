@@ -56,15 +56,16 @@
                         <div class="col-md-5">
                             <label for="parameter_key" class="form-label fw-semibold small text-secondary">Kategori Parameter <span class="text-danger">*</span></label>
                             <select name="parameter_key" id="parameter_key" class="form-select @error('parameter_key') is-invalid @enderror" required>
-                                <option value="totalizer" {{ old('parameter_key') == 'totalizer' ? 'selected' : '' }}>Totalizer Air (m³)</option>
-                                <option value="flow_rate" {{ old('parameter_key') == 'flow_rate' ? 'selected' : '' }}>Flow Rate / Laju Alir (m³/h)</option>
+                                <option value="flow_rate" {{ old('parameter_key', 'flow_rate') == 'flow_rate' ? 'selected' : '' }}>Flow Rate / Laju Alir (m³/h)</option>
+                                <option value="totalizer" {{ old('parameter_key') == 'totalizer' ? 'selected' : '' }}>Totalizer / Akumulasi Volume (m³)</option>
+                                <option value="ph" {{ old('parameter_key') == 'ph' ? 'selected' : '' }}>Nilai pH / pH Value (pH)</option>
                                 <option value="energy" {{ old('parameter_key') == 'energy' ? 'selected' : '' }}>Total kWh / Energi (kWh)</option>
                                 <option value="voltage" {{ old('parameter_key') == 'voltage' ? 'selected' : '' }}>Tegangan (Voltage V)</option>
                                 <option value="current" {{ old('parameter_key') == 'current' ? 'selected' : '' }}>Arus (Current A)</option>
                                 <option value="power" {{ old('parameter_key') == 'power' ? 'selected' : '' }}>Daya Aktif (Active Power kW)</option>
                                 <option value="frequency" {{ old('parameter_key') == 'frequency' ? 'selected' : '' }}>Frekuensi (Frequency Hz)</option>
                                 <option value="power_factor" {{ old('parameter_key') == 'power_factor' ? 'selected' : '' }}>Power Factor (Cos Phi)</option>
-                                <option value="other" {{ old('parameter_key', 'other') == 'other' ? 'selected' : '' }}>Lainnya (Custom)</option>
+                                <option value="other" {{ old('parameter_key') == 'other' ? 'selected' : '' }}>Lainnya (Custom)</option>
                             </select>
                             @error('parameter_key')
                                 <div class="invalid-feedback">{{ $message }}</div>

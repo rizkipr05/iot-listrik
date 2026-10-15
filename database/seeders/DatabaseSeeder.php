@@ -22,6 +22,9 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        $this->call(DeviceAndRegisterSeeder::class);
+        $this->call([
+            DeviceAndRegisterSeeder::class,
+            MeterLogHistorySeeder::class,
+        ]);
     }
 }

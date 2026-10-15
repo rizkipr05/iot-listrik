@@ -41,12 +41,13 @@
                         <div class="col-md-5">
                             <label for="category" class="form-label fw-semibold small text-secondary">Tipe / Kategori Hardware</label>
                             <select name="category" id="category" class="form-select @error('category') is-invalid @enderror">
-                                <option value="water_meter" {{ old('category') == 'water_meter' ? 'selected' : '' }}>Meter Air RS485 (Totalizer m³)</option>
+                                <option value="flow_meter" {{ old('category', 'flow_meter') == 'flow_meter' ? 'selected' : '' }}>Electromagnetic Flowmeter (Flowrate & Totalizer)</option>
+                                <option value="ph_sensor" {{ old('category') == 'ph_sensor' ? 'selected' : '' }}>Sensor pH (0 ~ 14 pH)</option>
+                                <option value="water_meter" {{ old('category') == 'water_meter' ? 'selected' : '' }}>Meter Air Mekanik (Totalizer m³)</option>
                                 <option value="digital_water_meter" {{ old('category') == 'digital_water_meter' ? 'selected' : '' }}>Meter Air Digital RS485 (Totalizer & Flow)</option>
-                                <option value="flow_meter" {{ old('category') == 'flow_meter' ? 'selected' : '' }}>Flow Meter RS485 (Totalizer & Flow)</option>
                                 <option value="kwh_meter" {{ old('category') == 'kwh_meter' ? 'selected' : '' }}>kWh Meter RS485 (kWh, V, A)</option>
                                 <option value="power_meter" {{ old('category') == 'power_meter' ? 'selected' : '' }}>Power Meter RS485 (kWh, V, A, kW)</option>
-                                <option value="electricity" {{ old('category', 'electricity') == 'electricity' ? 'selected' : '' }}>Meter Listrik Umum</option>
+                                <option value="electricity" {{ old('category') == 'electricity' ? 'selected' : '' }}>Meter Listrik Umum</option>
                             </select>
                             @error('category')
                                 <div class="invalid-feedback">{{ $message }}</div>

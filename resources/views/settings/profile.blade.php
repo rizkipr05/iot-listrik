@@ -124,7 +124,7 @@
                                class="form-control @error('password') is-invalid @enderror" 
                                id="password" 
                                name="password" 
-                               placeholder="Minimal 6 karakter"
+                               placeholder="Minimal 6 karakter".
                                required>
                         @error('password')
                             <div class="invalid-feedback">{{ $message }}</div>

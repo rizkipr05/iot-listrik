@@ -65,6 +65,7 @@ class Register extends Model
         return match ($this->parameter_key) {
             'totalizer' => 'Totalizer (m³)',
             'flow_rate' => 'Flow Rate (m³/h)',
+            'ph' => 'Nilai pH (pH)',
             'voltage' => 'Tegangan (V)',
             'current' => 'Arus (A)',
             'power' => 'Daya Aktif (kW)',

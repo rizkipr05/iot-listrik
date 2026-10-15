@@ -266,7 +266,7 @@
     @yield('styles')
 </head>
 
-<body>
+<body class="@hasSection('scada-fullscreen') scada-fullscreen @endif">
     <!-- Sidebar -->
     <nav id="sidebar">
         <!-- Brand Header -->
@@ -356,10 +356,14 @@
             </div>
         @endauth
     </nav>
+    @if(View::hasSection('scada-fullscreen'))
+        <div class="scada-sidebar-backdrop" id="scadaSidebarBackdrop"></div>
+    @endif
 
     <!-- Main Content Wrapper -->
     <div id="main-content">
         <!-- Top Navbar -->
+        @unless(View::hasSection('scada-fullscreen'))
         <header class="top-navbar d-flex align-items-center justify-content-between">
             <div class="d-flex align-items-center gap-3">
                 <button class="btn btn-sm btn-outline-secondary d-lg-none" id="sidebarToggle">
@@ -426,9 +430,10 @@
                 @endauth
             </div>
         </header>
+        @endunless
 
         <!-- Page Body Content -->
-        <main class="flex-grow-1 p-3 p-md-4">
+        <main class="flex-grow-1 {{ View::hasSection('scada-fullscreen') ? 'p-1' : 'p-3 p-md-4' }}">
             @if(session('success'))
                 <div class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2 border-0 shadow-sm"
                     role="alert" style="border-radius: 12px; background: #ecfdf5; color: #065f46;">
@@ -466,6 +471,7 @@
         </main>
 
         <!-- Footer -->
+        @unless(View::hasSection('scada-fullscreen'))
         <footer
             class="bg-white border-top py-3 px-4 text-center text-muted small d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2">
             <span>&copy; {{ date('Y') }} <strong>IoT Meter Monitoring</strong> &bull; Industrial Modbus TCP
@@ -475,6 +481,7 @@
                 <span class="badge bg-success-subtle text-success border border-success-subtle">Localhost Ready</span>
             </div>
         </footer>
+        @endunless
     </div>
 
     <!-- Scripts -->
@@ -484,15 +491,31 @@
         const sidebar = document.getElementById('sidebar');
         const sidebarToggle = document.getElementById('sidebarToggle');
         const sidebarClose = document.getElementById('sidebarClose');
+        const scadaSidebarToggle = document.getElementById('scadaSidebarToggle');
+        const scadaSidebarBackdrop = document.getElementById('scadaSidebarBackdrop');
+
+        function setScadaSidebarOpen(isOpen) {
+            if (!sidebar || !scadaSidebarBackdrop) return;
+            sidebar.classList.toggle('active', isOpen);
+            scadaSidebarBackdrop.classList.toggle('active', isOpen);
+            document.body.classList.toggle('scada-sidebar-open', isOpen);
+            scadaSidebarToggle?.setAttribute('aria-expanded', String(isOpen));
+            scadaSidebarToggle?.setAttribute('aria-label', isOpen ? 'Tutup menu' : 'Buka menu');
+            const scadaSidebarToggleLabel = document.getElementById('scadaSidebarToggleLabel');
+            if (scadaSidebarToggleLabel) {
+                scadaSidebarToggleLabel.textContent = isOpen ? 'TUTUP MENU' : 'BUKA MENU';
+            }
+        }
+
+        scadaSidebarToggle?.addEventListener('click', () => {
+            setScadaSidebarOpen(!sidebar?.classList.contains('active'));
+        });
+        scadaSidebarBackdrop?.addEventListener('click', () => setScadaSidebarOpen(false));
+        sidebarClose?.addEventListener('click', () => setScadaSidebarOpen(false));
 
         if (sidebarToggle && sidebar) {
             sidebarToggle.addEventListener('click', () => {
                 sidebar.classList.toggle('active');
-            });
-        }
-        if (sidebarClose && sidebar) {
-            sidebarClose.addEventListener('click', () => {
-                sidebar.classList.remove('active');
             });
         }
 

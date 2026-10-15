@@ -2,6 +2,8 @@
 
 @section('title', 'FLOW METER & pH MONITORING SYSTEM')
 
+@section('scada-fullscreen', true)
+
 @section('styles')
 <style>
     /* SCADA Theme Tokens */
@@ -242,6 +244,61 @@
     .scada-bottom-banner a:hover {
         text-decoration: underline;
     }
+
+    /* Match the compact, full-screen SCADA reference layout. */
+    body.scada-fullscreen { background: #dcebf2; color: #18334d; overflow-x: hidden; }
+    body.scada-fullscreen #main-content { margin-left: 0; min-height: 100vh; width: 100%; min-width: 0; }
+    body.scada-fullscreen #main-content { transition: margin-left .25s ease, width .25s ease; }
+    body.scada-fullscreen #main-content > main { padding: 4px !important; }
+    body.scada-fullscreen #sidebar { transform: translateX(-100%); margin-left: 0; }
+    body.scada-fullscreen #sidebar.active { transform: translateX(0); }
+    .scada-sidebar-backdrop { display: none; position: fixed; inset: 0; z-index: 999; background: rgba(3, 12, 28, .32); }
+    .scada-sidebar-backdrop.active { display: block; }
+    body.scada-fullscreen .container-fluid { padding: 0 !important; }
+    .scada-fullscreen .scada-banner { min-height: 72px; border-radius: 5px; padding: 10px 12px !important; margin-bottom: 8px !important; background-image: linear-gradient(100deg, #052d66 0%, rgba(18, 103, 179, .94) 56%, rgba(18, 61, 118, .62) 100%), url('{{ asset('assets/scada-header-background.jpg') }}'); background-position: center, right center; background-repeat: no-repeat; background-size: 100% 100%, auto 100%; }
+    .scada-fullscreen .scada-banner::after { content: ''; position: absolute; inset: 0 18% 0 56%; background: linear-gradient(90deg, transparent, rgba(103, 190, 239, .25), transparent); pointer-events: none; }
+    .scada-fullscreen .scada-home-btn { min-width: 108px; height: 34px; padding: 0 10px; gap: 6px; border-radius: 6px; background: rgba(255, 255, 255, .13); box-shadow: none; font-size: 1rem; }
+    .scada-fullscreen .scada-home-btn:hover { background: rgba(255, 255, 255, .24); }
+    .scada-menu-label { color: #fff; font-size: .68rem; font-weight: 700; letter-spacing: .04em; white-space: nowrap; }
+    .scada-fullscreen .scada-banner .text-info-subtle { color: #d9eeff !important; background: transparent !important; }
+    .scada-fullscreen .scada-time-box { min-width: 120px; padding: 3px 8px; border: 0; background: transparent; box-shadow: none; }
+    .scada-fullscreen .scada-card { border: 1px solid #a9c9da; border-radius: 6px; box-shadow: 0 1px 4px rgba(22, 67, 98, .12); }
+    .scada-fullscreen .scada-card-header { min-height: 30px; padding: 4px 9px; font-size: .74rem; }
+    .scada-fullscreen .scada-card-header.header-rms { background-color: #1d4ed8; }
+    .scada-fullscreen .scada-card-header.header-mhs { background-color: #059669; }
+    .scada-fullscreen .scada-card-header.header-h-rms { background-color: #7c3aed; }
+    .scada-fullscreen .scada-card-header.header-ph { background-color: #ea580c; }
+    .scada-fullscreen .row { --bs-gutter-x: .45rem; --bs-gutter-y: .45rem; }
+    .scada-fullscreen .row > [class*="col-"] { min-width: 0; }
+    .scada-fullscreen .scada-card { min-width: 0; }
+    .scada-fullscreen .row.mb-3 { margin-bottom: 7px !important; }
+    .scada-fullscreen .scada-card > .p-3 { padding: 8px !important; }
+    .scada-fullscreen .circular-gauge-container { width: clamp(76px, 8vw, 104px); height: clamp(76px, 8vw, 104px); }
+    .scada-fullscreen .scada-card-footer { padding: 3px 6px; font-size: .64rem; }
+    .scada-fullscreen .scada-chart-darkbox { padding: 7px; }
+    .scada-fullscreen .scada-chart-darkbox > div { height: clamp(160px, 22vh, 210px) !important; }
+    .scada-fullscreen .scada-bottom-banner { border-radius: 3px; padding: 5px 10px; background: linear-gradient(90deg, #073268, #145da0, #073268); }
+    .scada-fullscreen .scada-table { font-size: .68rem; }
+    .scada-fullscreen .scada-table thead tr th { padding: 3px 5px; }
+    .scada-fullscreen .scada-table tbody tr td { padding: 2px 5px; font-size: .66rem; }
+    .scada-fullscreen .scada-card.mb-3 { margin-bottom: 7px !important; }
+    @media (min-width: 768px) {
+        .scada-fullscreen .col-sm-6.col-xl-3 { flex: 0 0 25%; width: 25%; max-width: 25%; }
+    }
+    @media (min-width: 992px) {
+        body.scada-fullscreen.scada-sidebar-open #main-content { margin-left: var(--sidebar-width); width: calc(100% - var(--sidebar-width)); }
+        body.scada-fullscreen.scada-sidebar-open .scada-sidebar-backdrop { display: none; }
+        .scada-fullscreen .col-xl-8 { width: 63%; }
+        .scada-fullscreen .col-xl-4 { width: 37%; }
+    }
+    @media (min-width: 1200px) {
+        .scada-fullscreen .scada-card-header .fs-5 { font-size: 1rem !important; }
+    }
+    @media (max-width: 767.98px) {
+        body.scada-fullscreen { overflow-x: auto; }
+        .scada-fullscreen .scada-table { min-width: 850px; }
+        .scada-fullscreen .scada-banner h4 { font-size: 1rem !important; }
+    }
 </style>
 @endsection
 
@@ -252,9 +309,10 @@
     <div class="scada-banner p-3 p-md-3 mb-3">
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
             <div class="d-flex align-items-center gap-3">
-                <a href="{{ url('/dashboard') }}" class="scada-home-btn text-decoration-none" title="Home Dashboard">
-                    <i class="bi bi-house-door-fill fs-4"></i>
-                </a>
+                <button type="button" class="scada-home-btn border-0" id="scadaSidebarToggle" title="Buka menu" aria-label="Buka menu" aria-expanded="false">
+                    <i class="bi bi-list fs-4"></i>
+                    <span class="scada-menu-label" id="scadaSidebarToggleLabel">BUKA MENU</span>
+                </button>
                 <div>
                     <h4 class="text-white fw-bold mb-0 text-uppercase" style="letter-spacing: 0.03em; font-size: 1.35rem;">
                         FLOW METER & pH MONITORING SYSTEM
@@ -288,7 +346,7 @@
         <div class="col-12 col-sm-6 col-xl-3">
             <div class="scada-card">
                 <div class="scada-card-header header-rms">
-                    <i class="bi bi-soundwave fs-5"></i>
+                    <i class="bi bi-broadcast fs-5"></i>
                     <span>FLOWMETER 8" - AREA RMS</span>
                 </div>
                 <div class="p-3">
@@ -349,7 +407,7 @@
         <div class="col-12 col-sm-6 col-xl-3">
             <div class="scada-card">
                 <div class="scada-card-header header-mhs">
-                    <i class="bi bi-soundwave fs-5"></i>
+                    <i class="bi bi-broadcast fs-5"></i>
                     <span>FLOWMETER 8" - AREA MHS</span>
                 </div>
                 <div class="p-3">
@@ -410,7 +468,7 @@
         <div class="col-12 col-sm-6 col-xl-3">
             <div class="scada-card">
                 <div class="scada-card-header header-h-rms">
-                    <i class="bi bi-soundwave fs-5"></i>
+                    <i class="bi bi-broadcast fs-5"></i>
                     <span>FLOWMETER 8" - AREA H-RMS</span>
                 </div>
                 <div class="p-3">
@@ -471,7 +529,7 @@
         <div class="col-12 col-sm-6 col-xl-3">
             <div class="scada-card">
                 <div class="scada-card-header header-ph">
-                    <i class="bi bi-eyedropper fs-5"></i>
+                    <i class="bi bi-flask-fill fs-5"></i>
                     <span>pH SENSOR</span>
                 </div>
                 <div class="p-3">
@@ -500,7 +558,7 @@
                         <div class="flex-grow-1 ps-2">
                             <!-- pH Value Detail -->
                             <div class="d-flex align-items-start gap-2 mb-2">
-                                <i class="bi bi-eyedropper fs-5" style="color: #ea580c;"></i>
+                                <i class="bi bi-fire fs-5" style="color: #ea580c;"></i>
                                 <div style="line-height: 1.2;">
                                     <div class="text-muted small" style="font-size: 0.72rem;">pH Value</div>
                                     <div class="fw-bold mono-font text-dark fs-6">
@@ -680,86 +738,99 @@
                     </tr>
                 </thead>
                 <tbody id="historyTableBody">
-                    <tr>
-                        <td class="fw-semibold">2026-09-30 13:00</td>
-                        <td class="text-primary fw-bold">184.2</td>
-                        <td>8,356.7</td>
-                        <td class="text-success fw-bold">141.5</td>
-                        <td>6,521.3</td>
-                        <td style="color: #7c3aed;" class="fw-bold">96.8</td>
-                        <td>3,982.6</td>
-                        <td class="text-warning fw-bold">7.60</td>
-                    </tr>
-                    <tr>
-                        <td class="fw-semibold">2026-09-30 12:00</td>
-                        <td class="text-primary fw-bold">182.7</td>
-                        <td>8,337.8</td>
-                        <td class="text-success fw-bold">139.8</td>
-                        <td>6,379.6</td>
-                        <td style="color: #7c3aed;" class="fw-bold">94.6</td>
-                        <td>3,885.2</td>
-                        <td class="text-warning fw-bold">7.58</td>
-                    </tr>
-                    <tr>
-                        <td class="fw-semibold">2026-09-30 11:00</td>
-                        <td class="text-primary fw-bold">176.3</td>
-                        <td>8,319.1</td>
-                        <td class="text-success fw-bold">135.2</td>
-                        <td>6,239.8</td>
-                        <td style="color: #7c3aed;" class="fw-bold">90.7</td>
-                        <td>3,790.5</td>
-                        <td class="text-warning fw-bold">7.55</td>
-                    </tr>
-                    <tr>
-                        <td class="fw-semibold">2026-09-30 10:00</td>
-                        <td class="text-primary fw-bold">169.8</td>
-                        <td>8,142.7</td>
-                        <td class="text-success fw-bold">131.6</td>
-                        <td>6,104.6</td>
-                        <td style="color: #7c3aed;" class="fw-bold">87.3</td>
-                        <td>3,699.4</td>
-                        <td class="text-warning fw-bold">7.52</td>
-                    </tr>
-                    <tr>
-                        <td class="fw-semibold">2026-09-30 09:00</td>
-                        <td class="text-primary fw-bold">160.4</td>
-                        <td>7,986.2</td>
-                        <td class="text-success fw-bold">125.7</td>
-                        <td>5,973.1</td>
-                        <td style="color: #7c3aed;" class="fw-bold">82.9</td>
-                        <td>3,612.0</td>
-                        <td class="text-warning fw-bold">7.48</td>
-                    </tr>
-                    <tr>
-                        <td class="fw-semibold">2026-09-30 08:00</td>
-                        <td class="text-primary fw-bold">152.7</td>
-                        <td>7,829.5</td>
-                        <td class="text-success fw-bold">118.9</td>
-                        <td>5,842.7</td>
-                        <td style="color: #7c3aed;" class="fw-bold">79.6</td>
-                        <td>3,529.3</td>
-                        <td class="text-warning fw-bold">7.45</td>
-                    </tr>
-                    <tr>
-                        <td class="fw-semibold">2026-09-30 07:00</td>
-                        <td class="text-primary fw-bold">148.1</td>
-                        <td>7,674.8</td>
-                        <td class="text-success fw-bold">114.2</td>
-                        <td>5,718.9</td>
-                        <td style="color: #7c3aed;" class="fw-bold">76.8</td>
-                        <td>3,451.7</td>
-                        <td class="text-warning fw-bold">7.42</td>
-                    </tr>
-                    <tr>
-                        <td class="fw-semibold">2026-09-30 06:00</td>
-                        <td class="text-primary fw-bold">142.5</td>
-                        <td>7,521.3</td>
-                        <td class="text-success fw-bold">109.7</td>
-                        <td>5,602.6</td>
-                        <td style="color: #7c3aed;" class="fw-bold">73.5</td>
-                        <td>3,378.2</td>
-                        <td class="text-warning fw-bold">7.39</td>
-                    </tr>
+                    @forelse($hourlyRows ?? [] as $row)
+                        <tr>
+                            <td class="fw-semibold">{{ $row['time'] }}</td>
+                            <td class="text-primary fw-bold">{{ number_format($row['rms_flow'], 1) }}</td>
+                            <td>{{ number_format($row['rms_tot'], 1) }}</td>
+                            <td class="text-success fw-bold">{{ number_format($row['mhs_flow'], 1) }}</td>
+                            <td>{{ number_format($row['mhs_tot'], 1) }}</td>
+                            <td style="color: #7c3aed;" class="fw-bold">{{ number_format($row['hrms_flow'], 1) }}</td>
+                            <td>{{ number_format($row['hrms_tot'], 1) }}</td>
+                            <td class="text-warning fw-bold">{{ number_format($row['ph'], 2) }}</td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td class="fw-semibold">2026-09-30 13:00</td>
+                            <td class="text-primary fw-bold">184.2</td>
+                            <td>8,356.7</td>
+                            <td class="text-success fw-bold">141.5</td>
+                            <td>6,521.3</td>
+                            <td style="color: #7c3aed;" class="fw-bold">96.8</td>
+                            <td>3,982.6</td>
+                            <td class="text-warning fw-bold">7.60</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-semibold">2026-09-30 12:00</td>
+                            <td class="text-primary fw-bold">182.7</td>
+                            <td>8,337.8</td>
+                            <td class="text-success fw-bold">139.8</td>
+                            <td>6,379.6</td>
+                            <td style="color: #7c3aed;" class="fw-bold">94.6</td>
+                            <td>3,885.2</td>
+                            <td class="text-warning fw-bold">7.58</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-semibold">2026-09-30 11:00</td>
+                            <td class="text-primary fw-bold">176.3</td>
+                            <td>8,319.1</td>
+                            <td class="text-success fw-bold">135.2</td>
+                            <td>6,239.8</td>
+                            <td style="color: #7c3aed;" class="fw-bold">90.7</td>
+                            <td>3,790.5</td>
+                            <td class="text-warning fw-bold">7.55</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-semibold">2026-09-30 10:00</td>
+                            <td class="text-primary fw-bold">169.8</td>
+                            <td>8,142.7</td>
+                            <td class="text-success fw-bold">131.6</td>
+                            <td>6,104.6</td>
+                            <td style="color: #7c3aed;" class="fw-bold">87.3</td>
+                            <td>3,699.4</td>
+                            <td class="text-warning fw-bold">7.52</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-semibold">2026-09-30 09:00</td>
+                            <td class="text-primary fw-bold">160.4</td>
+                            <td>7,986.2</td>
+                            <td class="text-success fw-bold">125.7</td>
+                            <td>5,973.1</td>
+                            <td style="color: #7c3aed;" class="fw-bold">82.9</td>
+                            <td>3,612.0</td>
+                            <td class="text-warning fw-bold">7.48</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-semibold">2026-09-30 08:00</td>
+                            <td class="text-primary fw-bold">152.7</td>
+                            <td>7,829.5</td>
+                            <td class="text-success fw-bold">118.9</td>
+                            <td>5,842.7</td>
+                            <td style="color: #7c3aed;" class="fw-bold">79.6</td>
+                            <td>3,529.3</td>
+                            <td class="text-warning fw-bold">7.45</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-semibold">2026-09-30 07:00</td>
+                            <td class="text-primary fw-bold">148.1</td>
+                            <td>7,674.8</td>
+                            <td class="text-success fw-bold">114.2</td>
+                            <td>5,718.9</td>
+                            <td style="color: #7c3aed;" class="fw-bold">76.8</td>
+                            <td>3,451.7</td>
+                            <td class="text-warning fw-bold">7.42</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-semibold">2026-09-30 06:00</td>
+                            <td class="text-primary fw-bold">142.5</td>
+                            <td>7,521.3</td>
+                            <td class="text-success fw-bold">109.7</td>
+                            <td>5,602.6</td>
+                            <td style="color: #7c3aed;" class="fw-bold">73.5</td>
+                            <td>3,378.2</td>
+                            <td class="text-warning fw-bold">7.39</td>
+                        </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
@@ -995,41 +1066,61 @@
             if (!data.success) return;
 
             // If actual devices are available and responding, we can dynamically update:
-            const waterDevices = data.devices.filter(d => d.is_water);
-            if (waterDevices.length >= 3) {
+            if (data.scada) {
+                const scada = data.scada;
                 // RMS
-                const rms = waterDevices[0]?.parameters?.flow_rate?.value ?? 185.6;
-                const rmsTotal = waterDevices[0]?.parameters?.totalizer?.value ?? 8542.3;
-                document.getElementById('valFlowrateRMS').textContent = rms;
-                document.getElementById('detailFlowrateRMS').textContent = rms;
-                document.getElementById('detailTotalityRMS').textContent = Number(rmsTotal).toLocaleString('en-US', {minimumFractionDigits: 1});
+                const rms = Number(scada.rms?.flow_rate ?? 185.6);
+                const rmsTotal = Number(scada.rms?.totalizer ?? 8542.3);
+                document.getElementById('valFlowrateRMS').textContent = rms.toFixed(1);
+                document.getElementById('detailFlowrateRMS').textContent = rms.toFixed(1);
+                document.getElementById('detailTotalityRMS').textContent = rmsTotal.toLocaleString('en-US', {minimumFractionDigits: 1});
                 const rmsPct = Math.min(100, Math.round((rms / 300) * 100));
                 document.getElementById('pctRMS').textContent = rmsPct + '%';
                 setGaugeProgress('circleProgressRMS', rmsPct);
 
                 // MHS
-                const mhs = waterDevices[1]?.parameters?.flow_rate?.value ?? 142.7;
-                const mhsTotal = waterDevices[1]?.parameters?.totalizer?.value ?? 6783.5;
-                document.getElementById('valFlowrateMHS').textContent = mhs;
-                document.getElementById('detailFlowrateMHS').textContent = mhs;
-                document.getElementById('detailTotalityMHS').textContent = Number(mhsTotal).toLocaleString('en-US', {minimumFractionDigits: 1});
+                const mhs = Number(scada.mhs?.flow_rate ?? 142.7);
+                const mhsTotal = Number(scada.mhs?.totalizer ?? 6783.5);
+                document.getElementById('valFlowrateMHS').textContent = mhs.toFixed(1);
+                document.getElementById('detailFlowrateMHS').textContent = mhs.toFixed(1);
+                document.getElementById('detailTotalityMHS').textContent = mhsTotal.toLocaleString('en-US', {minimumFractionDigits: 1});
                 const mhsPct = Math.min(100, Math.round((mhs / 300) * 100));
                 document.getElementById('pctMHS').textContent = mhsPct + '%';
                 setGaugeProgress('circleProgressMHS', mhsPct);
 
                 // H-RMS
-                const hrms = waterDevices[2]?.parameters?.flow_rate?.value ?? 97.4;
-                const hrmsTotal = waterDevices[2]?.parameters?.totalizer?.value ?? 4126.8;
-                document.getElementById('valFlowrateHRMS').textContent = hrms;
-                document.getElementById('detailFlowrateHRMS').textContent = hrms;
-                document.getElementById('detailTotalityHRMS').textContent = Number(hrmsTotal).toLocaleString('en-US', {minimumFractionDigits: 1});
+                const hrms = Number(scada.h_rms?.flow_rate ?? 97.4);
+                const hrmsTotal = Number(scada.h_rms?.totalizer ?? 4126.8);
+                document.getElementById('valFlowrateHRMS').textContent = hrms.toFixed(1);
+                document.getElementById('detailFlowrateHRMS').textContent = hrms.toFixed(1);
+                document.getElementById('detailTotalityHRMS').textContent = hrmsTotal.toLocaleString('en-US', {minimumFractionDigits: 1});
                 const hrmsPct = Math.min(100, Math.round((hrms / 300) * 100));
                 document.getElementById('pctHRMS').textContent = hrmsPct + '%';
                 setGaugeProgress('circleProgressHRMS', hrmsPct);
 
+                // pH
+                const phVal = Number(scada.ph?.value ?? 7.62);
+                document.getElementById('valPH').textContent = phVal.toFixed(2);
+                document.getElementById('detailValPH').textContent = phVal.toFixed(2);
+                document.getElementById('valPhStatusCurrent').textContent = phVal.toFixed(2) + ' pH';
+                const phPct = Math.min(100, Math.max(0, (phVal / 14) * 100));
+                setGaugeProgress('circleProgressPH', phPct);
+                const pointer = document.getElementById('phPointer');
+                if (pointer) pointer.style.left = phPct + '%';
+
                 // Total
-                const totalFlow = (Number(rms) + Number(mhs) + Number(hrms)).toFixed(1);
+                const totalFlow = (rms + mhs + hrms).toFixed(1);
                 document.getElementById('donutCenterTotal').textContent = totalFlow;
+                const totalTot = (rmsTotal + mhsTotal + hrmsTotal);
+                document.getElementById('valTotalizerAll').innerHTML = `${totalTot.toLocaleString('en-US', {minimumFractionDigits: 1})} <small class="fw-normal text-muted fs-6">m³</small>`;
+                document.getElementById('overviewRmsVal').innerHTML = `${rms.toFixed(1)} <small class="fw-normal text-muted">m³/h</small>`;
+                document.getElementById('overviewMhsVal').innerHTML = `${mhs.toFixed(1)} <small class="fw-normal text-muted">m³/h</small>`;
+                document.getElementById('overviewHrmsVal').innerHTML = `${hrms.toFixed(1)} <small class="fw-normal text-muted">m³/h</small>`;
+                if (rms + mhs + hrms > 0) {
+                    document.getElementById('overviewRmsPct').textContent = Math.round((rms / (rms + mhs + hrms)) * 100) + '%';
+                    document.getElementById('overviewMhsPct').textContent = Math.round((mhs / (rms + mhs + hrms)) * 100) + '%';
+                    document.getElementById('overviewHrmsPct').textContent = Math.round((hrms / (rms + mhs + hrms)) * 100) + '%';
+                }
                 scadaDonutChart.data.datasets[0].data = [rms, mhs, hrms];
                 scadaDonutChart.update('none');
             }

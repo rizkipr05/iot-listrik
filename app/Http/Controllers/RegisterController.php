@@ -46,7 +46,7 @@ class RegisterController extends Controller
         $validated = $request->validate([
             'device_id' => ['required', 'exists:devices,id'],
             'name' => ['required', 'string', 'max:100'],
-            'parameter_key' => ['required', 'string', 'in:voltage,current,power,energy,frequency,power_factor,totalizer,flow_rate,other'],
+            'parameter_key' => ['required', 'string', 'in:voltage,current,power,energy,frequency,power_factor,totalizer,flow_rate,ph,other'],
             'register_address' => ['required', 'integer', 'min:0'],
             'function_code' => ['required', 'integer', 'in:3,4'],
             'data_type' => ['required', 'string', 'in:float32,int16,uint16,int32,uint32'],
@@ -87,7 +87,7 @@ class RegisterController extends Controller
         $validated = $request->validate([
             'device_id' => ['required', 'exists:devices,id'],
             'name' => ['required', 'string', 'max:100'],
-            'parameter_key' => ['required', 'string', 'in:voltage,current,power,energy,frequency,power_factor,totalizer,flow_rate,other'],
+            'parameter_key' => ['required', 'string', 'in:voltage,current,power,energy,frequency,power_factor,totalizer,flow_rate,ph,other'],
             'register_address' => ['required', 'integer', 'min:0'],
             'function_code' => ['required', 'integer', 'in:3,4'],
             'data_type' => ['required', 'string', 'in:float32,int16,uint16,int32,uint32'],

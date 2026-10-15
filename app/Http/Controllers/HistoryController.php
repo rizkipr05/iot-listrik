@@ -45,16 +45,18 @@ class HistoryController extends Controller
         $energyConsumed = round(max(0, $maxEnergy - $minEnergy), 2);
         $totalWaterVolume = round(max(0, ($statsQuery->max('totalizer') ?? 0) - ($statsQuery->min('totalizer') ?? 0)), 2);
         $avgFlowRate = round($statsQuery->avg('flow_rate') ?? 0, 2);
+        $avgPh = round($statsQuery->whereNotNull('ph')->avg('ph') ?? 7.62, 2);
 
         $logs = $query->paginate(20)->withQueryString();
 
         // Ambil data tren historis untuk grafik (maks 40 titik data berurutan waktu)
         $chartQuery = (clone $query)->reorder()->oldest('logged_at')->limit(40);
-        $chartLogs = $chartQuery->get(['logged_at', 'power', 'current', 'voltage', 'flow_rate', 'totalizer']);
+        $chartLogs = $chartQuery->get(['logged_at', 'power', 'current', 'voltage', 'flow_rate', 'totalizer', 'ph']);
         $chartLabels = $chartLogs->map(fn ($item) => $item->logged_at->format('H:i'))->values();
         $chartPowers = $chartLogs->map(fn ($item) => (float) ($item->power ?? 0))->values();
         $chartCurrents = $chartLogs->map(fn ($item) => (float) ($item->current ?? 0))->values();
         $chartFlowRates = $chartLogs->map(fn ($item) => (float) ($item->flow_rate ?? 0))->values();
+        $chartPhs = $chartLogs->map(fn ($item) => (float) ($item->ph ?? 0))->values();
 
         return view('history.index', compact(
             'logs',
@@ -68,10 +70,12 @@ class HistoryController extends Controller
             'energyConsumed',
             'totalWaterVolume',
             'avgFlowRate',
+            'avgPh',
             'chartLabels',
             'chartPowers',
             'chartCurrents',
-            'chartFlowRates'
+            'chartFlowRates',
+            'chartPhs'
         ));
     }
 
@@ -104,6 +108,7 @@ class HistoryController extends Controller
                 'energy' => $params['energy']['value'] ?? null,
                 'totalizer' => $params['totalizer']['value'] ?? null,
                 'flow_rate' => $params['flow_rate']['value'] ?? null,
+                'ph' => $params['ph']['value'] ?? null,
                 'raw_parameters' => $params,
                 'is_simulated' => $readData['is_simulated'] ?? false,
                 'logged_at' => $now,
@@ -185,6 +190,7 @@ class HistoryController extends Controller
                 'IP Gateway',
                 'Totalizer Air (m³)',
                 'Flow Rate (m³/h)',
+                'Nilai pH',
                 'Tegangan L-N (V)',
                 'Arus (A)',
                 'Daya Aktif (kW)',
@@ -205,6 +211,7 @@ class HistoryController extends Controller
                         $log->device ? "{$log->device->ip_address}:{$log->device->port}" : '-',
                         $log->totalizer !== null ? $log->totalizer : '-',
                         $log->flow_rate !== null ? $log->flow_rate : '-',
+                        $log->ph !== null ? $log->ph : '-',
                         $log->voltage !== null ? $log->voltage : '-',
                         $log->current !== null ? $log->current : '-',
                         $log->power !== null ? $log->power : '-',

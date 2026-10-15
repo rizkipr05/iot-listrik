@@ -1,19 +1,18 @@
-# IoT Meter Monitoring & SCADA Telemetry System
+# FLOW METER & pH MONITORING SYSTEM (SCADA Telemetry)
 ### Integrasi Multi-Hardware RS485 via Gateway RS485-to-TCP/IP | Laravel 11 / PHP 8.3
 
-Sistem monitoring telemetri IoT berbasis web yang membaca, mencatat, memvisualisasikan, dan menganalisis parameter utilitas secara terpusat dari **5 unit instrumen lapangan RS485** melalui **1 unit Gateway RS485-to-TCP/IP**.
+Sistem monitoring telemetri IoT berbasis web yang membaca, mencatat, memvisualisasikan, dan menganalisis parameter utilitas secara terpusat dari **4 unit instrumen lapangan RS485** (3x Electromagnetic Flowmeter 8" dan 1x pH Sensor) melalui **1 unit Gateway RS485-to-TCP/IP**.
 
 ---
 
 ## 📋 Daftar Hardware yang Terintegrasi
 
-| No | Nama Perangkat | Tipe | Slave ID | Parameter | Satuan |
+| No | Nama Perangkat | Tipe / Spesifikasi | Slave ID | Parameter yang Dibaca | Satuan |
 |:--:|---|---|:---:|---|:---:|
-| **1** | Meter Air RS485 | Meter Air Mekanik / Elektromagnetik | `1` | Totalizer | m³ |
-| **2** | Meter Air Digital RS485 | Meter Air Digital / Ultrasonik | `2` | Totalizer, Flow Rate | m³, m³/h |
-| **3** | Flow Meter RS485 | Flow Meter Industri | `3` | Totalizer, Flow Rate | m³, m³/h |
-| **4** | kWh Meter RS485 | kWh Meter Listrik Digital | `4` | Total kWh, Tegangan, Arus | kWh, V, A |
-| **5** | Power Meter RS485 | Power Analyzer Multifungsi | `5` | Total kWh, Tegangan, Arus, Daya | kWh, V, A, kW |
+| **1** | FLOWMETER 8" - AREA RMS | Electromagnetic Flowmeter 8" (0 ~ 300 m³/h) | `1` | Flow Rate, Totalizer | m³/h, m³ |
+| **2** | FLOWMETER 8" - AREA MHS | Electromagnetic Flowmeter 8" (0 ~ 300 m³/h) | `2` | Flow Rate, Totalizer | m³/h, m³ |
+| **3** | FLOWMETER 8" - AREA H-RMS | Electromagnetic Flowmeter 8" (0 ~ 300 m³/h) | `3` | Flow Rate, Totalizer | m³/h, m³ |
+| **4** | pH SENSOR | Sensor pH Cairan Industri (0 ~ 14 pH, Normal: 7.0 ~ 8.0) | `4` | Nilai pH | pH |
 
 ---
 
@@ -23,11 +22,10 @@ Sistem monitoring telemetri IoT berbasis web yang membaca, mencatat, memvisualis
 ┌─────────────────────────────────────────────────────────────────────┐
 │                  INSTRUMEN LAPANGAN (RS485 Bus)                     │
 │                                                                     │
-│  [Meter Air RS485]         Slave ID: 1  ──┐                         │
-│  [Meter Air Digital RS485] Slave ID: 2  ──┤                         │
-│  [Flow Meter RS485]        Slave ID: 3  ──┼── A(+) B(-) GND        │
-│  [kWh Meter RS485]         Slave ID: 4  ──┤   (2-wire RS485 bus)   │
-│  [Power Meter RS485]       Slave ID: 5  ──┘                         │
+│  [FLOWMETER 8" - AREA RMS]   Slave ID: 1  ──┐                       │
+│  [FLOWMETER 8" - AREA MHS]   Slave ID: 2  ──┤                       │
+│  [FLOWMETER 8" - AREA H-RMS] Slave ID: 3  ──┼── A(+) B(-) GND       │
+│  [pH SENSOR]                 Slave ID: 4  ──┘   (2-wire RS485 bus)  │
 └──────────────────────────────┬──────────────────────────────────────┘
                                │ Kabel RS485 (2 kawat + GND)
                                ▼
@@ -54,11 +52,11 @@ Sistem monitoring telemetri IoT berbasis web yang membaca, mencatat, memvisualis
 RS485 adalah komunikasi 2-kawat half-duplex. Semua perangkat dirangkai **daisy-chain** (paralel di jalur yang sama):
 
 ```
-Gateway       Meter Air     Meter Air Digital   Flow Meter    kWh Meter   Power Meter
-  A(+) ─────── A(+) ──────── A(+) ────────────── A(+) ──────── A(+) ─────── A(+)
-  B(-) ─────── B(-) ──────── B(-) ────────────── B(-) ──────── B(-) ─────── B(-)
-  GND  ─────── GND  ──────── GND  ────────────── GND  ──────── GND  ─────── GND
- [120Ω] ← Resistor terminasi di ujung pertama                          [120Ω] ← Ujung terakhir
+Gateway       Flowmeter RMS    Flowmeter MHS    Flowmeter H-RMS    pH Sensor
+  A(+) ─────── A(+) ─────────── A(+) ─────────── A(+) ───────────── A(+)
+  B(-) ─────── B(-) ─────────── B(-) ─────────── B(-) ───────────── B(-)
+  GND  ─────── GND  ─────────── GND  ─────────── GND  ───────────── GND
+ [120Ω] ← Resistor terminasi di gateway                            [120Ω] ← Ujung terakhir
 ```
 
 > **Penting:**
@@ -71,15 +69,16 @@ Gateway       Meter Air     Meter Air Digital   Flow Meter    kWh Meter   Power 
 
 ### Langkah 2 — Setting Slave ID di Setiap Perangkat
 
-Setiap perangkat **wajib** memiliki Slave ID yang unik. Setting dilakukan via DIP switch, keypad, atau software sesuai manual masing-masing:
+Setiap perangkat **wajib** memiliki Slave ID yang unik. Setting dilakukan via DIP switch, keypad, atau software konfigurasi sensor:
 
 | Perangkat | Slave ID yang Harus Di-set | Catatan |
 |---|:---:|---|
-| Meter Air RS485 | **1** | Via DIP switch atau keypad perangkat |
-| Meter Air Digital RS485 | **2** | Via DIP switch atau keypad perangkat |
-| Flow Meter RS485 | **3** | Via DIP switch atau keypad perangkat |
-| kWh Meter RS485 | **4** | Via DIP switch atau keypad perangkat |
-| Power Meter RS485 | **5** | Via DIP switch atau keypad perangkat |
+| FLOWMETER 8" - AREA RMS | **1** | Via keypad transmitter / converter flowmeter |
+| FLOWMETER 8" - AREA MHS | **2** | Via keypad transmitter / converter flowmeter |
+| FLOWMETER 8" - AREA H-RMS | **3** | Via keypad transmitter / converter flowmeter |
+| pH SENSOR | **4** | Via DIP switch / Modbus configurator sensor |
+
+> ⚠️ **Slave ID tidak boleh ada yang sama** — akan menyebabkan collision dan kegagalan respons (CRC error).
 
 > ⚠️ **Slave ID tidak boleh ada yang sama** — akan menyebabkan konflik dan data tidak terbaca.
 
@@ -188,15 +187,15 @@ php artisan key:generate
 
 #### Step 4 — Inisialisasi Database & Data Hardware
 
-Perintah ini membuat semua tabel dan mengisi data awal **5 unit hardware** beserta **konfigurasi register Modbus**-nya:
+Perintah ini membuat semua tabel dan mengisi data awal **4 unit instrumen lapangan** (3 Flowmeter + 1 pH Sensor) beserta **konfigurasi register Modbus**-nya:
 
 ```cmd
 php artisan migrate:fresh --seed --force
 ```
 
 > `--seed` otomatis menjalankan:
-> - `DeviceAndRegisterSeeder` — mendaftarkan 5 perangkat + semua register Modbus
-> - `MeterLogHistorySeeder` — mengisi riwayat log simulasi agar grafik langsung tampil
+> - `DeviceAndRegisterSeeder` — mendaftarkan 4 perangkat + semua register Modbus
+> - `MeterLogHistorySeeder` — mengisi riwayat log 24 jam realistis agar dashboard SCADA langsung tampil penuh
 
 #### Step 5 — Jalankan Web Server
 
@@ -229,12 +228,11 @@ php artisan meter:log
 Output contoh:
 ```
 === IoT Listrik Data Logger Engine ===
-[2026-10-15 06:00:00] Memulai pencatatan 5 device...
-  [LIVE] Meter Air RS485 (ID: 1)         => Totalizer: 1482.350 m3
-  [LIVE] Meter Air Digital RS485 (ID: 2) => Totalizer: 987.120 m3, Flow: 4.25 m3/h
-  [LIVE] Flow Meter RS485 (ID: 3)        => Totalizer: 2341.780 m3, Flow: 6.80 m3/h
-  [LIVE] kWh Meter RS485 (ID: 4)         => V: 220.5V, I: 12.3A, kWh: 1580.0kWh
-  [LIVE] Power Meter RS485 (ID: 5)       => V: 221.0V, I: 15.8A, kWh: 2340.5kWh
+[2026-10-15 06:00:00] Memulai pencatatan 4 device...
+  [LIVE] FLOWMETER 8" - AREA RMS (ID: 1)   => Flow: 185.60 m3/h, Totalizer: 8542.300 m3
+  [LIVE] FLOWMETER 8" - AREA MHS (ID: 2)   => Flow: 142.70 m3/h, Totalizer: 6783.500 m3
+  [LIVE] FLOWMETER 8" - AREA H-RMS (ID: 3) => Flow: 97.40 m3/h, Totalizer: 4126.800 m3
+  [LIVE] pH SENSOR (ID: 4)                 => pH: 7.62 pH
 Pencatatan log selesai.
 ```
 
@@ -431,8 +429,8 @@ iotlistrik/
 ├── database/
 │   ├── migrations/                       # Skema tabel database
 │   └── seeders/
-│       ├── DeviceAndRegisterSeeder.php   # Data awal 5 perangkat + register Modbus
-│       └── MeterLogHistorySeeder.php     # Data riwayat simulasi untuk demo
+│       ├── DeviceAndRegisterSeeder.php   # Data awal 4 instrumen SCADA + register Modbus
+│       └── MeterLogHistorySeeder.php     # Data riwayat 24 jam untuk demo dashboard
 ├── resources/views/
 │   ├── dashboard.blade.php               # Dashboard SCADA real-time
 │   ├── devices/                          # Halaman manajemen device
@@ -475,7 +473,7 @@ php artisan test --filter=TelemetryTest
        [LogMeterDataCommand]       ← php artisan meter:log --loop
                  │
                  ▼
-          [meter_logs tabel]       ← totalizer, flow_rate, voltage, current, energy
+          [meter_logs tabel]       ← totalizer, flow_rate, ph, voltage, current, energy
                  │
                  ▼
        [TelemetryController API]   ← Endpoint JSON untuk polling dashboard
