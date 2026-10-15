@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'FLOW METER & pH MONITORING SYSTEM')
+@section('title', 'FLOW & WATER METER & PRESSURE MONITORING SYSTEM')
 
 @section('scada-fullscreen', true)
 
@@ -160,12 +160,12 @@
         border-radius: 6px;
         background: linear-gradient(to right, 
             #ef4444 0%, 
-            #f97316 16%, 
-            #eab308 32%, 
-            #10b981 50%, 
-            #06b6d4 68%, 
-            #3b82f6 84%, 
-            #8b5cf6 100%
+            #eab308 10%, 
+            #10b981 15%, 
+            #10b981 40%, 
+            #eab308 55%, 
+            #ef4444 80%, 
+            #b91c1c 100%
         );
         position: relative;
     }
@@ -315,12 +315,10 @@
                 </button>
                 <div>
                     <h4 class="text-white fw-bold mb-0 text-uppercase" style="letter-spacing: 0.03em; font-size: 1.35rem;">
-                        FLOW METER & pH MONITORING SYSTEM
+                        FLOW & WATER METER & PRESSURE MONITORING SYSTEM
                     </h4>
                     <div class="text-info-subtle small fw-medium mt-1" style="font-size: 0.82rem; opacity: 0.95;">
-                        <span>3 x Electromagnetic Flowmeter (8 inch)</span>
-                        <span class="mx-2 text-secondary">|</span>
-                        <span>1 x pH Sensor (0 ~ 14 pH)</span>
+                        <span>2* Electromagnetic, 1* WM Ultrasonic, 1* WM Photoelectric, 1* Pressure Sensor</span>
                     </div>
                 </div>
             </div>
@@ -342,12 +340,12 @@
 
     <!-- 2. Row 1: The 4 Main Metric Cards (RMS, MHS, H-RMS, pH Sensor) -->
     <div class="row g-3 mb-3">
-        <!-- Card 1: FLOWMETER 8" - AREA RMS -->
+        <!-- Card 1: Flowmeter 2" Area Chiller -->
         <div class="col-12 col-sm-6 col-xl-3">
             <div class="scada-card">
                 <div class="scada-card-header header-rms">
                     <i class="bi bi-broadcast fs-5"></i>
-                    <span>FLOWMETER 8" - AREA RMS</span>
+                    <span>Flowmeter 2” Area Chiller</span>
                 </div>
                 <div class="p-3">
                     <div class="d-flex align-items-center justify-content-between gap-2">
@@ -398,17 +396,17 @@
                     </div>
                 </div>
                 <div class="scada-card-footer">
-                    Nominal Size : 8 inch &nbsp;|&nbsp; Range : 0 ~ 300 m³/h
+                    Nominal Size : 2 inch &nbsp;|&nbsp; Range : 0 ~ 300 m³/h
                 </div>
             </div>
         </div>
 
-        <!-- Card 2: FLOWMETER 8" - AREA MHS -->
+        <!-- Card 2: Water meter 3/4" Area Toilet -->
         <div class="col-12 col-sm-6 col-xl-3">
             <div class="scada-card">
                 <div class="scada-card-header header-mhs">
                     <i class="bi bi-broadcast fs-5"></i>
-                    <span>FLOWMETER 8" - AREA MHS</span>
+                    <span>Water meter 3/4” Area Toilet</span>
                 </div>
                 <div class="p-3">
                     <div class="d-flex align-items-center justify-content-between gap-2">
@@ -459,17 +457,17 @@
                     </div>
                 </div>
                 <div class="scada-card-footer">
-                    Nominal Size : 8 inch &nbsp;|&nbsp; Range : 0 ~ 300 m³/h
+                    Nominal Size : 3/4 inch &nbsp;|&nbsp; Range : 0 ~ 300 m³/h
                 </div>
             </div>
         </div>
 
-        <!-- Card 3: FLOWMETER 8" - AREA H-RMS -->
+        <!-- Card 3: Water meter 1/2" Area Office -->
         <div class="col-12 col-sm-6 col-xl-3">
             <div class="scada-card">
                 <div class="scada-card-header header-h-rms">
                     <i class="bi bi-broadcast fs-5"></i>
-                    <span>FLOWMETER 8" - AREA H-RMS</span>
+                    <span>Water meter 1/2” Area Office</span>
                 </div>
                 <div class="p-3">
                     <div class="d-flex align-items-center justify-content-between gap-2">
@@ -520,17 +518,17 @@
                     </div>
                 </div>
                 <div class="scada-card-footer">
-                    Nominal Size : 8 inch &nbsp;|&nbsp; Range : 0 ~ 300 m³/h
+                    Nominal Size : 1/2 inch &nbsp;|&nbsp; Range : 0 ~ 300 m³/h
                 </div>
             </div>
         </div>
 
-        <!-- Card 4: pH SENSOR -->
+        <!-- Card 4: Pressure Sensor -->
         <div class="col-12 col-sm-6 col-xl-3">
             <div class="scada-card">
                 <div class="scada-card-header header-ph">
-                    <i class="bi bi-flask-fill fs-5"></i>
-                    <span>pH SENSOR</span>
+                    <i class="bi bi-speedometer2 fs-5"></i>
+                    <span>Pressure Sensor</span>
                 </div>
                 <div class="p-3">
                     <div class="d-flex align-items-center justify-content-between gap-2">
@@ -540,13 +538,13 @@
                                 <svg class="circular-gauge-svg" viewBox="0 0 100 100">
                                     <circle class="gauge-bg-circle" cx="50" cy="50" r="40"></circle>
                                     <circle class="gauge-progress-circle" id="circleProgressPH" cx="50" cy="50" r="40"
-                                        stroke="#ea580c" stroke-dasharray="251.32" stroke-dashoffset="114.6">
+                                        stroke="#ea580c" stroke-dasharray="251.32" stroke-dashoffset="179.7">
                                     </circle>
                                 </svg>
                                 <div class="gauge-inner-text">
-                                    <span class="text-muted" style="font-size: 0.65rem;">pH</span>
-                                    <span class="fw-bold mono-font text-dark fs-5" id="valPH">7.62</span>
-                                    <span class="text-muted" style="font-size: 0.65rem;">pH</span>
+                                    <span class="text-muted" style="font-size: 0.65rem;">Bar</span>
+                                    <span class="fw-bold mono-font text-dark fs-5" id="valPH">2.85</span>
+                                    <span class="text-muted" style="font-size: 0.65rem;">Bar</span>
                                 </div>
                             </div>
                             <div class="mt-1">
@@ -556,15 +554,15 @@
 
                         <!-- Details (Right) -->
                         <div class="flex-grow-1 ps-2">
-                            <!-- pH Value Detail -->
+                            <!-- Pressure Value Detail -->
                             <div class="d-flex align-items-start gap-2 mb-2">
-                                <i class="bi bi-fire fs-5" style="color: #ea580c;"></i>
+                                <i class="bi bi-speedometer2 fs-5" style="color: #ea580c;"></i>
                                 <div style="line-height: 1.2;">
-                                    <div class="text-muted small" style="font-size: 0.72rem;">pH Value</div>
+                                    <div class="text-muted small" style="font-size: 0.72rem;">Pressure Value</div>
                                     <div class="fw-bold mono-font text-dark fs-6">
-                                        <span id="detailValPH">7.62</span> <small class="fw-normal text-muted" style="font-size: 0.75rem;">pH</small>
+                                        <span id="detailValPH">2.85</span> <small class="fw-normal text-muted" style="font-size: 0.75rem;">Bar</small>
                                     </div>
-                                    <div class="text-secondary" style="font-size: 0.68rem;">(Range 0 ~ 14)</div>
+                                    <div class="text-secondary" style="font-size: 0.68rem;">(Range 0 ~ 10 bar)</div>
                                 </div>
                             </div>
 
@@ -574,14 +572,14 @@
                                 <div style="line-height: 1.2;">
                                     <div class="text-muted small" style="font-size: 0.72rem;">Status</div>
                                     <div class="fw-bold text-success fs-6">Normal</div>
-                                    <div class="text-secondary" style="font-size: 0.68rem;">(7.0 ~ 8.0)</div>
+                                    <div class="text-secondary" style="font-size: 0.68rem;">(1 ~ 4 bar)</div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="scada-card-footer">
-                    Range : 0 ~ 14 pH
+                    Range : 0 ~ 10 bar
                 </div>
             </div>
         </div>
@@ -606,19 +604,19 @@
                     <div class="d-flex flex-wrap align-items-center justify-content-center gap-4 mt-2 pt-1 small">
                         <div class="d-flex align-items-center gap-2">
                             <span style="display:inline-block; width: 18px; height: 3px; background-color: #3b82f6; border-radius: 2px;"></span>
-                            <span class="text-secondary mono-font" style="font-size: 0.78rem;">RMS (m³/h)</span>
+                            <span class="text-secondary mono-font" style="font-size: 0.78rem;">Chiller 2" (m³/h)</span>
                         </div>
                         <div class="d-flex align-items-center gap-2">
                             <span style="display:inline-block; width: 18px; height: 3px; background-color: #10b981; border-radius: 2px;"></span>
-                            <span class="text-secondary mono-font" style="font-size: 0.78rem;">MHS (m³/h)</span>
+                            <span class="text-secondary mono-font" style="font-size: 0.78rem;">Toilet 3/4" (m³/h)</span>
                         </div>
                         <div class="d-flex align-items-center gap-2">
                             <span style="display:inline-block; width: 18px; height: 3px; background-color: #a855f7; border-radius: 2px;"></span>
-                            <span class="text-secondary mono-font" style="font-size: 0.78rem;">H-RMS (m³/h)</span>
+                            <span class="text-secondary mono-font" style="font-size: 0.78rem;">Office 1/2" (m³/h)</span>
                         </div>
                         <div class="d-flex align-items-center gap-2">
                             <span style="display:inline-block; width: 18px; height: 3px; background-color: #eab308; border-radius: 2px;"></span>
-                            <span class="text-secondary mono-font" style="font-size: 0.78rem;">pH</span>
+                            <span class="text-secondary mono-font" style="font-size: 0.78rem;">Pressure (Bar)</span>
                         </div>
                     </div>
                 </div>
@@ -650,17 +648,17 @@
                             <table class="table table-borderless table-sm mb-0 mono-font" style="font-size: 0.8rem;">
                                 <tbody>
                                     <tr>
-                                        <td><span class="badge rounded-circle p-1 me-1" style="background-color: #3b82f6;">&nbsp;</span><strong class="text-dark">RMS</strong></td>
+                                        <td><span class="badge rounded-circle p-1 me-1" style="background-color: #3b82f6;">&nbsp;</span><strong class="text-dark">Chiller (2")</strong></td>
                                         <td class="text-end fw-bold text-dark" id="overviewRmsVal">185.6 <small class="fw-normal text-muted">m³/h</small></td>
                                         <td class="text-end text-muted" id="overviewRmsPct">44%</td>
                                     </tr>
                                     <tr>
-                                        <td><span class="badge rounded-circle p-1 me-1" style="background-color: #10b981;">&nbsp;</span><strong class="text-dark">MHS</strong></td>
+                                        <td><span class="badge rounded-circle p-1 me-1" style="background-color: #10b981;">&nbsp;</span><strong class="text-dark">Toilet (3/4")</strong></td>
                                         <td class="text-end fw-bold text-dark" id="overviewMhsVal">142.7 <small class="fw-normal text-muted">m³/h</small></td>
                                         <td class="text-end text-muted" id="overviewMhsPct">34%</td>
                                     </tr>
                                     <tr>
-                                        <td><span class="badge rounded-circle p-1 me-1" style="background-color: #a855f7;">&nbsp;</span><strong class="text-dark">H-RMS</strong></td>
+                                        <td><span class="badge rounded-circle p-1 me-1" style="background-color: #a855f7;">&nbsp;</span><strong class="text-dark">Office (1/2")</strong></td>
                                         <td class="text-end fw-bold text-dark" id="overviewHrmsVal">97.4 <small class="fw-normal text-muted">m³/h</small></td>
                                         <td class="text-end text-muted" id="overviewHrmsPct">22%</td>
                                     </tr>
@@ -680,30 +678,27 @@
                         </div>
                     </div>
 
-                    <!-- pH Status Bar -->
+                    <!-- Pressure Status Bar -->
                     <div>
                         <div class="d-flex align-items-center justify-content-between mb-2">
                             <div class="d-flex align-items-center gap-1 text-muted small fw-semibold" style="font-size: 0.76rem;">
-                                <i class="bi bi-eyedropper text-warning"></i>
-                                <span>pH Status</span>
+                                <i class="bi bi-speedometer2 text-warning"></i>
+                                <span>Pressure Status</span>
                             </div>
                             <div class="small mono-font" style="font-size: 0.76rem;">
-                                Current: <strong class="text-success" id="valPhStatusCurrent">7.62 pH</strong>
+                                Current: <strong class="text-success" id="valPhStatusCurrent">2.85 Bar</strong>
                             </div>
                         </div>
                         <div class="ph-gradient-bar mb-1">
-                            <div class="ph-pointer-indicator" id="phPointer" style="left: 54.4%;"></div>
+                            <div class="ph-pointer-indicator" id="phPointer" style="left: 28.5%;"></div>
                         </div>
                         <div class="d-flex justify-content-between text-muted mono-font" style="font-size: 0.65rem;">
                             <span>0</span>
                             <span>2</span>
                             <span>4</span>
                             <span>6</span>
-                            <span>7</span>
                             <span>8</span>
-                            <span>10</span>
-                            <span>12</span>
-                            <span>14</span>
+                            <span>10 bar</span>
                         </div>
                     </div>
                 </div>
@@ -722,10 +717,10 @@
                 <thead>
                     <tr>
                         <th rowspan="2" style="width: 17%;"><i class="bi bi-clock me-1 text-primary"></i> Time</th>
-                        <th colspan="2" style="background-color: #eff6ff; color: #1e40af;"><i class="bi bi-droplet-fill me-1 text-primary"></i> RMS <small class="fw-normal text-muted">(Flowrate)</small></th>
-                        <th colspan="2" style="background-color: #ecfdf5; color: #065f46;"><i class="bi bi-droplet-fill me-1 text-success"></i> MHS <small class="fw-normal text-muted">(Flowrate)</small></th>
-                        <th colspan="2" style="background-color: #faf5ff; color: #6b21a8;"><i class="bi bi-droplet-fill me-1" style="color: #7c3aed;"></i> H-RMS <small class="fw-normal text-muted">(Flowrate)</small></th>
-                        <th rowspan="1" style="width: 11%; background-color: #fffbeb; color: #92400e;"><i class="bi bi-eyedropper me-1 text-warning"></i> pH</th>
+                        <th colspan="2" style="background-color: #eff6ff; color: #1e40af;"><i class="bi bi-droplet-fill me-1 text-primary"></i> Chiller 2" <small class="fw-normal text-muted">(Flowrate)</small></th>
+                        <th colspan="2" style="background-color: #ecfdf5; color: #065f46;"><i class="bi bi-droplet-fill me-1 text-success"></i> Toilet 3/4" <small class="fw-normal text-muted">(Flowrate)</small></th>
+                        <th colspan="2" style="background-color: #faf5ff; color: #6b21a8;"><i class="bi bi-droplet-fill me-1" style="color: #7c3aed;"></i> Office 1/2" <small class="fw-normal text-muted">(Flowrate)</small></th>
+                        <th rowspan="1" style="width: 11%; background-color: #fffbeb; color: #92400e;"><i class="bi bi-speedometer2 me-1 text-warning"></i> Pressure</th>
                     </tr>
                     <tr>
                         <th style="background-color: #f8fafc; font-size: 0.75rem;">Flowrate</th>
@@ -734,7 +729,7 @@
                         <th style="background-color: #f8fafc; font-size: 0.75rem;">Totality (m³)</th>
                         <th style="background-color: #f8fafc; font-size: 0.75rem;">Flowrate</th>
                         <th style="background-color: #f8fafc; font-size: 0.75rem;">Totality (m³)</th>
-                        <th style="background-color: #f8fafc; font-size: 0.75rem;">pH</th>
+                        <th style="background-color: #f8fafc; font-size: 0.75rem;">Bar</th>
                     </tr>
                 </thead>
                 <tbody id="historyTableBody">
@@ -747,7 +742,7 @@
                             <td>{{ number_format($row['mhs_tot'], 1) }}</td>
                             <td style="color: #7c3aed;" class="fw-bold">{{ number_format($row['hrms_flow'], 1) }}</td>
                             <td>{{ number_format($row['hrms_tot'], 1) }}</td>
-                            <td class="text-warning fw-bold">{{ number_format($row['ph'], 2) }}</td>
+                            <td class="text-warning fw-bold">{{ number_format($row['pressure'] ?? $row['ph'] ?? 2.85, 2) }}</td>
                         </tr>
                     @empty
                         <tr>
@@ -758,7 +753,7 @@
                             <td>6,521.3</td>
                             <td style="color: #7c3aed;" class="fw-bold">96.8</td>
                             <td>3,982.6</td>
-                            <td class="text-warning fw-bold">7.60</td>
+                            <td class="text-warning fw-bold">2.85</td>
                         </tr>
                         <tr>
                             <td class="fw-semibold">2026-09-30 12:00</td>
@@ -768,7 +763,7 @@
                             <td>6,379.6</td>
                             <td style="color: #7c3aed;" class="fw-bold">94.6</td>
                             <td>3,885.2</td>
-                            <td class="text-warning fw-bold">7.58</td>
+                            <td class="text-warning fw-bold">2.80</td>
                         </tr>
                         <tr>
                             <td class="fw-semibold">2026-09-30 11:00</td>
@@ -778,7 +773,7 @@
                             <td>6,239.8</td>
                             <td style="color: #7c3aed;" class="fw-bold">90.7</td>
                             <td>3,790.5</td>
-                            <td class="text-warning fw-bold">7.55</td>
+                            <td class="text-warning fw-bold">2.78</td>
                         </tr>
                         <tr>
                             <td class="fw-semibold">2026-09-30 10:00</td>
@@ -788,7 +783,7 @@
                             <td>6,104.6</td>
                             <td style="color: #7c3aed;" class="fw-bold">87.3</td>
                             <td>3,699.4</td>
-                            <td class="text-warning fw-bold">7.52</td>
+                            <td class="text-warning fw-bold">2.75</td>
                         </tr>
                         <tr>
                             <td class="fw-semibold">2026-09-30 09:00</td>
@@ -798,7 +793,7 @@
                             <td>5,973.1</td>
                             <td style="color: #7c3aed;" class="fw-bold">82.9</td>
                             <td>3,612.0</td>
-                            <td class="text-warning fw-bold">7.48</td>
+                            <td class="text-warning fw-bold">2.70</td>
                         </tr>
                         <tr>
                             <td class="fw-semibold">2026-09-30 08:00</td>
@@ -808,7 +803,7 @@
                             <td>5,842.7</td>
                             <td style="color: #7c3aed;" class="fw-bold">79.6</td>
                             <td>3,529.3</td>
-                            <td class="text-warning fw-bold">7.45</td>
+                            <td class="text-warning fw-bold">2.68</td>
                         </tr>
                         <tr>
                             <td class="fw-semibold">2026-09-30 07:00</td>
@@ -818,7 +813,7 @@
                             <td>5,718.9</td>
                             <td style="color: #7c3aed;" class="fw-bold">76.8</td>
                             <td>3,451.7</td>
-                            <td class="text-warning fw-bold">7.42</td>
+                            <td class="text-warning fw-bold">2.65</td>
                         </tr>
                         <tr>
                             <td class="fw-semibold">2026-09-30 06:00</td>
@@ -828,7 +823,7 @@
                             <td>5,602.6</td>
                             <td style="color: #7c3aed;" class="fw-bold">73.5</td>
                             <td>3,378.2</td>
-                            <td class="text-warning fw-bold">7.39</td>
+                            <td class="text-warning fw-bold">2.60</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -838,9 +833,9 @@
 
     <!-- 5. Bottom Brand Banner -->
     <div class="scada-bottom-banner">
-        <span>Develop oleh <strong>PT Maxwell Indomakmur</strong></span>
+        <span>Develop by: <strong>PT. Arsy Bamun Sejahtera</strong></span>
         <span class="mx-2 text-secondary">|</span>
-        <a href="https://www.maxwell-mim.com" target="_blank" rel="noopener">www.maxwell-mim.com</a>
+        <a href="mailto:sales@edmmeters.com">sales@edmmeters.com</a>
     </div>
 
 </div>
@@ -885,7 +880,7 @@
             labels: xLabels,
             datasets: [
                 {
-                    label: 'RMS (m³/h)',
+                    label: 'Chiller 2" (m³/h)',
                     data: [184, 186, 178, 188, 182, 190, 185, 188, 184, 187, 185.6, 189, 185.6],
                     borderColor: '#3b82f6',
                     backgroundColor: '#3b82f6',
@@ -896,7 +891,7 @@
                     yAxisID: 'y'
                 },
                 {
-                    label: 'MHS (m³/h)',
+                    label: 'Toilet 3/4" (m³/h)',
                     data: [140, 142, 138, 145, 141, 146, 143, 144, 140, 143, 142.7, 145, 142.7],
                     borderColor: '#10b981',
                     backgroundColor: '#10b981',
@@ -907,7 +902,7 @@
                     yAxisID: 'y'
                 },
                 {
-                    label: 'H-RMS (m³/h)',
+                    label: 'Office 1/2" (m³/h)',
                     data: [94, 96, 92, 98, 95, 100, 96, 99, 95, 98, 97.4, 99, 97.4],
                     borderColor: '#a855f7',
                     backgroundColor: '#a855f7',
@@ -918,8 +913,8 @@
                     yAxisID: 'y'
                 },
                 {
-                    label: 'pH',
-                    data: [7.45, 7.48, 7.50, 7.55, 7.58, 7.60, 7.62, 7.65, 7.60, 7.62, 7.62, 7.64, 7.62],
+                    label: 'Pressure (Bar)',
+                    data: [2.70, 2.75, 2.80, 2.82, 2.85, 2.90, 2.85, 2.88, 2.82, 2.85, 2.85, 2.86, 2.85],
                     borderColor: '#eab308',
                     backgroundColor: '#eab308',
                     borderWidth: 2,
@@ -984,7 +979,7 @@
                     display: true,
                     position: 'right',
                     min: 0.0,
-                    max: 14.0,
+                    max: 10.0,
                     ticks: {
                         stepSize: 2.0,
                         color: '#86efac',
@@ -996,7 +991,7 @@
                     },
                     title: {
                         display: true,
-                        text: 'pH',
+                        text: 'Pressure (Bar)',
                         color: '#86efac',
                         font: { size: 10 }
                     }
@@ -1010,7 +1005,7 @@
     const scadaDonutChart = new Chart(donutCtx, {
         type: 'doughnut',
         data: {
-            labels: ['RMS', 'MHS', 'H-RMS'],
+            labels: ['Chiller 2"', 'Toilet 3/4"', 'Office 1/2"'],
             datasets: [{
                 data: [185.6, 142.7, 97.4],
                 backgroundColor: ['#3b82f6', '#10b981', '#a855f7'],
@@ -1050,7 +1045,7 @@
     setGaugeProgress('circleProgressRMS', 62);
     setGaugeProgress('circleProgressMHS', 48);
     setGaugeProgress('circleProgressHRMS', 32);
-    setGaugeProgress('circleProgressPH', 54.4); // 7.62 / 14 * 100
+    setGaugeProgress('circleProgressPH', 28.5); // 2.85 / 10 * 100
 
     // Optional Telemetry live polling if active
     let isPolling = false;
@@ -1098,15 +1093,16 @@
                 document.getElementById('pctHRMS').textContent = hrmsPct + '%';
                 setGaugeProgress('circleProgressHRMS', hrmsPct);
 
-                // pH
-                const phVal = Number(scada.ph?.value ?? 7.62);
-                document.getElementById('valPH').textContent = phVal.toFixed(2);
-                document.getElementById('detailValPH').textContent = phVal.toFixed(2);
-                document.getElementById('valPhStatusCurrent').textContent = phVal.toFixed(2) + ' pH';
-                const phPct = Math.min(100, Math.max(0, (phVal / 14) * 100));
-                setGaugeProgress('circleProgressPH', phPct);
+                // Pressure (formerly pH)
+                const pressVal = Number(scada.pressure?.value ?? scada.ph?.value ?? 2.85);
+                document.getElementById('valPH').textContent = pressVal.toFixed(2);
+                document.getElementById('detailValPH').textContent = pressVal.toFixed(2);
+                const curEl = document.getElementById('valPhStatusCurrent');
+                if (curEl) curEl.textContent = pressVal.toFixed(2) + ' Bar';
+                const pressPct = Math.min(100, Math.max(0, (pressVal / 10) * 100));
+                setGaugeProgress('circleProgressPH', pressPct);
                 const pointer = document.getElementById('phPointer');
-                if (pointer) pointer.style.left = phPct + '%';
+                if (pointer) pointer.style.left = pressPct + '%';
 
                 // Total
                 const totalFlow = (rms + mhs + hrms).toFixed(1);
