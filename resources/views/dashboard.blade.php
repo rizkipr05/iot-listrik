@@ -345,7 +345,7 @@
             <div class="scada-card">
                 <div class="scada-card-header header-rms">
                     <i class="bi bi-broadcast fs-5"></i>
-                    <span>Flowmeter 2” Area Chiller</span>
+                    <span>{{ $labelRms }}</span>
                 </div>
                 <div class="p-3">
                     <div class="d-flex align-items-center justify-content-between gap-2">
@@ -396,7 +396,7 @@
                     </div>
                 </div>
                 <div class="scada-card-footer">
-                    Nominal Size : 2 inch &nbsp;|&nbsp; Range : 0 ~ 300 m³/h
+                    {{ $descRms }}
                 </div>
             </div>
         </div>
@@ -406,7 +406,7 @@
             <div class="scada-card">
                 <div class="scada-card-header header-mhs">
                     <i class="bi bi-broadcast fs-5"></i>
-                    <span>Water meter 3/4” Area Toilet</span>
+                    <span>{{ $labelMhs }}</span>
                 </div>
                 <div class="p-3">
                     <div class="d-flex align-items-center justify-content-between gap-2">
@@ -457,7 +457,7 @@
                     </div>
                 </div>
                 <div class="scada-card-footer">
-                    Nominal Size : 3/4 inch &nbsp;|&nbsp; Range : 0 ~ 300 m³/h
+                    {{ $descMhs }}
                 </div>
             </div>
         </div>
@@ -467,7 +467,7 @@
             <div class="scada-card">
                 <div class="scada-card-header header-h-rms">
                     <i class="bi bi-broadcast fs-5"></i>
-                    <span>Water meter 1/2” Area Office</span>
+                    <span>{{ $labelHrms }}</span>
                 </div>
                 <div class="p-3">
                     <div class="d-flex align-items-center justify-content-between gap-2">
@@ -518,7 +518,7 @@
                     </div>
                 </div>
                 <div class="scada-card-footer">
-                    Nominal Size : 1/2 inch &nbsp;|&nbsp; Range : 0 ~ 300 m³/h
+                    {{ $descHrms }}
                 </div>
             </div>
         </div>
@@ -528,7 +528,7 @@
             <div class="scada-card">
                 <div class="scada-card-header header-ph">
                     <i class="bi bi-speedometer2 fs-5"></i>
-                    <span>Pressure Sensor</span>
+                    <span>{{ $labelPh }}</span>
                 </div>
                 <div class="p-3">
                     <div class="d-flex align-items-center justify-content-between gap-2">
@@ -579,7 +579,7 @@
                     </div>
                 </div>
                 <div class="scada-card-footer">
-                    Range : 0 ~ 10 bar
+                    {{ $descPh }}
                 </div>
             </div>
         </div>
@@ -604,19 +604,19 @@
                     <div class="d-flex flex-wrap align-items-center justify-content-center gap-4 mt-2 pt-1 small">
                         <div class="d-flex align-items-center gap-2">
                             <span style="display:inline-block; width: 18px; height: 3px; background-color: #3b82f6; border-radius: 2px;"></span>
-                            <span class="text-secondary mono-font" style="font-size: 0.78rem;">Chiller 2" (m³/h)</span>
+                            <span class="text-secondary mono-font" style="font-size: 0.78rem;">{{ $labelRms }} (m³/h)</span>
                         </div>
                         <div class="d-flex align-items-center gap-2">
                             <span style="display:inline-block; width: 18px; height: 3px; background-color: #10b981; border-radius: 2px;"></span>
-                            <span class="text-secondary mono-font" style="font-size: 0.78rem;">Toilet 3/4" (m³/h)</span>
+                            <span class="text-secondary mono-font" style="font-size: 0.78rem;">{{ $labelMhs }} (m³/h)</span>
                         </div>
                         <div class="d-flex align-items-center gap-2">
                             <span style="display:inline-block; width: 18px; height: 3px; background-color: #a855f7; border-radius: 2px;"></span>
-                            <span class="text-secondary mono-font" style="font-size: 0.78rem;">Office 1/2" (m³/h)</span>
+                            <span class="text-secondary mono-font" style="font-size: 0.78rem;">{{ $labelHrms }} (m³/h)</span>
                         </div>
                         <div class="d-flex align-items-center gap-2">
                             <span style="display:inline-block; width: 18px; height: 3px; background-color: #eab308; border-radius: 2px;"></span>
-                            <span class="text-secondary mono-font" style="font-size: 0.78rem;">Pressure (Bar)</span>
+                            <span class="text-secondary mono-font" style="font-size: 0.78rem;">{{ $labelPh }} (Bar)</span>
                         </div>
                     </div>
                 </div>
@@ -648,17 +648,17 @@
                             <table class="table table-borderless table-sm mb-0 mono-font" style="font-size: 0.8rem;">
                                 <tbody>
                                     <tr>
-                                        <td><span class="badge rounded-circle p-1 me-1" style="background-color: #3b82f6;">&nbsp;</span><strong class="text-dark">Chiller (2")</strong></td>
+                                        <td><span class="badge rounded-circle p-1 me-1" style="background-color: #3b82f6;">&nbsp;</span><strong class="text-dark">{{ $labelRms }}</strong></td>
                                         <td class="text-end fw-bold text-dark" id="overviewRmsVal">185.6 <small class="fw-normal text-muted">m³/h</small></td>
                                         <td class="text-end text-muted" id="overviewRmsPct">44%</td>
                                     </tr>
                                     <tr>
-                                        <td><span class="badge rounded-circle p-1 me-1" style="background-color: #10b981;">&nbsp;</span><strong class="text-dark">Toilet (3/4")</strong></td>
+                                        <td><span class="badge rounded-circle p-1 me-1" style="background-color: #10b981;">&nbsp;</span><strong class="text-dark">{{ $labelMhs }}</strong></td>
                                         <td class="text-end fw-bold text-dark" id="overviewMhsVal">142.7 <small class="fw-normal text-muted">m³/h</small></td>
                                         <td class="text-end text-muted" id="overviewMhsPct">34%</td>
                                     </tr>
                                     <tr>
-                                        <td><span class="badge rounded-circle p-1 me-1" style="background-color: #a855f7;">&nbsp;</span><strong class="text-dark">Office (1/2")</strong></td>
+                                        <td><span class="badge rounded-circle p-1 me-1" style="background-color: #a855f7;">&nbsp;</span><strong class="text-dark">{{ $labelHrms }}</strong></td>
                                         <td class="text-end fw-bold text-dark" id="overviewHrmsVal">97.4 <small class="fw-normal text-muted">m³/h</small></td>
                                         <td class="text-end text-muted" id="overviewHrmsPct">22%</td>
                                     </tr>
@@ -717,10 +717,10 @@
                 <thead>
                     <tr>
                         <th rowspan="2" style="width: 17%;"><i class="bi bi-clock me-1 text-primary"></i> Time</th>
-                        <th colspan="2" style="background-color: #eff6ff; color: #1e40af;"><i class="bi bi-droplet-fill me-1 text-primary"></i> Chiller 2" <small class="fw-normal text-muted">(Flowrate)</small></th>
-                        <th colspan="2" style="background-color: #ecfdf5; color: #065f46;"><i class="bi bi-droplet-fill me-1 text-success"></i> Toilet 3/4" <small class="fw-normal text-muted">(Flowrate)</small></th>
-                        <th colspan="2" style="background-color: #faf5ff; color: #6b21a8;"><i class="bi bi-droplet-fill me-1" style="color: #7c3aed;"></i> Office 1/2" <small class="fw-normal text-muted">(Flowrate)</small></th>
-                        <th rowspan="1" style="width: 11%; background-color: #fffbeb; color: #92400e;"><i class="bi bi-speedometer2 me-1 text-warning"></i> Pressure</th>
+                        <th colspan="2" style="background-color: #eff6ff; color: #1e40af;"><i class="bi bi-droplet-fill me-1 text-primary"></i> {{ $labelRms }} <small class="fw-normal text-muted">(Flowrate)</small></th>
+                        <th colspan="2" style="background-color: #ecfdf5; color: #065f46;"><i class="bi bi-droplet-fill me-1 text-success"></i> {{ $labelMhs }} <small class="fw-normal text-muted">(Flowrate)</small></th>
+                        <th colspan="2" style="background-color: #faf5ff; color: #6b21a8;"><i class="bi bi-droplet-fill me-1" style="color: #7c3aed;"></i> {{ $labelHrms }} <small class="fw-normal text-muted">(Flowrate)</small></th>
+                        <th rowspan="1" style="width: 11%; background-color: #fffbeb; color: #92400e;"><i class="bi bi-speedometer2 me-1 text-warning"></i> {{ $labelPh }}</th>
                     </tr>
                     <tr>
                         <th style="background-color: #f8fafc; font-size: 0.75rem;">Flowrate</th>
@@ -880,7 +880,7 @@
             labels: xLabels,
             datasets: [
                 {
-                    label: 'Chiller 2" (m³/h)',
+                    label: '{{ $labelRms }} (m³/h)',
                     data: [184, 186, 178, 188, 182, 190, 185, 188, 184, 187, 185.6, 189, 185.6],
                     borderColor: '#3b82f6',
                     backgroundColor: '#3b82f6',
@@ -891,7 +891,7 @@
                     yAxisID: 'y'
                 },
                 {
-                    label: 'Toilet 3/4" (m³/h)',
+                    label: '{{ $labelMhs }} (m³/h)',
                     data: [140, 142, 138, 145, 141, 146, 143, 144, 140, 143, 142.7, 145, 142.7],
                     borderColor: '#10b981',
                     backgroundColor: '#10b981',
@@ -902,7 +902,7 @@
                     yAxisID: 'y'
                 },
                 {
-                    label: 'Office 1/2" (m³/h)',
+                    label: '{{ $labelHrms }} (m³/h)',
                     data: [94, 96, 92, 98, 95, 100, 96, 99, 95, 98, 97.4, 99, 97.4],
                     borderColor: '#a855f7',
                     backgroundColor: '#a855f7',
@@ -913,7 +913,7 @@
                     yAxisID: 'y'
                 },
                 {
-                    label: 'Pressure (Bar)',
+                    label: '{{ $labelPh }} (Bar)',
                     data: [2.70, 2.75, 2.80, 2.82, 2.85, 2.90, 2.85, 2.88, 2.82, 2.85, 2.85, 2.86, 2.85],
                     borderColor: '#eab308',
                     backgroundColor: '#eab308',
@@ -1005,7 +1005,7 @@
     const scadaDonutChart = new Chart(donutCtx, {
         type: 'doughnut',
         data: {
-            labels: ['Chiller 2"', 'Toilet 3/4"', 'Office 1/2"'],
+            labels: ['{{ $labelRms }}', '{{ $labelMhs }}', '{{ $labelHrms }}'],
             datasets: [{
                 data: [185.6, 142.7, 97.4],
                 backgroundColor: ['#3b82f6', '#10b981', '#a855f7'],
