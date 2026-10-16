@@ -54,13 +54,14 @@ class ModbusTcpService
     /**
      * Baca nilai dari satu register spesifik pada device.
      */
-    public function readRegister(Device $device, Register $register, bool $allowSimulation = true): array
+    public function readRegister(Device $device, Register $register, bool $allowSimulation = false): array
     {
         // 1. Cek dulu apakah gateway device bisa dijangkau
         $isOnline = $this->isGatewayReachable($device->ip_address, $device->port);
+        $isSimulationActive = $allowSimulation;
 
         if (! $isOnline) {
-            if ($allowSimulation) {
+            if ($isSimulationActive) {
                 $simulatedValue = $this->generateSimulatedValue($device, $register);
 
                 return [
@@ -75,7 +76,7 @@ class ModbusTcpService
 
             return [
                 'success' => false,
-                'value' => 0,
+                'value' => 0.0,
                 'raw_value' => 0,
                 'unit' => $register->unit,
                 'is_simulated' => false,
@@ -114,7 +115,7 @@ class ModbusTcpService
                 'message' => 'Pembacaan socket Modbus berhasil.',
             ];
         } catch (Exception $e) {
-            if ($allowSimulation) {
+            if ($isSimulationActive) {
                 $simulatedValue = $this->generateSimulatedValue($device, $register);
 
                 return [
@@ -129,7 +130,7 @@ class ModbusTcpService
 
             return [
                 'success' => false,
-                'value' => 0,
+                'value' => 0.0,
                 'raw_value' => 0,
                 'unit' => $register->unit,
                 'is_simulated' => false,
@@ -141,21 +142,30 @@ class ModbusTcpService
     /**
      * Baca seluruh register aktif dari sebuah device dalam satu panggilan.
      */
-    public function readDeviceRegisters(Device $device, bool $allowSimulation = true): array
+    public function readDeviceRegisters(Device $device, bool $allowSimulation = false): array
     {
         $registers = $device->registers()->where('is_active', true)->get();
         $results = [];
 
         // Cek konektivitas gateway sekali saja untuk seluruh register device ini
         $isOnline = $this->isGatewayReachable($device->ip_address, $device->port);
-        $isAnySimulated = ! $isOnline;
+        $isSimulationActive = $allowSimulation;
+        $isAnySimulated = ! $isOnline && $isSimulationActive;
 
         foreach ($registers as $reg) {
-            if (! $isOnline && $allowSimulation) {
+            if (! $isOnline && $isSimulationActive) {
                 $val = $this->generateSimulatedValue($device, $reg);
                 $results[$reg->parameter_key] = [
                     'name' => $reg->name,
                     'value' => $val,
+                    'unit' => $reg->unit,
+                    'register_address' => $reg->register_address,
+                    'data_type' => $reg->data_type,
+                ];
+            } elseif (! $isOnline) {
+                $results[$reg->parameter_key] = [
+                    'name' => $reg->name,
+                    'value' => 0.0,
                     'unit' => $reg->unit,
                     'register_address' => $reg->register_address,
                     'data_type' => $reg->data_type,
@@ -167,7 +177,7 @@ class ModbusTcpService
                 }
                 $results[$reg->parameter_key] = [
                     'name' => $reg->name,
-                    'value' => $read['value'],
+                    'value' => $read['value'] ?? 0.0,
                     'unit' => $reg->unit,
                     'register_address' => $reg->register_address,
                     'data_type' => $reg->data_type,

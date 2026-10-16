@@ -48,4 +48,12 @@ class MeterLog extends Model
     {
         return $this->belongsTo(Device::class);
     }
+
+    /**
+     * Nilai pressure (menggunakan kolom ph pada database).
+     */
+    public function getPressureAttribute(): ?float
+    {
+        return $this->ph;
+    }
 }

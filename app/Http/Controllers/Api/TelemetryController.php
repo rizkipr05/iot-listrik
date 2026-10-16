@@ -30,7 +30,7 @@ class TelemetryController extends Controller
         $totalEnergy = 0.0;
         $totalWater = 0.0;
         $totalFlowRate = 0.0;
-        $currentPh = 7.62;
+        $currentPh = 0.0;
         $voltages = [];
         $pfs = [];
         $freqs = [];
@@ -39,11 +39,20 @@ class TelemetryController extends Controller
         $phCount = 0;
 
         $scadaMeters = [
-            'rms' => ['flow_rate' => 185.6, 'totalizer' => 8542.3],
-            'mhs' => ['flow_rate' => 142.7, 'totalizer' => 6783.5],
-            'h_rms' => ['flow_rate' => 97.4, 'totalizer' => 4126.8],
-            'ph' => ['value' => 7.62, 'status' => 'Normal'],
+            'rms' => ['flow_rate' => 0.0, 'totalizer' => 0.0],
+            'mhs' => ['flow_rate' => 0.0, 'totalizer' => 0.0],
+            'h_rms' => ['flow_rate' => 0.0, 'totalizer' => 0.0],
+            'ph' => ['value' => 0.0, 'status' => 'Standby'],
+            'pressure' => ['value' => 0.0, 'status' => 'Standby'],
         ];
+
+        $sortedDevices = $devices->sortBy('id')->values();
+        $device1 = $sortedDevices->where('slave_id', 1)->first() ?? $sortedDevices->get(0);
+        $device2 = $sortedDevices->where('slave_id', 2)->first() ?? $sortedDevices->get(1);
+        $device3 = $sortedDevices->where('slave_id', 3)->first() ?? $sortedDevices->get(2);
+        $device4 = $sortedDevices->where('slave_id', 4)->first()
+            ?? $sortedDevices->first(fn ($d) => $d->isPhSensor() || $d->isPressureSensor())
+            ?? $sortedDevices->get(3);
 
         foreach ($devices as $dev) {
             $readData = $modbusService->readDeviceRegisters($dev);
@@ -51,30 +60,34 @@ class TelemetryController extends Controller
             $readData['is_water'] = $dev->isWater();
             $readData['is_flow_meter'] = $dev->isFlowMeter();
             $readData['is_ph'] = $dev->isPhSensor();
+            $readData['is_pressure'] = $dev->isPressureSensor();
             $params = $readData['parameters'];
 
-            $nameLower = strtolower($dev->name);
+            $isDev1 = $device1 && $dev->id === $device1->id;
+            $isDev2 = $device2 && $dev->id === $device2->id;
+            $isDev3 = $device3 && $dev->id === $device3->id;
+            $isDev4 = $device4 && $dev->id === $device4->id;
 
-            if ($dev->isPhSensor()) {
+            if ($dev->isPressureSensor() || $dev->isPhSensor() || $isDev4) {
                 $phCount++;
-                if (isset($params['ph']['value'])) {
-                    $currentPh = (float) $params['ph']['value'];
-                    $scadaMeters['ph']['value'] = $currentPh;
-                    $scadaMeters['ph']['status'] = ($currentPh >= 7.0 && $currentPh <= 8.0) ? 'Normal' : 'Warning';
-                }
-            } elseif ($dev->isWater()) {
+                $val = (float) ($params['pressure']['value'] ?? $params['ph']['value'] ?? 0);
+                $status = ($val >= 1.0 && $val <= 4.0) ? 'Normal' : ($val > 0 ? 'Warning' : 'Standby');
+                $scadaMeters['pressure'] = ['value' => $val, 'status' => $status];
+                $scadaMeters['ph'] = ['value' => $val, 'status' => $status];
+                $currentPh = $val;
+            } elseif ($dev->isWater() || $dev->isFlowMeter() || $isDev1 || $isDev2 || $isDev3) {
                 $waterCount++;
                 $fr = (float) ($params['flow_rate']['value'] ?? 0);
                 $tot = (float) ($params['totalizer']['value'] ?? 0);
                 $totalWater += $tot;
                 $totalFlowRate += $fr;
 
-                if ($dev->slave_id === 1 || (str_contains($nameLower, 'rms') && ! str_contains($nameLower, 'h-rms'))) {
-                    $scadaMeters['rms'] = ['flow_rate' => $fr ?: 185.6, 'totalizer' => $tot ?: 8542.3];
-                } elseif ($dev->slave_id === 2 || str_contains($nameLower, 'mhs')) {
-                    $scadaMeters['mhs'] = ['flow_rate' => $fr ?: 142.7, 'totalizer' => $tot ?: 6783.5];
-                } elseif ($dev->slave_id === 3 || str_contains($nameLower, 'h-rms')) {
-                    $scadaMeters['h_rms'] = ['flow_rate' => $fr ?: 97.4, 'totalizer' => $tot ?: 4126.8];
+                if ($isDev1 || $dev->slave_id === 1) {
+                    $scadaMeters['rms'] = ['flow_rate' => $fr, 'totalizer' => $tot];
+                } elseif ($isDev2 || $dev->slave_id === 2) {
+                    $scadaMeters['mhs'] = ['flow_rate' => $fr, 'totalizer' => $tot];
+                } elseif ($isDev3 || $dev->slave_id === 3) {
+                    $scadaMeters['h_rms'] = ['flow_rate' => $fr, 'totalizer' => $tot];
                 }
             } else {
                 $electricCount++;

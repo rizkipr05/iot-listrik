@@ -355,16 +355,16 @@
                                 <svg class="circular-gauge-svg" viewBox="0 0 100 100">
                                     <circle class="gauge-bg-circle" cx="50" cy="50" r="40"></circle>
                                     <circle class="gauge-progress-circle" id="circleProgressRMS" cx="50" cy="50" r="40"
-                                        stroke="#1d4ed8" stroke-dasharray="251.32" stroke-dashoffset="95.5">
+                                        stroke="#1d4ed8" stroke-dasharray="251.32" stroke-dashoffset="{{ $gaugeOffsetRms }}">
                                     </circle>
                                 </svg>
                                 <div class="gauge-inner-text">
                                     <span class="text-muted" style="font-size: 0.65rem;">Flowrate</span>
-                                    <span class="fw-bold mono-font text-dark fs-5" id="valFlowrateRMS">185.6</span>
+                                    <span class="fw-bold mono-font text-dark fs-5" id="valFlowrateRMS">{{ number_format($currentRmsFlow, 1) }}</span>
                                     <span class="text-muted" style="font-size: 0.65rem;">m³/h</span>
                                 </div>
                             </div>
-                            <div class="fw-bold mono-font mt-1" style="color: #1d4ed8; font-size: 0.95rem;" id="pctRMS">62%</div>
+                            <div class="fw-bold mono-font mt-1" style="color: #1d4ed8; font-size: 0.95rem;" id="pctRMS">{{ $gaugePctRms }}%</div>
                         </div>
 
                         <!-- Details (Right) -->
@@ -375,7 +375,7 @@
                                 <div style="line-height: 1.2;">
                                     <div class="text-muted small" style="font-size: 0.72rem;">Flowrate</div>
                                     <div class="fw-bold mono-font text-dark fs-6">
-                                        <span id="detailFlowrateRMS">185.6</span> <small class="fw-normal text-muted" style="font-size: 0.75rem;">m³/h</small>
+                                        <span id="detailFlowrateRMS">{{ number_format($currentRmsFlow, 1) }}</span> <small class="fw-normal text-muted" style="font-size: 0.75rem;">m³/h</small>
                                     </div>
                                     <div class="text-secondary" style="font-size: 0.68rem;">(Range 0 ~ 300)</div>
                                 </div>
@@ -387,7 +387,7 @@
                                 <div style="line-height: 1.2;">
                                     <div class="text-muted small" style="font-size: 0.72rem;">Totality</div>
                                     <div class="fw-bold mono-font text-dark fs-6">
-                                        <span id="detailTotalityRMS">8,542.3</span> <small class="fw-normal text-muted" style="font-size: 0.75rem;">m³</small>
+                                        <span id="detailTotalityRMS">{{ number_format($currentRmsTot, 1) }}</span> <small class="fw-normal text-muted" style="font-size: 0.75rem;">m³</small>
                                     </div>
                                     <div class="text-secondary" style="font-size: 0.68rem;">(Totalizer)</div>
                                 </div>
@@ -416,16 +416,16 @@
                                 <svg class="circular-gauge-svg" viewBox="0 0 100 100">
                                     <circle class="gauge-bg-circle" cx="50" cy="50" r="40"></circle>
                                     <circle class="gauge-progress-circle" id="circleProgressMHS" cx="50" cy="50" r="40"
-                                        stroke="#059669" stroke-dasharray="251.32" stroke-dashoffset="130.7">
+                                        stroke="#059669" stroke-dasharray="251.32" stroke-dashoffset="{{ $gaugeOffsetMhs }}">
                                     </circle>
                                 </svg>
                                 <div class="gauge-inner-text">
                                     <span class="text-muted" style="font-size: 0.65rem;">Flowrate</span>
-                                    <span class="fw-bold mono-font text-dark fs-5" id="valFlowrateMHS">142.7</span>
+                                    <span class="fw-bold mono-font text-dark fs-5" id="valFlowrateMHS">{{ number_format($currentMhsFlow, 1) }}</span>
                                     <span class="text-muted" style="font-size: 0.65rem;">m³/h</span>
                                 </div>
                             </div>
-                            <div class="fw-bold mono-font mt-1" style="color: #059669; font-size: 0.95rem;" id="pctMHS">48%</div>
+                            <div class="fw-bold mono-font mt-1" style="color: #059669; font-size: 0.95rem;" id="pctMHS">{{ $gaugePctMhs }}%</div>
                         </div>
 
                         <!-- Details (Right) -->
@@ -436,7 +436,7 @@
                                 <div style="line-height: 1.2;">
                                     <div class="text-muted small" style="font-size: 0.72rem;">Flowrate</div>
                                     <div class="fw-bold mono-font text-dark fs-6">
-                                        <span id="detailFlowrateMHS">142.7</span> <small class="fw-normal text-muted" style="font-size: 0.75rem;">m³/h</small>
+                                        <span id="detailFlowrateMHS">{{ number_format($currentMhsFlow, 1) }}</span> <small class="fw-normal text-muted" style="font-size: 0.75rem;">m³/h</small>
                                     </div>
                                     <div class="text-secondary" style="font-size: 0.68rem;">(Range 0 ~ 300)</div>
                                 </div>
@@ -448,7 +448,7 @@
                                 <div style="line-height: 1.2;">
                                     <div class="text-muted small" style="font-size: 0.72rem;">Totality</div>
                                     <div class="fw-bold mono-font text-dark fs-6">
-                                        <span id="detailTotalityMHS">6,783.5</span> <small class="fw-normal text-muted" style="font-size: 0.75rem;">m³</small>
+                                        <span id="detailTotalityMHS">{{ number_format($currentMhsTot, 1) }}</span> <small class="fw-normal text-muted" style="font-size: 0.75rem;">m³</small>
                                     </div>
                                     <div class="text-secondary" style="font-size: 0.68rem;">(Totalizer)</div>
                                 </div>
@@ -477,16 +477,16 @@
                                 <svg class="circular-gauge-svg" viewBox="0 0 100 100">
                                     <circle class="gauge-bg-circle" cx="50" cy="50" r="40"></circle>
                                     <circle class="gauge-progress-circle" id="circleProgressHRMS" cx="50" cy="50" r="40"
-                                        stroke="#7c3aed" stroke-dasharray="251.32" stroke-dashoffset="170.9">
+                                        stroke="#7c3aed" stroke-dasharray="251.32" stroke-dashoffset="{{ $gaugeOffsetHrms }}">
                                     </circle>
                                 </svg>
                                 <div class="gauge-inner-text">
                                     <span class="text-muted" style="font-size: 0.65rem;">Flowrate</span>
-                                    <span class="fw-bold mono-font text-dark fs-5" id="valFlowrateHRMS">97.4</span>
+                                    <span class="fw-bold mono-font text-dark fs-5" id="valFlowrateHRMS">{{ number_format($currentHrmsFlow, 1) }}</span>
                                     <span class="text-muted" style="font-size: 0.65rem;">m³/h</span>
                                 </div>
                             </div>
-                            <div class="fw-bold mono-font mt-1" style="color: #7c3aed; font-size: 0.95rem;" id="pctHRMS">32%</div>
+                            <div class="fw-bold mono-font mt-1" style="color: #7c3aed; font-size: 0.95rem;" id="pctHRMS">{{ $gaugePctHrms }}%</div>
                         </div>
 
                         <!-- Details (Right) -->
@@ -497,7 +497,7 @@
                                 <div style="line-height: 1.2;">
                                     <div class="text-muted small" style="font-size: 0.72rem;">Flowrate</div>
                                     <div class="fw-bold mono-font text-dark fs-6">
-                                        <span id="detailFlowrateHRMS">97.4</span> <small class="fw-normal text-muted" style="font-size: 0.75rem;">m³/h</small>
+                                        <span id="detailFlowrateHRMS">{{ number_format($currentHrmsFlow, 1) }}</span> <small class="fw-normal text-muted" style="font-size: 0.75rem;">m³/h</small>
                                     </div>
                                     <div class="text-secondary" style="font-size: 0.68rem;">(Range 0 ~ 300)</div>
                                 </div>
@@ -509,7 +509,7 @@
                                 <div style="line-height: 1.2;">
                                     <div class="text-muted small" style="font-size: 0.72rem;">Totality</div>
                                     <div class="fw-bold mono-font text-dark fs-6">
-                                        <span id="detailTotalityHRMS">4,126.8</span> <small class="fw-normal text-muted" style="font-size: 0.75rem;">m³</small>
+                                        <span id="detailTotalityHRMS">{{ number_format($currentHrmsTot, 1) }}</span> <small class="fw-normal text-muted" style="font-size: 0.75rem;">m³</small>
                                     </div>
                                     <div class="text-secondary" style="font-size: 0.68rem;">(Totalizer)</div>
                                 </div>
@@ -538,17 +538,17 @@
                                 <svg class="circular-gauge-svg" viewBox="0 0 100 100">
                                     <circle class="gauge-bg-circle" cx="50" cy="50" r="40"></circle>
                                     <circle class="gauge-progress-circle" id="circleProgressPH" cx="50" cy="50" r="40"
-                                        stroke="#ea580c" stroke-dasharray="251.32" stroke-dashoffset="179.7">
+                                        stroke="#ea580c" stroke-dasharray="251.32" stroke-dashoffset="{{ $gaugeOffsetPh }}">
                                     </circle>
                                 </svg>
                                 <div class="gauge-inner-text">
                                     <span class="text-muted" style="font-size: 0.65rem;">Bar</span>
-                                    <span class="fw-bold mono-font text-dark fs-5" id="valPH">2.85</span>
+                                    <span class="fw-bold mono-font text-dark fs-5" id="valPH">{{ number_format($currentPh, 2) }}</span>
                                     <span class="text-muted" style="font-size: 0.65rem;">Bar</span>
                                 </div>
                             </div>
                             <div class="mt-1">
-                                <span class="badge bg-success text-white fw-bold px-2 py-0" style="font-size: 0.75rem;">Normal</span>
+                                <span class="badge {{ $statusPh === 'Normal' ? 'bg-success text-white' : ($statusPh === 'Warning' ? 'bg-warning text-dark' : 'bg-secondary text-white') }} fw-bold px-2 py-0" style="font-size: 0.75rem;" id="phStatusBadge">{{ $statusPh }}</span>
                             </div>
                         </div>
 
@@ -560,7 +560,7 @@
                                 <div style="line-height: 1.2;">
                                     <div class="text-muted small" style="font-size: 0.72rem;">Pressure Value</div>
                                     <div class="fw-bold mono-font text-dark fs-6">
-                                        <span id="detailValPH">2.85</span> <small class="fw-normal text-muted" style="font-size: 0.75rem;">Bar</small>
+                                        <span id="detailValPH">{{ number_format($currentPh, 2) }}</span> <small class="fw-normal text-muted" style="font-size: 0.75rem;">Bar</small>
                                     </div>
                                     <div class="text-secondary" style="font-size: 0.68rem;">(Range 0 ~ 10 bar)</div>
                                 </div>
@@ -568,10 +568,10 @@
 
                             <!-- Status Detail -->
                             <div class="d-flex align-items-start gap-2">
-                                <i class="bi bi-check-circle-fill fs-5 text-success"></i>
+                                <i class="bi {{ $statusPh === 'Normal' ? 'bi-check-circle-fill text-success' : ($statusPh === 'Warning' ? 'bi-exclamation-triangle-fill text-warning' : 'bi-pause-circle-fill text-secondary') }} fs-5" id="phStatusIcon"></i>
                                 <div style="line-height: 1.2;">
                                     <div class="text-muted small" style="font-size: 0.72rem;">Status</div>
-                                    <div class="fw-bold text-success fs-6">Normal</div>
+                                    <div class="fw-bold {{ $statusPh === 'Normal' ? 'text-success' : ($statusPh === 'Warning' ? 'text-warning' : 'text-secondary') }} fs-6" id="phStatusDetail">{{ $statusPh }}</div>
                                     <div class="text-secondary" style="font-size: 0.68rem;">(1 ~ 4 bar)</div>
                                 </div>
                             </div>
@@ -638,7 +638,7 @@
                                 <canvas id="scadaDonutChart"></canvas>
                                 <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; line-height: 1.15;">
                                     <span class="text-muted" style="font-size: 0.65rem;">Total Flow</span>
-                                    <span class="fw-bold mono-font text-dark fs-5" id="donutCenterTotal">425.7</span>
+                                    <span class="fw-bold mono-font text-dark fs-5" id="donutCenterTotal">{{ number_format($totalFlowCurrent, 1) }}</span>
                                     <span class="text-muted" style="font-size: 0.65rem;">m³/h</span>
                                     <span class="text-secondary" style="font-size: 0.60rem;">(3 Unit)</span>
                                 </div>
@@ -649,18 +649,18 @@
                                 <tbody>
                                     <tr>
                                         <td><span class="badge rounded-circle p-1 me-1" style="background-color: #3b82f6;">&nbsp;</span><strong class="text-dark">{{ $labelRms }}</strong></td>
-                                        <td class="text-end fw-bold text-dark" id="overviewRmsVal">185.6 <small class="fw-normal text-muted">m³/h</small></td>
-                                        <td class="text-end text-muted" id="overviewRmsPct">44%</td>
+                                        <td class="text-end fw-bold text-dark" id="overviewRmsVal">{{ number_format($currentRmsFlow, 1) }} <small class="fw-normal text-muted">m³/h</small></td>
+                                        <td class="text-end text-muted" id="overviewRmsPct">{{ $pctRms }}%</td>
                                     </tr>
                                     <tr>
                                         <td><span class="badge rounded-circle p-1 me-1" style="background-color: #10b981;">&nbsp;</span><strong class="text-dark">{{ $labelMhs }}</strong></td>
-                                        <td class="text-end fw-bold text-dark" id="overviewMhsVal">142.7 <small class="fw-normal text-muted">m³/h</small></td>
-                                        <td class="text-end text-muted" id="overviewMhsPct">34%</td>
+                                        <td class="text-end fw-bold text-dark" id="overviewMhsVal">{{ number_format($currentMhsFlow, 1) }} <small class="fw-normal text-muted">m³/h</small></td>
+                                        <td class="text-end text-muted" id="overviewMhsPct">{{ $pctMhs }}%</td>
                                     </tr>
                                     <tr>
                                         <td><span class="badge rounded-circle p-1 me-1" style="background-color: #a855f7;">&nbsp;</span><strong class="text-dark">{{ $labelHrms }}</strong></td>
-                                        <td class="text-end fw-bold text-dark" id="overviewHrmsVal">97.4 <small class="fw-normal text-muted">m³/h</small></td>
-                                        <td class="text-end text-muted" id="overviewHrmsPct">22%</td>
+                                        <td class="text-end fw-bold text-dark" id="overviewHrmsVal">{{ number_format($currentHrmsFlow, 1) }} <small class="fw-normal text-muted">m³/h</small></td>
+                                        <td class="text-end text-muted" id="overviewHrmsPct">{{ $pctHrms }}%</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -673,7 +673,7 @@
                         <div style="line-height: 1.2;">
                             <div class="text-muted small fw-semibold" style="font-size: 0.72rem;">Totalizer (All Flowmeter)</div>
                             <div class="fw-bold mono-font text-dark fs-5" id="valTotalizerAll">
-                                19,452.6 <small class="fw-normal text-muted fs-6">m³</small>
+                                {{ number_format($totalizerAllCurrent, 1) }} <small class="fw-normal text-muted fs-6">m³</small>
                             </div>
                         </div>
                     </div>
@@ -686,11 +686,11 @@
                                 <span>Pressure Status</span>
                             </div>
                             <div class="small mono-font" style="font-size: 0.76rem;">
-                                Current: <strong class="text-success" id="valPhStatusCurrent">2.85 Bar</strong>
+                                Current: <strong class="{{ $statusPh === 'Normal' ? 'text-success' : ($statusPh === 'Warning' ? 'text-warning' : 'text-secondary') }}" id="valPhStatusCurrent">{{ number_format($currentPh, 2) }} Bar</strong>
                             </div>
                         </div>
                         <div class="ph-gradient-bar mb-1">
-                            <div class="ph-pointer-indicator" id="phPointer" style="left: 28.5%;"></div>
+                            <div class="ph-pointer-indicator" id="phPointer" style="left: {{ $gaugePctPh }}%;"></div>
                         </div>
                         <div class="d-flex justify-content-between text-muted mono-font" style="font-size: 0.65rem;">
                             <span>0</span>
@@ -742,88 +742,14 @@
                             <td>{{ number_format($row['mhs_tot'], 1) }}</td>
                             <td style="color: #7c3aed;" class="fw-bold">{{ number_format($row['hrms_flow'], 1) }}</td>
                             <td>{{ number_format($row['hrms_tot'], 1) }}</td>
-                            <td class="text-warning fw-bold">{{ number_format($row['pressure'] ?? $row['ph'] ?? 2.85, 2) }}</td>
+                            <td class="text-warning fw-bold">{{ number_format($row['pressure'] ?? $row['ph'] ?? 0.0, 2) }}</td>
                         </tr>
                     @empty
                         <tr>
-                            <td class="fw-semibold">2026-09-30 13:00</td>
-                            <td class="text-primary fw-bold">184.2</td>
-                            <td>8,356.7</td>
-                            <td class="text-success fw-bold">141.5</td>
-                            <td>6,521.3</td>
-                            <td style="color: #7c3aed;" class="fw-bold">96.8</td>
-                            <td>3,982.6</td>
-                            <td class="text-warning fw-bold">2.85</td>
-                        </tr>
-                        <tr>
-                            <td class="fw-semibold">2026-09-30 12:00</td>
-                            <td class="text-primary fw-bold">182.7</td>
-                            <td>8,337.8</td>
-                            <td class="text-success fw-bold">139.8</td>
-                            <td>6,379.6</td>
-                            <td style="color: #7c3aed;" class="fw-bold">94.6</td>
-                            <td>3,885.2</td>
-                            <td class="text-warning fw-bold">2.80</td>
-                        </tr>
-                        <tr>
-                            <td class="fw-semibold">2026-09-30 11:00</td>
-                            <td class="text-primary fw-bold">176.3</td>
-                            <td>8,319.1</td>
-                            <td class="text-success fw-bold">135.2</td>
-                            <td>6,239.8</td>
-                            <td style="color: #7c3aed;" class="fw-bold">90.7</td>
-                            <td>3,790.5</td>
-                            <td class="text-warning fw-bold">2.78</td>
-                        </tr>
-                        <tr>
-                            <td class="fw-semibold">2026-09-30 10:00</td>
-                            <td class="text-primary fw-bold">169.8</td>
-                            <td>8,142.7</td>
-                            <td class="text-success fw-bold">131.6</td>
-                            <td>6,104.6</td>
-                            <td style="color: #7c3aed;" class="fw-bold">87.3</td>
-                            <td>3,699.4</td>
-                            <td class="text-warning fw-bold">2.75</td>
-                        </tr>
-                        <tr>
-                            <td class="fw-semibold">2026-09-30 09:00</td>
-                            <td class="text-primary fw-bold">160.4</td>
-                            <td>7,986.2</td>
-                            <td class="text-success fw-bold">125.7</td>
-                            <td>5,973.1</td>
-                            <td style="color: #7c3aed;" class="fw-bold">82.9</td>
-                            <td>3,612.0</td>
-                            <td class="text-warning fw-bold">2.70</td>
-                        </tr>
-                        <tr>
-                            <td class="fw-semibold">2026-09-30 08:00</td>
-                            <td class="text-primary fw-bold">152.7</td>
-                            <td>7,829.5</td>
-                            <td class="text-success fw-bold">118.9</td>
-                            <td>5,842.7</td>
-                            <td style="color: #7c3aed;" class="fw-bold">79.6</td>
-                            <td>3,529.3</td>
-                            <td class="text-warning fw-bold">2.68</td>
-                        </tr>
-                        <tr>
-                            <td class="fw-semibold">2026-09-30 07:00</td>
-                            <td class="text-primary fw-bold">148.1</td>
-                            <td>7,674.8</td>
-                            <td class="text-success fw-bold">114.2</td>
-                            <td>5,718.9</td>
-                            <td style="color: #7c3aed;" class="fw-bold">76.8</td>
-                            <td>3,451.7</td>
-                            <td class="text-warning fw-bold">2.65</td>
-                        </tr>
-                        <tr>
-                            <td class="fw-semibold">2026-09-30 06:00</td>
-                            <td class="text-primary fw-bold">142.5</td>
-                            <td>7,521.3</td>
-                            <td class="text-success fw-bold">109.7</td>
-                            <td>5,602.6</td>
-                            <td style="color: #7c3aed;" class="fw-bold">73.5</td>
-                            <td>3,378.2</td>
-                            <td class="text-warning fw-bold">2.60</td>
+                            <td colspan="8" class="text-center text-muted py-4">
+                                <i class="bi bi-inbox fs-4 d-block mb-1 text-secondary"></i>
+                                Belum ada riwayat data log tersimpan
+                            </td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -872,7 +798,7 @@
 
     // 2. Trend Grafik Line Chart (Last 24 Hours)
     const trendCtx = document.getElementById('scadaTrendChart').getContext('2d');
-    const xLabels = ['00:00', '02:00', '04:00', '06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00', '24:00'];
+    const xLabels = @json($chartLabels);
 
     const scadaTrendChart = new Chart(trendCtx, {
         type: 'line',
@@ -880,8 +806,8 @@
             labels: xLabels,
             datasets: [
                 {
-                    label: '{{ $labelRms }} (m³/h)',
-                    data: [184, 186, 178, 188, 182, 190, 185, 188, 184, 187, 185.6, 189, 185.6],
+                    label: @json($labelRms . ' (m³/h)'),
+                    data: @json($chartRms),
                     borderColor: '#3b82f6',
                     backgroundColor: '#3b82f6',
                     borderWidth: 2,
@@ -891,8 +817,8 @@
                     yAxisID: 'y'
                 },
                 {
-                    label: '{{ $labelMhs }} (m³/h)',
-                    data: [140, 142, 138, 145, 141, 146, 143, 144, 140, 143, 142.7, 145, 142.7],
+                    label: @json($labelMhs . ' (m³/h)'),
+                    data: @json($chartMhs),
                     borderColor: '#10b981',
                     backgroundColor: '#10b981',
                     borderWidth: 2,
@@ -902,8 +828,8 @@
                     yAxisID: 'y'
                 },
                 {
-                    label: '{{ $labelHrms }} (m³/h)',
-                    data: [94, 96, 92, 98, 95, 100, 96, 99, 95, 98, 97.4, 99, 97.4],
+                    label: @json($labelHrms . ' (m³/h)'),
+                    data: @json($chartHrms),
                     borderColor: '#a855f7',
                     backgroundColor: '#a855f7',
                     borderWidth: 2,
@@ -913,8 +839,8 @@
                     yAxisID: 'y'
                 },
                 {
-                    label: '{{ $labelPh }} (Bar)',
-                    data: [2.70, 2.75, 2.80, 2.82, 2.85, 2.90, 2.85, 2.88, 2.82, 2.85, 2.85, 2.86, 2.85],
+                    label: @json($labelPh . ' (Bar)'),
+                    data: @json($chartPh),
                     borderColor: '#eab308',
                     backgroundColor: '#eab308',
                     borderWidth: 2,
@@ -1005,9 +931,9 @@
     const scadaDonutChart = new Chart(donutCtx, {
         type: 'doughnut',
         data: {
-            labels: ['{{ $labelRms }}', '{{ $labelMhs }}', '{{ $labelHrms }}'],
+            labels: [@json($labelRms), @json($labelMhs), @json($labelHrms)],
             datasets: [{
-                data: [185.6, 142.7, 97.4],
+                data: [{{ $currentRmsFlow }}, {{ $currentMhsFlow }}, {{ $currentHrmsFlow }}],
                 backgroundColor: ['#3b82f6', '#10b981', '#a855f7'],
                 hoverBackgroundColor: ['#2563eb', '#059669', '#9333ea'],
                 borderWidth: 0,
@@ -1042,10 +968,10 @@
     }
 
     // Set initial gauge values
-    setGaugeProgress('circleProgressRMS', 62);
-    setGaugeProgress('circleProgressMHS', 48);
-    setGaugeProgress('circleProgressHRMS', 32);
-    setGaugeProgress('circleProgressPH', 28.5); // 2.85 / 10 * 100
+    setGaugeProgress('circleProgressRMS', {{ $gaugePctRms }});
+    setGaugeProgress('circleProgressMHS', {{ $gaugePctMhs }});
+    setGaugeProgress('circleProgressHRMS', {{ $gaugePctHrms }});
+    setGaugeProgress('circleProgressPH', {{ $gaugePctPh }});
 
     // Optional Telemetry live polling if active
     let isPolling = false;
@@ -1060,12 +986,11 @@
             const data = await resp.json();
             if (!data.success) return;
 
-            // If actual devices are available and responding, we can dynamically update:
             if (data.scada) {
                 const scada = data.scada;
                 // RMS
-                const rms = Number(scada.rms?.flow_rate ?? 185.6);
-                const rmsTotal = Number(scada.rms?.totalizer ?? 8542.3);
+                const rms = Number(scada.rms?.flow_rate ?? 0);
+                const rmsTotal = Number(scada.rms?.totalizer ?? 0);
                 document.getElementById('valFlowrateRMS').textContent = rms.toFixed(1);
                 document.getElementById('detailFlowrateRMS').textContent = rms.toFixed(1);
                 document.getElementById('detailTotalityRMS').textContent = rmsTotal.toLocaleString('en-US', {minimumFractionDigits: 1});
@@ -1074,8 +999,8 @@
                 setGaugeProgress('circleProgressRMS', rmsPct);
 
                 // MHS
-                const mhs = Number(scada.mhs?.flow_rate ?? 142.7);
-                const mhsTotal = Number(scada.mhs?.totalizer ?? 6783.5);
+                const mhs = Number(scada.mhs?.flow_rate ?? 0);
+                const mhsTotal = Number(scada.mhs?.totalizer ?? 0);
                 document.getElementById('valFlowrateMHS').textContent = mhs.toFixed(1);
                 document.getElementById('detailFlowrateMHS').textContent = mhs.toFixed(1);
                 document.getElementById('detailTotalityMHS').textContent = mhsTotal.toLocaleString('en-US', {minimumFractionDigits: 1});
@@ -1084,8 +1009,8 @@
                 setGaugeProgress('circleProgressMHS', mhsPct);
 
                 // H-RMS
-                const hrms = Number(scada.h_rms?.flow_rate ?? 97.4);
-                const hrmsTotal = Number(scada.h_rms?.totalizer ?? 4126.8);
+                const hrms = Number(scada.h_rms?.flow_rate ?? 0);
+                const hrmsTotal = Number(scada.h_rms?.totalizer ?? 0);
                 document.getElementById('valFlowrateHRMS').textContent = hrms.toFixed(1);
                 document.getElementById('detailFlowrateHRMS').textContent = hrms.toFixed(1);
                 document.getElementById('detailTotalityHRMS').textContent = hrmsTotal.toLocaleString('en-US', {minimumFractionDigits: 1});
@@ -1093,12 +1018,51 @@
                 document.getElementById('pctHRMS').textContent = hrmsPct + '%';
                 setGaugeProgress('circleProgressHRMS', hrmsPct);
 
-                // Pressure (formerly pH)
-                const pressVal = Number(scada.pressure?.value ?? scada.ph?.value ?? 2.85);
+                // Pressure
+                const pressVal = Number(scada.pressure?.value ?? scada.ph?.value ?? 0);
                 document.getElementById('valPH').textContent = pressVal.toFixed(2);
                 document.getElementById('detailValPH').textContent = pressVal.toFixed(2);
+
                 const curEl = document.getElementById('valPhStatusCurrent');
-                if (curEl) curEl.textContent = pressVal.toFixed(2) + ' Bar';
+                let statusText = 'Standby';
+                let curClass = 'text-secondary';
+                let badgeClass = 'badge bg-secondary text-white fw-bold px-2 py-0';
+                let detailClass = 'fw-bold text-secondary fs-6';
+                let iconClass = 'bi bi-pause-circle-fill fs-5 text-secondary';
+
+                if (pressVal >= 1.0 && pressVal <= 4.0) {
+                    statusText = 'Normal';
+                    curClass = 'text-success';
+                    badgeClass = 'badge bg-success text-white fw-bold px-2 py-0';
+                    detailClass = 'fw-bold text-success fs-6';
+                    iconClass = 'bi bi-check-circle-fill fs-5 text-success';
+                } else if (pressVal > 0) {
+                    statusText = 'Warning';
+                    curClass = 'text-warning';
+                    badgeClass = 'badge bg-warning text-dark fw-bold px-2 py-0';
+                    detailClass = 'fw-bold text-warning fs-6';
+                    iconClass = 'bi bi-exclamation-triangle-fill fs-5 text-warning';
+                }
+
+                if (curEl) {
+                    curEl.textContent = pressVal.toFixed(2) + ' Bar';
+                    curEl.className = curClass;
+                }
+                const statusBadge = document.getElementById('phStatusBadge');
+                if (statusBadge) {
+                    statusBadge.className = badgeClass;
+                    statusBadge.textContent = statusText;
+                }
+                const statusDetail = document.getElementById('phStatusDetail');
+                if (statusDetail) {
+                    statusDetail.className = detailClass;
+                    statusDetail.textContent = statusText;
+                }
+                const statusIcon = document.getElementById('phStatusIcon');
+                if (statusIcon) {
+                    statusIcon.className = iconClass;
+                }
+
                 const pressPct = Math.min(100, Math.max(0, (pressVal / 10) * 100));
                 setGaugeProgress('circleProgressPH', pressPct);
                 const pointer = document.getElementById('phPointer');
@@ -1116,12 +1080,16 @@
                     document.getElementById('overviewRmsPct').textContent = Math.round((rms / (rms + mhs + hrms)) * 100) + '%';
                     document.getElementById('overviewMhsPct').textContent = Math.round((mhs / (rms + mhs + hrms)) * 100) + '%';
                     document.getElementById('overviewHrmsPct').textContent = Math.round((hrms / (rms + mhs + hrms)) * 100) + '%';
+                } else {
+                    document.getElementById('overviewRmsPct').textContent = '0%';
+                    document.getElementById('overviewMhsPct').textContent = '0%';
+                    document.getElementById('overviewHrmsPct').textContent = '0%';
                 }
                 scadaDonutChart.data.datasets[0].data = [rms, mhs, hrms];
                 scadaDonutChart.update('none');
             }
         } catch (err) {
-            // Silently retain screenshot-identical state if offline
+            // Offline or network error
         } finally {
             isPolling = false;
         }

@@ -45,7 +45,7 @@ class HistoryController extends Controller
         $energyConsumed = round(max(0, $maxEnergy - $minEnergy), 2);
         $totalWaterVolume = round(max(0, ($statsQuery->max('totalizer') ?? 0) - ($statsQuery->min('totalizer') ?? 0)), 2);
         $avgFlowRate = round($statsQuery->avg('flow_rate') ?? 0, 2);
-        $avgPh = round($statsQuery->whereNotNull('ph')->avg('ph') ?? 7.62, 2);
+        $avgPh = round($statsQuery->whereNotNull('ph')->avg('ph') ?? 0.0, 2);
 
         $logs = $query->paginate(20)->withQueryString();
 
@@ -108,7 +108,7 @@ class HistoryController extends Controller
                 'energy' => $params['energy']['value'] ?? null,
                 'totalizer' => $params['totalizer']['value'] ?? null,
                 'flow_rate' => $params['flow_rate']['value'] ?? null,
-                'ph' => $params['ph']['value'] ?? null,
+                'ph' => $params['pressure']['value'] ?? $params['ph']['value'] ?? null,
                 'raw_parameters' => $params,
                 'is_simulated' => $readData['is_simulated'] ?? false,
                 'logged_at' => $now,
@@ -190,7 +190,7 @@ class HistoryController extends Controller
                 'IP Gateway',
                 'Totalizer Air (m³)',
                 'Flow Rate (m³/h)',
-                'Nilai pH',
+                'Nilai pH / Pressure (Bar)',
                 'Tegangan L-N (V)',
                 'Arus (A)',
                 'Daya Aktif (kW)',

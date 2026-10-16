@@ -64,6 +64,16 @@ class Device extends Model
     }
 
     /**
+     * Cek apakah device bertipe sensor tekanan / pressure.
+     */
+    public function isPressureSensor(): bool
+    {
+        return $this->category === 'pressure_sensor'
+            || str_contains(strtolower($this->name), 'pressure')
+            || str_contains(strtolower($this->name), 'bar');
+    }
+
+    /**
      * Cek apakah device bertipe meter air / flow meter (alias kompatibilitas).
      */
     public function isWater(): bool
@@ -79,6 +89,7 @@ class Device extends Model
         return match ($this->category) {
             'flow_meter' => 'Electromagnetic Flowmeter (Flowrate & Totalizer)',
             'ph_sensor' => 'pH Sensor (0 ~ 14 pH)',
+            'pressure_sensor' => 'Pressure Sensor (0 ~ 10 Bar)',
             'water_meter' => 'Meter Air (Totalizer)',
             'digital_water_meter' => 'Meter Air Digital (Totalizer & Flow)',
             'kwh_meter' => 'kWh Meter (Total kWh, V, A)',

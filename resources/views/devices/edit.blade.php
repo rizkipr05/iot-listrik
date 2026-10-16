@@ -42,6 +42,7 @@
                             <label for="category" class="form-label fw-semibold small text-secondary">Tipe / Kategori Hardware</label>
                             <select name="category" id="category" class="form-select @error('category') is-invalid @enderror">
                                 <option value="flow_meter" {{ old('category', $device->category) == 'flow_meter' ? 'selected' : '' }}>Electromagnetic Flowmeter (Flowrate & Totalizer)</option>
+                                <option value="pressure_sensor" {{ old('category', $device->category) == 'pressure_sensor' ? 'selected' : '' }}>Pressure Sensor (0 ~ 10 Bar)</option>
                                 <option value="ph_sensor" {{ old('category', $device->category) == 'ph_sensor' ? 'selected' : '' }}>Sensor pH (0 ~ 14 pH)</option>
                                 <option value="water_meter" {{ old('category', $device->category) == 'water_meter' ? 'selected' : '' }}>Meter Air Mekanik (Totalizer m³)</option>
                                 <option value="digital_water_meter" {{ old('category', $device->category) == 'digital_water_meter' ? 'selected' : '' }}>Meter Air Digital RS485 (Totalizer & Flow)</option>

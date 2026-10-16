@@ -130,7 +130,11 @@
                 @forelse($devices as $index => $device)
                     <tr>
                         <td class="ps-4">
-                            @if($device->isWater())
+                            @if($device->isPressureSensor())
+                                <div class="d-flex align-items-center justify-content-center bg-danger-subtle text-danger rounded-3 fw-bold mono-font" style="width: 38px; height: 38px; font-size: 0.85rem;" title="Sensor Tekanan / Pressure">
+                                    <i class="bi bi-speedometer2 fs-5"></i>
+                                </div>
+                            @elseif($device->isWater())
                                 <div class="d-flex align-items-center justify-content-center bg-info-subtle text-info rounded-3 fw-bold mono-font" style="width: 38px; height: 38px; font-size: 0.85rem;" title="Meter Air / Flow Meter">
                                     <i class="bi bi-droplet-fill fs-5"></i>
                                 </div>
@@ -143,11 +147,11 @@
                         <td>
                             <div class="d-flex align-items-center gap-2">
                                 <span class="fw-bold text-dark">{{ $device->name }}</span>
-                                <span class="badge {{ $device->isWater() ? 'bg-info-subtle text-info border border-info-subtle' : 'bg-primary-subtle text-primary border border-primary-subtle' }} rounded-pill" style="font-size: 0.68rem;">
+                                <span class="badge {{ $device->isPressureSensor() ? 'bg-danger-subtle text-danger border border-danger-subtle' : ($device->isWater() ? 'bg-info-subtle text-info border border-info-subtle' : 'bg-primary-subtle text-primary border border-primary-subtle') }} rounded-pill" style="font-size: 0.68rem;">
                                     {{ $device->category_label }}
                                 </span>
                             </div>
-                            <small class="text-muted">{{ $device->description ?? ($device->isWater() ? 'Instrumen Meter Air / Flow' : 'Instrumen Panel Listrik') }}</small>
+                            <small class="text-muted">{{ $device->description ?? ($device->isPressureSensor() ? 'Instrumen Sensor Tekanan' : ($device->isWater() ? 'Instrumen Meter Air / Flow' : 'Instrumen Panel Listrik')) }}</small>
                         </td>
                         <td>
                             <span class="badge bg-light text-dark border mono-font py-1 px-2" style="font-size: 0.8rem;">
