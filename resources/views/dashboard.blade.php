@@ -386,7 +386,7 @@
                                     <div class="fw-bold mono-font text-dark fs-6">
                                         <span id="detailFlowrateRMS">{{ number_format($currentRmsFlow, 1) }}</span> <small class="fw-normal text-muted" style="font-size: 0.75rem;">m³/h</small>
                                     </div>
-                                    <div class="text-secondary" style="font-size: 0.68rem;">(Range 0 ~ 300)</div>
+                                    <div class="text-secondary" style="font-size: 0.68rem;" id="rangeTextRMS">(Range 0 ~ {{ $maxRms }} m³/h)</div>
                                 </div>
                             </div>
 
@@ -455,7 +455,7 @@
                                     <div class="fw-bold mono-font text-dark fs-6">
                                         <span id="detailFlowrateMHS">{{ number_format($currentMhsFlow, 1) }}</span> <small class="fw-normal text-muted" style="font-size: 0.75rem;">m³/h</small>
                                     </div>
-                                    <div class="text-secondary" style="font-size: 0.68rem;">(Range 0 ~ 300)</div>
+                                    <div class="text-secondary" style="font-size: 0.68rem;" id="rangeTextMHS">(Range 0 ~ {{ $maxMhs }} m³/h)</div>
                                 </div>
                             </div>
 
@@ -524,7 +524,7 @@
                                     <div class="fw-bold mono-font text-dark fs-6">
                                         <span id="detailFlowrateHRMS">{{ number_format($currentHrmsFlow, 1) }}</span> <small class="fw-normal text-muted" style="font-size: 0.75rem;">m³/h</small>
                                     </div>
-                                    <div class="text-secondary" style="font-size: 0.68rem;">(Range 0 ~ 300)</div>
+                                    <div class="text-secondary" style="font-size: 0.68rem;" id="rangeTextHRMS">(Range 0 ~ {{ $maxHrms }} m³/h)</div>
                                 </div>
                             </div>
 
@@ -595,7 +595,7 @@
                                     <div class="fw-bold mono-font text-dark fs-6">
                                         <span id="detailValPH">{{ number_format($currentPh, 2) }}</span> <small class="fw-normal text-muted" style="font-size: 0.75rem;">Bar</small>
                                     </div>
-                                    <div class="text-secondary" style="font-size: 0.68rem;">(Range 0 ~ 10 bar)</div>
+                                    <div class="text-secondary" style="font-size: 0.68rem;" id="rangeTextPH">(Range 0 ~ {{ $maxPh }} bar)</div>
                                 </div>
                             </div>
 
@@ -917,9 +917,8 @@
                     display: true,
                     position: 'left',
                     min: 0,
-                    max: 300,
+                    suggestedMax: {{ max((float)$maxRms, (float)$maxMhs, (float)$maxHrms, 10.0) }},
                     ticks: {
-                        stepSize: 60,
                         color: '#67e8f9',
                         font: { family: 'JetBrains Mono', size: 10 }
                     },
@@ -1021,13 +1020,25 @@
 
             if (data.scada) {
                 const scada = data.scada;
+                let scaleRms = {{ (float) $maxRms }};
+                let scaleMhs = {{ (float) $maxMhs }};
+                let scaleHrms = {{ (float) $maxHrms }};
+                let scalePh = {{ (float) $maxPh }};
+
+                if (data.scales) {
+                    if (data.scales.rms_max) scaleRms = Number(data.scales.rms_max);
+                    if (data.scales.mhs_max) scaleMhs = Number(data.scales.mhs_max);
+                    if (data.scales.hrms_max) scaleHrms = Number(data.scales.hrms_max);
+                    if (data.scales.pressure_max) scalePh = Number(data.scales.pressure_max);
+                }
+
                 // RMS
                 const rms = Number(scada.rms?.flow_rate ?? 0);
                 const rmsTotal = Number(scada.rms?.totalizer ?? 0);
                 document.getElementById('valFlowrateRMS').textContent = rms.toFixed(1);
                 document.getElementById('detailFlowrateRMS').textContent = rms.toFixed(1);
                 document.getElementById('detailTotalityRMS').textContent = rmsTotal.toLocaleString('en-US', {minimumFractionDigits: 1});
-                const rmsPct = Math.min(100, Math.round((rms / 300) * 100));
+                const rmsPct = Math.min(100, Math.round((rms / Math.max(0.001, scaleRms)) * 100));
                 document.getElementById('pctRMS').textContent = rmsPct + '%';
                 setGaugeProgress('circleProgressRMS', rmsPct);
 
@@ -1037,7 +1048,7 @@
                 document.getElementById('valFlowrateMHS').textContent = mhs.toFixed(1);
                 document.getElementById('detailFlowrateMHS').textContent = mhs.toFixed(1);
                 document.getElementById('detailTotalityMHS').textContent = mhsTotal.toLocaleString('en-US', {minimumFractionDigits: 1});
-                const mhsPct = Math.min(100, Math.round((mhs / 300) * 100));
+                const mhsPct = Math.min(100, Math.round((mhs / Math.max(0.001, scaleMhs)) * 100));
                 document.getElementById('pctMHS').textContent = mhsPct + '%';
                 setGaugeProgress('circleProgressMHS', mhsPct);
 
@@ -1047,7 +1058,7 @@
                 document.getElementById('valFlowrateHRMS').textContent = hrms.toFixed(1);
                 document.getElementById('detailFlowrateHRMS').textContent = hrms.toFixed(1);
                 document.getElementById('detailTotalityHRMS').textContent = hrmsTotal.toLocaleString('en-US', {minimumFractionDigits: 1});
-                const hrmsPct = Math.min(100, Math.round((hrms / 300) * 100));
+                const hrmsPct = Math.min(100, Math.round((hrms / Math.max(0.001, scaleHrms)) * 100));
                 document.getElementById('pctHRMS').textContent = hrmsPct + '%';
                 setGaugeProgress('circleProgressHRMS', hrmsPct);
 
@@ -1096,7 +1107,7 @@
                     statusIcon.className = iconClass;
                 }
 
-                const pressPct = Math.min(100, Math.max(0, (pressVal / 10) * 100));
+                const pressPct = Math.min(100, Math.max(0, Math.round((pressVal / Math.max(0.001, scalePh)) * 100)));
                 setGaugeProgress('circleProgressPH', pressPct);
                 const pointer = document.getElementById('phPointer');
                 if (pointer) pointer.style.left = pressPct + '%';

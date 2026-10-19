@@ -2,12 +2,28 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AppSetting;
 use App\Models\Device;
 use App\Models\MeterLog;
 use Illuminate\Support\Facades\Cache;
 
 class DashboardController extends Controller
 {
+    /**
+     * Ekstrak batas nilai maksimal dari deskripsi jika ada pola 'Range: 0 - X' atau 'Range : 0 ~ X'
+     */
+    private function extractMaxRange(?string $description, float $fallback): float
+    {
+        if ($description && preg_match('/Range\s*:\s*0\s*[-~]\s*(\d+(?:\.\d+)?)/i', $description, $matches)) {
+            $val = (float) $matches[1];
+            if ($val > 0) {
+                return $val;
+            }
+        }
+
+        return $fallback;
+    }
+
     /**
      * Tampilkan halaman utama monitoring SCADA Flow & Water Meter & Pressure.
      */
@@ -35,6 +51,13 @@ class DashboardController extends Controller
         $descMhs = $deviceMhs?->description ?: 'Nominal Size : 3/4 inch | Range : 0 ~ 300 m³/h';
         $descHrms = $deviceHrms?->description ?: 'Nominal Size : 1/2 inch | Range : 0 ~ 300 m³/h';
         $descPh = $devicePh?->description ?: 'Range : 0 ~ 10 bar';
+
+        // Ambil konfigurasi batas maksimal (kondisi 100% skala gauge) dari AppSetting
+        $maxRms = (float) AppSetting::getValue('max_flowrate_rms', $this->extractMaxRange($descRms, 4.0));
+        $maxMhs = (float) AppSetting::getValue('max_flowrate_mhs', $this->extractMaxRange($descMhs, 300.0));
+        $maxHrms = (float) AppSetting::getValue('max_flowrate_hrms', $this->extractMaxRange($descHrms, 300.0));
+        $maxPh = (float) AppSetting::getValue('max_pressure', $this->extractMaxRange($descPh, 10.0));
+        $flowWarningPct = (int) AppSetting::getValue('flow_warning_percent', '85');
 
         // Ambil pembacaan terakhir masing-masing instrumen (default 0 jika belum ada log)
         $latestRms = $deviceRms ? MeterLog::where('device_id', $deviceRms->id)->latest('logged_at')->first() : null;
@@ -121,10 +144,10 @@ class DashboardController extends Controller
         $pctMhs = $totalFlowCurrent > 0 ? (int) round(($currentMhsFlow / $totalFlowCurrent) * 100) : 0;
         $pctHrms = $totalFlowCurrent > 0 ? (int) round(($currentHrmsFlow / $totalFlowCurrent) * 100) : 0;
 
-        $gaugePctRms = (int) min(100, max(0, round(($currentRmsFlow / 300) * 100)));
-        $gaugePctMhs = (int) min(100, max(0, round(($currentMhsFlow / 300) * 100)));
-        $gaugePctHrms = (int) min(100, max(0, round(($currentHrmsFlow / 300) * 100)));
-        $gaugePctPh = (int) min(100, max(0, round(($currentPh / 10) * 100)));
+        $gaugePctRms = (int) min(100, max(0, round(($currentRmsFlow / max(0.001, $maxRms)) * 100)));
+        $gaugePctMhs = (int) min(100, max(0, round(($currentMhsFlow / max(0.001, $maxMhs)) * 100)));
+        $gaugePctHrms = (int) min(100, max(0, round(($currentHrmsFlow / max(0.001, $maxHrms)) * 100)));
+        $gaugePctPh = (int) min(100, max(0, round(($currentPh / max(0.001, $maxPh)) * 100)));
 
         $circumference = 251.32;
         $gaugeOffsetRms = round($circumference - ($gaugePctRms / 100) * $circumference, 1);
@@ -183,7 +206,12 @@ class DashboardController extends Controller
             'chartRms',
             'chartMhs',
             'chartHrms',
-            'chartPh'
+            'chartPh',
+            'maxRms',
+            'maxMhs',
+            'maxHrms',
+            'maxPh',
+            'flowWarningPct'
         ));
     }
 }

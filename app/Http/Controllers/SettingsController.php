@@ -18,6 +18,26 @@ class SettingsController extends Controller
         $loggerEnabled = AppSetting::getValue('logger_enabled', '1') === '1';
         $loggerIntervalSeconds = (int) AppSetting::getValue('logger_interval_seconds', '60');
 
+        $devices = Device::active()->orderBy('id')->get();
+        $deviceRms = $devices->where('slave_id', 1)->first() ?? $devices->get(0);
+        $deviceMhs = $devices->where('slave_id', 2)->first() ?? $devices->get(1);
+        $deviceHrms = $devices->where('slave_id', 3)->first() ?? $devices->get(2);
+        $devicePh = $devices->where('slave_id', 4)->first()
+            ?? $devices->first(fn ($d) => $d->isPressureSensor() || $d->isPhSensor())
+            ?? $devices->get(3);
+
+        $labelRms = $deviceRms?->name ?? 'Flowmeter 1 - Area RMS';
+        $labelMhs = $deviceMhs?->name ?? 'Flowmeter 2 - Area Toilet';
+        $labelHrms = $deviceHrms?->name ?? 'Flowmeter 3 - Area Office';
+        $labelPh = $devicePh?->name ?? 'Pressure Sensor';
+
+        // Nilai batas maksimal flowrate & pressure (kondisi 100% full scale)
+        $maxFlowRms = (float) AppSetting::getValue('max_flowrate_rms', $this->extractMaxRange($deviceRms?->description, 4.0));
+        $maxFlowMhs = (float) AppSetting::getValue('max_flowrate_mhs', $this->extractMaxRange($deviceMhs?->description, 300.0));
+        $maxFlowHrms = (float) AppSetting::getValue('max_flowrate_hrms', $this->extractMaxRange($deviceHrms?->description, 300.0));
+        $maxPressure = (float) AppSetting::getValue('max_pressure', $this->extractMaxRange($devicePh?->description, 10.0));
+        $flowWarningPct = (int) AppSetting::getValue('flow_warning_percent', '85');
+
         $totalDevices = Device::count();
         $totalRegisters = Register::count();
         $totalLogs = MeterLog::count();
@@ -30,12 +50,70 @@ class SettingsController extends Controller
         return view('settings.index', compact(
             'loggerEnabled',
             'loggerIntervalSeconds',
+            'maxFlowRms',
+            'maxFlowMhs',
+            'maxFlowHrms',
+            'maxPressure',
+            'flowWarningPct',
+            'labelRms',
+            'labelMhs',
+            'labelHrms',
+            'labelPh',
+            'deviceRms',
+            'deviceMhs',
+            'deviceHrms',
+            'devicePh',
             'totalDevices',
             'totalRegisters',
             'totalLogs',
             'dbSizeFormatted',
             'lastLoggedAt'
         ));
+    }
+
+    /**
+     * Simpan batas kapasitas maksimal flowrate (kondisi 100%) dan pressure.
+     */
+    public function updateScales(Request $request)
+    {
+        $validated = $request->validate([
+            'max_flowrate_rms' => ['required', 'numeric', 'min:0.1', 'max:100000'],
+            'max_flowrate_mhs' => ['required', 'numeric', 'min:0.1', 'max:100000'],
+            'max_flowrate_hrms' => ['required', 'numeric', 'min:0.1', 'max:100000'],
+            'max_pressure' => ['required', 'numeric', 'min:0.1', 'max:1000'],
+            'flow_warning_percent' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ], [
+            'max_flowrate_rms.required' => 'Batas maksimal flowrate meter RMS wajib ditentukan.',
+            'max_flowrate_mhs.required' => 'Batas maksimal flowrate meter MHS wajib ditentukan.',
+            'max_flowrate_hrms.required' => 'Batas maksimal flowrate meter H-RMS wajib ditentukan.',
+            'max_pressure.required' => 'Batas maksimal tekanan / pressure wajib ditentukan.',
+        ]);
+
+        AppSetting::setValue('max_flowrate_rms', (string) $validated['max_flowrate_rms'], 'Kapasitas maksimal flowrate Meter 1 (RMS) untuk 100%');
+        AppSetting::setValue('max_flowrate_mhs', (string) $validated['max_flowrate_mhs'], 'Kapasitas maksimal flowrate Meter 2 (MHS) untuk 100%');
+        AppSetting::setValue('max_flowrate_hrms', (string) $validated['max_flowrate_hrms'], 'Kapasitas maksimal flowrate Meter 3 (H-RMS) untuk 100%');
+        AppSetting::setValue('max_pressure', (string) $validated['max_pressure'], 'Kapasitas maksimal pressure sensor untuk 100%');
+
+        if (isset($validated['flow_warning_percent'])) {
+            AppSetting::setValue('flow_warning_percent', (string) $validated['flow_warning_percent'], 'Ambang batas peringatan aliran tinggi (%)');
+        }
+
+        return back()->with('success', 'Pengaturan batas maksimal (kondisi 100% gauge) flowrate & pressure berhasil disimpan.');
+    }
+
+    /**
+     * Ekstrak batas nilai maksimal dari deskripsi jika ada pola 'Range: 0 - X' atau 'Range : 0 ~ X'
+     */
+    private function extractMaxRange(?string $description, float $fallback): float
+    {
+        if ($description && preg_match('/Range\s*:\s*0\s*[-~]\s*(\d+(?:\.\d+)?)/i', $description, $matches)) {
+            $val = (float) $matches[1];
+            if ($val > 0) {
+                return $val;
+            }
+        }
+
+        return $fallback;
     }
 
     /**

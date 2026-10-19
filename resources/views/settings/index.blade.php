@@ -237,6 +237,130 @@
                 </form>
             </div>
         </div>
+
+        <!-- Kartu Pengaturan Skala & Rentang Maksimal Meter (Kondisi 100% Gauge) -->
+        <div class="card shadow-sm border-0 mt-4" style="border-radius: 16px;">
+            <div class="card-header bg-white py-3 px-4 d-flex align-items-center gap-2 border-bottom">
+                <div class="p-2 bg-info-subtle text-info rounded-3">
+                    <i class="bi bi-speedometer2"></i>
+                </div>
+                <div>
+                    <h6 class="fw-bold text-dark mb-0">Pengaturan Skala & Rentang Maksimal (Kondisi 100% Gauge)</h6>
+                    <small class="text-muted">Tentukan kapasitas aliran (m³/h) dan tekanan (Bar) acuan 100% pada circular gauge SCADA</small>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <form action="{{ route('settings.scales.update') }}" method="POST">
+                    @csrf
+                    @method('PUT')
+
+                    <!-- Meter 1: RMS -->
+                    <div class="mb-3 p-3 bg-light rounded-3 border">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label for="max_flowrate_rms" class="form-label fw-bold small text-dark mb-0">
+                                <i class="bi bi-droplet-fill text-primary me-1"></i> Flowmeter 1 (Area RMS): {{ $labelRms }}
+                            </label>
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill small px-2">Meter 1</span>
+                        </div>
+                        <small class="text-muted d-block mb-2">Batas kapasitas maksimal (Range 0 ~ X m³/h) saat flowrate mencapai 100%:</small>
+                        <div class="input-group input-group-sm mb-2">
+                            <input type="number" step="0.1" min="0.1" max="10000" class="form-control mono-font fw-bold" id="max_flowrate_rms" name="max_flowrate_rms" value="{{ $maxFlowRms }}" required>
+                            <span class="input-group-text bg-white mono-font">m³/h</span>
+                        </div>
+                        <div class="d-flex flex-wrap gap-1">
+                            <span class="small text-muted me-1 align-self-center" style="font-size: 0.72rem;">Preset:</span>
+                            <button type="button" class="btn btn-outline-secondary py-0 px-2" style="font-size: 0.72rem; border-radius: 6px;" onclick="document.getElementById('max_flowrate_rms').value = '4.0'">4 m³/h (DN20 3/4")</button>
+                            <button type="button" class="btn btn-outline-secondary py-0 px-2" style="font-size: 0.72rem; border-radius: 6px;" onclick="document.getElementById('max_flowrate_rms').value = '10.0'">10 m³/h (DN25 1")</button>
+                            <button type="button" class="btn btn-outline-secondary py-0 px-2" style="font-size: 0.72rem; border-radius: 6px;" onclick="document.getElementById('max_flowrate_rms').value = '25.0'">25 m³/h (DN40 1.5")</button>
+                            <button type="button" class="btn btn-outline-secondary py-0 px-2" style="font-size: 0.72rem; border-radius: 6px;" onclick="document.getElementById('max_flowrate_rms').value = '50.0'">50 m³/h (DN50 2")</button>
+                            <button type="button" class="btn btn-outline-secondary py-0 px-2" style="font-size: 0.72rem; border-radius: 6px;" onclick="document.getElementById('max_flowrate_rms').value = '300.0'">300 m³/h (DN150 6")</button>
+                        </div>
+                    </div>
+
+                    <!-- Meter 2: MHS / Toilet -->
+                    <div class="mb-3 p-3 bg-light rounded-3 border">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label for="max_flowrate_mhs" class="form-label fw-bold small text-dark mb-0">
+                                <i class="bi bi-droplet-fill text-success me-1"></i> Flowmeter 2 (Area Toilet): {{ $labelMhs }}
+                            </label>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill small px-2">Meter 2</span>
+                        </div>
+                        <small class="text-muted d-block mb-2">Batas kapasitas maksimal (Range 0 ~ X m³/h) saat flowrate mencapai 100%:</small>
+                        <div class="input-group input-group-sm mb-2">
+                            <input type="number" step="0.1" min="0.1" max="10000" class="form-control mono-font fw-bold" id="max_flowrate_mhs" name="max_flowrate_mhs" value="{{ $maxFlowMhs }}" required>
+                            <span class="input-group-text bg-white mono-font">m³/h</span>
+                        </div>
+                        <div class="d-flex flex-wrap gap-1">
+                            <span class="small text-muted me-1 align-self-center" style="font-size: 0.72rem;">Preset:</span>
+                            <button type="button" class="btn btn-outline-secondary py-0 px-2" style="font-size: 0.72rem; border-radius: 6px;" onclick="document.getElementById('max_flowrate_mhs').value = '4.0'">4 m³/h</button>
+                            <button type="button" class="btn btn-outline-secondary py-0 px-2" style="font-size: 0.72rem; border-radius: 6px;" onclick="document.getElementById('max_flowrate_mhs').value = '10.0'">10 m³/h</button>
+                            <button type="button" class="btn btn-outline-secondary py-0 px-2" style="font-size: 0.72rem; border-radius: 6px;" onclick="document.getElementById('max_flowrate_mhs').value = '50.0'">50 m³/h</button>
+                            <button type="button" class="btn btn-outline-secondary py-0 px-2" style="font-size: 0.72rem; border-radius: 6px;" onclick="document.getElementById('max_flowrate_mhs').value = '300.0'">300 m³/h</button>
+                        </div>
+                    </div>
+
+                    <!-- Meter 3: H-RMS / Hydrant -->
+                    <div class="mb-3 p-3 bg-light rounded-3 border">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label for="max_flowrate_hrms" class="form-label fw-bold small text-dark mb-0">
+                                <i class="bi bi-droplet-fill text-warning me-1"></i> Flowmeter 3 (Area Hydrant): {{ $labelHrms }}
+                            </label>
+                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill small px-2">Meter 3</span>
+                        </div>
+                        <small class="text-muted d-block mb-2">Batas kapasitas maksimal (Range 0 ~ X m³/h) saat flowrate mencapai 100%:</small>
+                        <div class="input-group input-group-sm mb-2">
+                            <input type="number" step="0.1" min="0.1" max="10000" class="form-control mono-font fw-bold" id="max_flowrate_hrms" name="max_flowrate_hrms" value="{{ $maxFlowHrms }}" required>
+                            <span class="input-group-text bg-white mono-font">m³/h</span>
+                        </div>
+                        <div class="d-flex flex-wrap gap-1">
+                            <span class="small text-muted me-1 align-self-center" style="font-size: 0.72rem;">Preset:</span>
+                            <button type="button" class="btn btn-outline-secondary py-0 px-2" style="font-size: 0.72rem; border-radius: 6px;" onclick="document.getElementById('max_flowrate_hrms').value = '10.0'">10 m³/h</button>
+                            <button type="button" class="btn btn-outline-secondary py-0 px-2" style="font-size: 0.72rem; border-radius: 6px;" onclick="document.getElementById('max_flowrate_hrms').value = '50.0'">50 m³/h</button>
+                            <button type="button" class="btn btn-outline-secondary py-0 px-2" style="font-size: 0.72rem; border-radius: 6px;" onclick="document.getElementById('max_flowrate_hrms').value = '100.0'">100 m³/h</button>
+                            <button type="button" class="btn btn-outline-secondary py-0 px-2" style="font-size: 0.72rem; border-radius: 6px;" onclick="document.getElementById('max_flowrate_hrms').value = '300.0'">300 m³/h</button>
+                        </div>
+                    </div>
+
+                    <!-- Meter 4: Pressure Sensor -->
+                    <div class="mb-3 p-3 bg-light rounded-3 border">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label for="max_pressure" class="form-label fw-bold small text-dark mb-0">
+                                <i class="bi bi-gauge2 text-danger me-1"></i> Sensor Tekanan: {{ $labelPh }}
+                            </label>
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill small px-2">Pressure</span>
+                        </div>
+                        <small class="text-muted d-block mb-2">Batas kapasitas tekanan maksimal (Range 0 ~ X Bar) untuk 100%:</small>
+                        <div class="input-group input-group-sm mb-2">
+                            <input type="number" step="0.1" min="0.1" max="1000" class="form-control mono-font fw-bold" id="max_pressure" name="max_pressure" value="{{ $maxPressure }}" required>
+                            <span class="input-group-text bg-white mono-font">Bar</span>
+                        </div>
+                        <div class="d-flex flex-wrap gap-1">
+                            <span class="small text-muted me-1 align-self-center" style="font-size: 0.72rem;">Preset:</span>
+                            <button type="button" class="btn btn-outline-secondary py-0 px-2" style="font-size: 0.72rem; border-radius: 6px;" onclick="document.getElementById('max_pressure').value = '4.0'">4 Bar</button>
+                            <button type="button" class="btn btn-outline-secondary py-0 px-2" style="font-size: 0.72rem; border-radius: 6px;" onclick="document.getElementById('max_pressure').value = '6.0'">6 Bar</button>
+                            <button type="button" class="btn btn-outline-secondary py-0 px-2" style="font-size: 0.72rem; border-radius: 6px;" onclick="document.getElementById('max_pressure').value = '10.0'">10 Bar</button>
+                            <button type="button" class="btn btn-outline-secondary py-0 px-2" style="font-size: 0.72rem; border-radius: 6px;" onclick="document.getElementById('max_pressure').value = '16.0'">16 Bar</button>
+                        </div>
+                    </div>
+
+                    <!-- Ambang Batas Peringatan / Warning Alarm % -->
+                    <div class="mb-4 p-3 bg-light rounded-3 border">
+                        <label for="flow_warning_percent" class="form-label fw-bold small text-dark mb-1">
+                            <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i> Ambang Batas Aliran Tinggi (High Flow Warning %)
+                        </label>
+                        <small class="text-muted d-block mb-2">Persentase flowrate (%) yang dianggap kondisi tinggi / mendekati kapasitas maksimal:</small>
+                        <div class="input-group input-group-sm">
+                            <input type="number" min="1" max="100" class="form-control mono-font fw-bold" id="flow_warning_percent" name="flow_warning_percent" value="{{ $flowWarningPct }}">
+                            <span class="input-group-text bg-white mono-font">%</span>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-info text-white rounded-pill px-4 shadow-sm">
+                        <i class="bi bi-floppy me-1"></i> Simpan Pengaturan Rentang Maksimal
+                    </button>
+                </form>
+            </div>
+        </div>
     </div>
 
     <!-- Ringkasan Navigasi & Backup Database -->

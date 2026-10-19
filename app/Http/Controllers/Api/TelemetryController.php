@@ -166,6 +166,12 @@ class TelemetryController extends Controller
         $primaryGatewayPort = $primaryDevice?->port ?? 502;
         $isGatewayOnline = $primaryDevice ? $modbusService->isGatewayReachable($primaryGatewayIp, $primaryGatewayPort) : false;
 
+        $maxRms = (float) AppSetting::getValue('max_flowrate_rms', 4.0);
+        $maxMhs = (float) AppSetting::getValue('max_flowrate_mhs', 300.0);
+        $maxHrms = (float) AppSetting::getValue('max_flowrate_hrms', 300.0);
+        $maxPressure = (float) AppSetting::getValue('max_pressure', 10.0);
+        $flowWarningPct = (int) AppSetting::getValue('flow_warning_percent', 85);
+
         return response()->json([
             'success' => true,
             'timestamp' => now()->format('Y-m-d H:i:s'),
@@ -175,6 +181,13 @@ class TelemetryController extends Controller
                 'port' => $primaryGatewayPort,
                 'is_online' => $isGatewayOnline,
                 'status_label' => $isGatewayOnline ? 'ONLINE' : 'OFFLINE',
+            ],
+            'scales' => [
+                'rms_max' => $maxRms,
+                'mhs_max' => $maxMhs,
+                'hrms_max' => $maxHrms,
+                'pressure_max' => $maxPressure,
+                'warning_percent' => $flowWarningPct,
             ],
             'summary' => [
                 'total_power_kw' => round($totalPower, 2),

@@ -71,6 +71,12 @@ class TelemetryApiTest extends TestCase
             'success',
             'timestamp',
             'time_label',
+            'scales' => [
+                'rms_max',
+                'mhs_max',
+                'hrms_max',
+                'pressure_max',
+            ],
             'summary' => [
                 'total_power_kw',
                 'avg_voltage_v',

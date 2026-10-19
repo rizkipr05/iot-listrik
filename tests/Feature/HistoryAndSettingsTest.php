@@ -231,4 +231,52 @@ class HistoryAndSettingsTest extends TestCase
         $response->assertStatus(200);
         $this->assertStringContainsString('attachment; filename=backup_iotlistrik_', $response->headers->get('content-disposition'));
     }
+
+    public function test_user_can_update_meter_max_scales_setting()
+    {
+        $response = $this->actingAs($this->user)->put('/settings/scales', [
+            'max_flowrate_rms' => 4.0,
+            'max_flowrate_mhs' => 10.0,
+            'max_flowrate_hrms' => 25.0,
+            'max_pressure' => 16.0,
+            'flow_warning_percent' => 90,
+        ]);
+
+        $response->assertSessionHas('success');
+        $this->assertEquals('4', AppSetting::getValue('max_flowrate_rms'));
+        $this->assertEquals('10', AppSetting::getValue('max_flowrate_mhs'));
+        $this->assertEquals('25', AppSetting::getValue('max_flowrate_hrms'));
+        $this->assertEquals('16', AppSetting::getValue('max_pressure'));
+        $this->assertEquals('90', AppSetting::getValue('flow_warning_percent'));
+    }
+
+    public function test_dashboard_uses_configured_max_scales_for_gauge_percentage()
+    {
+        AppSetting::setValue('max_flowrate_rms', '4.0');
+
+        $device = Device::create([
+            'name' => 'FLOWMETER 1" - AREA RMS',
+            'category' => 'flow_meter',
+            'description' => 'Range: 0 - 4 m3/h',
+            'ip_address' => '192.168.1.118',
+            'port' => 502,
+            'slave_id' => 1,
+            'is_active' => true,
+        ]);
+
+        MeterLog::create([
+            'device_id' => $device->id,
+            'flow_rate' => 1.5,
+            'totalizer' => 1.56,
+            'is_simulated' => false,
+            'logged_at' => now(),
+        ]);
+
+        $response = $this->actingAs($this->user)->get('/dashboard');
+
+        $response->assertStatus(200);
+        // 1.5 / 4.0 = 37.5% -> round 38%
+        $response->assertSee('38%');
+        $response->assertSee('(Range 0 ~ 4 m³/h)');
+    }
 }
