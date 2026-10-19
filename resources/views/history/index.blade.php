@@ -261,7 +261,7 @@
                     <th>Device Instrument</th>
                     <th>Totalizer (m³)</th>
                     <th>Flow Rate (m³/h)</th>
-                    <th>Nilai pH</th>
+                    <th>Nilai pH / Tekanan</th>
                     <th>Tegangan (V)</th>
                     <th>Arus (A)</th>
                     <th>Daya (kW)</th>
@@ -281,11 +281,13 @@
                             <div class="d-flex align-items-center gap-1">
                                 <span class="fw-bold text-dark">{{ $log->device->name ?? 'Meter Dihapus' }}</span>
                                 @if($log->device && $log->device->isPhSensor())
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill py-0 px-1" style="font-size: 0.65rem;">pH Sensor</span>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill py-0 px-1" style="font-size: 0.65rem;">{{ $log->device->category_badge }}</span>
+                                @elseif($log->device && $log->device->isPressureSensor())
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill py-0 px-1" style="font-size: 0.65rem;">{{ $log->device->category_badge }}</span>
                                 @elseif($log->device && ($log->device->isFlowMeter() || $log->device->isWater()))
-                                    <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill py-0 px-1" style="font-size: 0.65rem;">Flowmeter 8"</span>
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill py-0 px-1" style="font-size: 0.65rem;">{{ $log->device->category_badge }}</span>
                                 @else
-                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill py-0 px-1" style="font-size: 0.65rem;">Listrik</span>
+                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill py-0 px-1" style="font-size: 0.65rem;">{{ $log->device->category_badge ?? 'Listrik' }}</span>
                                 @endif
                             </div>
                             <small class="text-muted mono-font">Slave ID: {{ $log->device->slave_id ?? '-' }} &bull; {{ $log->device->ip_address ?? '-' }}</small>
@@ -306,7 +308,11 @@
                         </td>
                         <td>
                             @if($log->ph !== null)
-                                <span class="mono-font fw-bold text-success">{{ number_format($log->ph, 2) }} pH</span>
+                                @if($log->device && $log->device->isPressureSensor())
+                                    <span class="mono-font fw-bold text-primary">{{ number_format($log->ph, 2) }} Bar</span>
+                                @else
+                                    <span class="mono-font fw-bold text-success">{{ number_format($log->ph, 2) }} pH</span>
+                                @endif
                             @else
                                 <span class="text-muted">-</span>
                             @endif
@@ -355,8 +361,8 @@
                     <tr>
                         <td colspan="11" class="text-center py-5 text-muted">
                             <i class="bi bi-clock-history fs-1 d-block mb-2 text-secondary opacity-50"></i>
-                            <h6 class="fw-bold mb-1">Tidak Ada Data Log</h6>
-                            <p class="small text-muted mb-0">Tidak ada data log yang ditemukan untuk periode filter yang dipilih.</p>
+                            <h6 class="fw-bold mb-1">Belum Ada Data Log Telemetri Tersimpan</h6>
+                            <p class="small text-muted mb-0">Data log riwayat otomatis dicatat saat instrumen meter merespons (online) pada Gateway RS485 loop.</p>
                         </td>
                     </tr>
                 @endforelse
@@ -408,6 +414,12 @@
                             <input class="form-check-input ms-1" type="radio" name="range" id="range_1" value="older_24_hours">
                             <label class="form-check-label ps-2 fw-semibold text-dark" for="range_1">
                                 Hapus log lebih dari 24 jam yang lalu
+                            </label>
+                        </div>
+                        <div class="form-check p-2 border border-warning-subtle bg-warning-subtle rounded-3">
+                            <input class="form-check-input ms-1" type="radio" name="range" id="range_sim" value="simulated_only">
+                            <label class="form-check-label ps-2 fw-semibold text-warning-emphasis" for="range_sim">
+                                Hapus hanya data anomali simulasi (SIM) — Pertahankan data meter fisik real
                             </label>
                         </div>
                         <div class="form-check p-2 border border-danger-subtle bg-danger-subtle rounded-3">

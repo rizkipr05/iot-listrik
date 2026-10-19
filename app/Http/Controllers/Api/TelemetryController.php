@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AppSetting;
 use App\Models\Device;
+use App\Models\MeterLog;
 use App\Services\ModbusTcpService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Cache;
 
 class TelemetryController extends Controller
 {
@@ -56,9 +59,15 @@ class TelemetryController extends Controller
 
         $onlineDevicesCount = 0;
 
+        $isLoggerEnabled = AppSetting::getValue('logger_enabled', '1') === '1';
+        $loggerInterval = (int) AppSetting::getValue('logger_interval_seconds', '60');
+        $loggerInterval = max(5, $loggerInterval);
+        $nowTimestamp = time();
+
         foreach ($devices as $dev) {
             $readData = $modbusService->readDeviceRegisters($dev);
             $isDevOnline = (bool) ($readData['is_online'] ?? false);
+            $isSimulated = (bool) ($readData['is_simulated'] ?? false);
             if ($isDevOnline) {
                 $onlineDevicesCount++;
             }
@@ -69,6 +78,31 @@ class TelemetryController extends Controller
             $readData['is_ph'] = $dev->isPhSensor();
             $readData['is_pressure'] = $dev->isPressureSensor();
             $params = $readData['parameters'];
+
+            // Pencatatan otomatis ke meter_logs saat device online terhubung fisik (bukan simulasi)
+            if ($isLoggerEnabled && $isDevOnline && ! $isSimulated) {
+                $cacheKey = "auto_logger_last_time_{$dev->id}";
+                $lastLogTime = (int) Cache::get($cacheKey, 0);
+
+                if (($nowTimestamp - $lastLogTime) >= $loggerInterval) {
+                    MeterLog::create([
+                        'device_id' => $dev->id,
+                        'voltage' => $params['voltage']['value'] ?? null,
+                        'current' => $params['current']['value'] ?? null,
+                        'power' => $params['power']['value'] ?? null,
+                        'frequency' => $params['frequency']['value'] ?? null,
+                        'power_factor' => $params['power_factor']['value'] ?? null,
+                        'energy' => $params['energy']['value'] ?? null,
+                        'totalizer' => $params['totalizer']['value'] ?? null,
+                        'flow_rate' => $params['flow_rate']['value'] ?? null,
+                        'ph' => $params['pressure']['value'] ?? $params['ph']['value'] ?? null,
+                        'raw_parameters' => $params,
+                        'is_simulated' => false,
+                        'logged_at' => now(),
+                    ]);
+                    Cache::put($cacheKey, $nowTimestamp, $loggerInterval * 3);
+                }
+            }
 
             $isDev1 = $device1 && $dev->id === $device1->id;
             $isDev2 = $device2 && $dev->id === $device2->id;

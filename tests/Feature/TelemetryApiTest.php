@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Device;
 use App\Models\Register;
 use App\Models\User;
+use App\Services\ModbusTcpService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -160,5 +161,44 @@ class TelemetryApiTest extends TestCase
         $this->assertEquals(502, $json['gateway']['port']);
         $this->assertArrayHasKey('is_online', $json['gateway']);
         $this->assertArrayHasKey('status_label', $json['gateway']);
+    }
+
+    public function test_live_telemetry_automatically_records_log_for_real_online_devices()
+    {
+        $device = Device::create([
+            'name' => 'Real Online Meter',
+            'ip_address' => '192.168.1.118',
+            'port' => 502,
+            'slave_id' => 1,
+            'is_active' => true,
+        ]);
+
+        $mockModbus = $this->mock(ModbusTcpService::class);
+        $mockModbus->shouldReceive('readDeviceRegisters')
+            ->once()
+            ->andReturn([
+                'device_id' => $device->id,
+                'device_name' => $device->name,
+                'slave_id' => $device->slave_id,
+                'ip_gateway' => '192.168.1.118:502',
+                'is_online' => true,
+                'is_simulated' => false,
+                'parameters' => [
+                    'voltage' => ['value' => 220.5],
+                    'current' => ['value' => 12.3],
+                    'power' => ['value' => 2.7],
+                    'energy' => ['value' => 50.0],
+                ],
+            ]);
+        $mockModbus->shouldReceive('isGatewayReachable')->andReturn(true);
+
+        $response = $this->actingAs($this->user)->getJson('/api/telemetry/live');
+
+        $response->assertStatus(200);
+        $this->assertDatabaseHas('meter_logs', [
+            'device_id' => $device->id,
+            'is_simulated' => false,
+            'voltage' => 220.5,
+        ]);
     }
 }

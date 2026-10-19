@@ -97,4 +97,21 @@ class Device extends Model
             default => 'Instrumen Meter',
         };
     }
+
+    /**
+     * Label badge ringkas untuk tabel log riwayat dan antarmuka.
+     */
+    public function getCategoryBadgeAttribute(): string
+    {
+        return match ($this->category) {
+            'flow_meter' => 'Flowmeter',
+            'ph_sensor' => 'pH Sensor',
+            'pressure_sensor' => 'Pressure Sensor',
+            'water_meter' => 'Meter Air',
+            'digital_water_meter' => 'Meter Air Digital',
+            'kwh_meter' => 'kWh Meter',
+            'power_meter' => 'Power Meter',
+            default => 'Meter',
+        };
+    }
 }

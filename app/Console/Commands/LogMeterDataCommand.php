@@ -7,6 +7,7 @@ use App\Models\Device;
 use App\Models\MeterLog;
 use App\Services\ModbusTcpService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Cache;
 
 class LogMeterDataCommand extends Command
 {
@@ -56,7 +57,15 @@ class LogMeterDataCommand extends Command
                     $this->line('<comment>['.$now->format('Y-m-d H:i:s').']</comment> Memulai pencatatan '.$devices->count().' device...');
 
                     foreach ($devices as $device) {
-                        $readData = $modbusService->readDeviceRegisters($device, true);
+                        // Jangan buat data dummy simulasi jika offline pada production logger
+                        $readData = $modbusService->readDeviceRegisters($device, false);
+
+                        if (empty($readData['is_online']) || ! empty($readData['is_simulated'])) {
+                            $this->line(" <fg=red>[OFFLINE]</> <comment>{$device->name}</comment> (Slave ID: {$device->slave_id}) tidak merespons pada RS485 loop, dilewati.");
+
+                            continue;
+                        }
+
                         $params = $readData['parameters'];
 
                         $log = MeterLog::create([
@@ -69,14 +78,19 @@ class LogMeterDataCommand extends Command
                             'energy' => $params['energy']['value'] ?? null,
                             'totalizer' => $params['totalizer']['value'] ?? null,
                             'flow_rate' => $params['flow_rate']['value'] ?? null,
-                            'ph' => $params['ph']['value'] ?? null,
+                            'ph' => $params['pressure']['value'] ?? $params['ph']['value'] ?? null,
                             'raw_parameters' => $params,
-                            'is_simulated' => $readData['is_simulated'] ?? false,
+                            'is_simulated' => false,
                             'logged_at' => $now,
                         ]);
 
-                        $simTag = $log->is_simulated ? '<fg=yellow>[SIM]</>' : '<fg=green>[LIVE]</>';
-                        if ($device->isPhSensor()) {
+                        // Tandai cache agar tidak terduplikasi dengan auto-logger dashboard
+                        Cache::put("auto_logger_last_time_{$device->id}", time(), 180);
+
+                        $simTag = '<fg=green>[LIVE]</>';
+                        if ($device->isPressureSensor()) {
+                            $this->line(" {$simTag} <info>{$device->name}</info> (ID: {$device->slave_id}) => Tekanan: ".($log->ph ?? '-').' Bar');
+                        } elseif ($device->isPhSensor()) {
                             $this->line(" {$simTag} <info>{$device->name}</info> (ID: {$device->slave_id}) => Nilai pH: ".($log->ph ?? '-').' pH');
                         } elseif ($device->isWater()) {
                             $this->line(" {$simTag} <info>{$device->name}</info> (ID: {$device->slave_id}) => Flow: ".($log->flow_rate ?? '-').' m3/h, Totalizer: '.($log->totalizer ?? '-').' m3');

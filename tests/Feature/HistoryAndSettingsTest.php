@@ -6,6 +6,7 @@ use App\Models\AppSetting;
 use App\Models\Device;
 use App\Models\MeterLog;
 use App\Models\User;
+use App\Services\ModbusTcpService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -92,12 +93,63 @@ class HistoryAndSettingsTest extends TestCase
             'is_active' => true,
         ]);
 
+        $mockModbus = $this->mock(ModbusTcpService::class);
+        $mockModbus->shouldReceive('readDeviceRegisters')
+            ->once()
+            ->with(\Mockery::type(Device::class), false)
+            ->andReturn([
+                'device_id' => $device->id,
+                'device_name' => $device->name,
+                'slave_id' => $device->slave_id,
+                'ip_gateway' => '192.168.1.15:502',
+                'is_online' => true,
+                'is_simulated' => false,
+                'parameters' => [
+                    'voltage' => ['value' => 220.0],
+                    'current' => ['value' => 5.0],
+                    'power' => ['value' => 1.1],
+                    'energy' => ['value' => 100.0],
+                ],
+            ]);
+
         $response = $this->actingAs($this->user)->post('/history/log-now');
 
         $response->assertSessionHas('success');
         $this->assertDatabaseHas('meter_logs', [
             'device_id' => $device->id,
+            'is_simulated' => false,
+            'voltage' => 220.0,
         ]);
+    }
+
+    public function test_manual_log_skips_offline_and_simulated_devices()
+    {
+        $device = Device::create([
+            'name' => 'Offline Meter',
+            'ip_address' => '192.168.1.15',
+            'port' => 502,
+            'slave_id' => 1,
+            'is_active' => true,
+        ]);
+
+        $mockModbus = $this->mock(ModbusTcpService::class);
+        $mockModbus->shouldReceive('readDeviceRegisters')
+            ->once()
+            ->with(\Mockery::type(Device::class), false)
+            ->andReturn([
+                'device_id' => $device->id,
+                'device_name' => $device->name,
+                'slave_id' => $device->slave_id,
+                'ip_gateway' => '192.168.1.15:502',
+                'is_online' => false,
+                'is_simulated' => false,
+                'parameters' => [],
+            ]);
+
+        $response = $this->actingAs($this->user)->post('/history/log-now');
+
+        $response->assertSessionHas('warning');
+        $this->assertEquals(0, MeterLog::count());
     }
 
     public function test_user_can_purge_history_logs()
@@ -112,15 +164,31 @@ class HistoryAndSettingsTest extends TestCase
         MeterLog::create([
             'device_id' => $device->id,
             'power' => 5.0,
+            'is_simulated' => false,
             'logged_at' => now()->subDays(40),
         ]);
 
         MeterLog::create([
             'device_id' => $device->id,
             'power' => 8.0,
+            'is_simulated' => false,
             'logged_at' => now(),
         ]);
 
+        MeterLog::create([
+            'device_id' => $device->id,
+            'power' => 9.0,
+            'is_simulated' => true,
+            'logged_at' => now(),
+        ]);
+
+        $this->assertEquals(3, MeterLog::count());
+
+        // Hapus hanya log simulasi
+        $this->actingAs($this->user)->delete('/history/purge', [
+            'range' => 'simulated_only',
+        ]);
+        $this->assertEquals(0, MeterLog::where('is_simulated', true)->count());
         $this->assertEquals(2, MeterLog::count());
 
         // Hapus log lebih dari 30 hari yang lalu

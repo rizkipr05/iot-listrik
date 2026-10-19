@@ -6,6 +6,7 @@ use App\Models\Device;
 use App\Models\MeterLog;
 use App\Services\ModbusTcpService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class HistoryController extends Controller
@@ -18,8 +19,12 @@ class HistoryController extends Controller
         $devices = Device::orderBy('name')->get();
 
         $selectedDeviceId = $request->query('device_id');
-        $dateStart = $request->query('date_start', now()->subDay()->format('Y-m-d\TH:i'));
-        $dateEnd = $request->query('date_end', now()->format('Y-m-d\TH:i'));
+        $rawDateStart = $request->query('date_start');
+        $rawDateEnd = $request->query('date_end');
+
+        // Untuk input form HTML (datetime-local format: Y-m-d\TH:i)
+        $dateStart = $rawDateStart ?: now()->subDay()->format('Y-m-d\TH:i');
+        $dateEnd = $rawDateEnd ?: now()->addMinutes(5)->format('Y-m-d\TH:i');
 
         $query = MeterLog::with('device')->latest('logged_at');
 
@@ -27,12 +32,14 @@ class HistoryController extends Controller
             $query->where('device_id', $selectedDeviceId);
         }
 
-        if ($dateStart) {
-            $query->where('logged_at', '>=', $dateStart);
+        if ($rawDateStart) {
+            $query->where('logged_at', '>=', Carbon::parse($rawDateStart)->startOfMinute());
+        } else {
+            $query->where('logged_at', '>=', now()->subDay());
         }
 
-        if ($dateEnd) {
-            $query->where('logged_at', '<=', $dateEnd);
+        if ($rawDateEnd) {
+            $query->where('logged_at', '<=', Carbon::parse($rawDateEnd)->endOfMinute());
         }
 
         // Hitung ringkasan statistik untuk periode yang difilter
@@ -94,8 +101,19 @@ class HistoryController extends Controller
 
         $now = now();
         $count = 0;
+        $offlineCount = 0;
+
         foreach ($devices as $dev) {
-            $readData = $modbusService->readDeviceRegisters($dev, true);
+            // Hanya baca dari instrumen fisik riil, jangan izinkan simulasi dummy
+            $readData = $modbusService->readDeviceRegisters($dev, false);
+
+            // Lewati jika device offline atau tidak ada respon riil dari RS485 loop
+            if (empty($readData['is_online']) || ! empty($readData['is_simulated'])) {
+                $offlineCount++;
+
+                continue;
+            }
+
             $params = $readData['parameters'];
 
             MeterLog::create([
@@ -110,13 +128,22 @@ class HistoryController extends Controller
                 'flow_rate' => $params['flow_rate']['value'] ?? null,
                 'ph' => $params['pressure']['value'] ?? $params['ph']['value'] ?? null,
                 'raw_parameters' => $params,
-                'is_simulated' => $readData['is_simulated'] ?? false,
+                'is_simulated' => false,
                 'logged_at' => $now,
             ]);
             $count++;
         }
 
-        return back()->with('success', "Berhasil mencatat data telemetri untuk {$count} unit meter ke database.");
+        if ($count === 0) {
+            return back()->with('warning', 'Tidak ada data log yang dicatat karena tidak ada meter yang merespons (online) pada jalur RS485 saat ini. Sistem tidak mencatat data simulasi.');
+        }
+
+        $message = "Berhasil mencatat data telemetri untuk {$count} meter online ke database.";
+        if ($offlineCount > 0) {
+            $message .= " ({$offlineCount} meter offline dilewati).";
+        }
+
+        return back()->with('success', $message);
     }
 
     /**
@@ -136,6 +163,9 @@ class HistoryController extends Controller
         } elseif ($range === 'older_24_hours') {
             $query->where('logged_at', '<', now()->subHours(24));
             $label = 'lebih dari 24 jam yang lalu';
+        } elseif ($range === 'simulated_only') {
+            $query->where('is_simulated', true);
+            $label = 'data simulasi (SIM)';
         } elseif ($range === 'all') {
             $label = 'seluruhnya';
         } else {
@@ -162,10 +192,10 @@ class HistoryController extends Controller
             $query->where('device_id', $selectedDeviceId);
         }
         if ($dateStart) {
-            $query->where('logged_at', '>=', $dateStart);
+            $query->where('logged_at', '>=', Carbon::parse($dateStart)->startOfMinute());
         }
         if ($dateEnd) {
-            $query->where('logged_at', '<=', $dateEnd);
+            $query->where('logged_at', '<=', Carbon::parse($dateEnd)->endOfMinute());
         }
 
         $filename = 'iot_meter_logs_'.now()->format('Ymd_His').'.csv';
@@ -203,15 +233,16 @@ class HistoryController extends Controller
             // Stream data chunking 200 record untuk hemat memory
             $query->chunk(200, function ($logs) use ($handle) {
                 foreach ($logs as $log) {
+                    $isPressure = $log->device && $log->device->isPressureSensor();
                     fputcsv($handle, [
                         $log->logged_at->format('Y-m-d H:i:s'),
                         $log->device->name ?? 'Meter Tidak Diketahui',
-                        $log->device->category ?? 'meter',
+                        $log->device->category_badge ?? $log->device->category ?? 'meter',
                         $log->device->slave_id ?? '-',
                         $log->device ? "{$log->device->ip_address}:{$log->device->port}" : '-',
                         $log->totalizer !== null ? $log->totalizer : '-',
                         $log->flow_rate !== null ? $log->flow_rate : '-',
-                        $log->ph !== null ? $log->ph : '-',
+                        $log->ph !== null ? ($log->ph.($isPressure ? ' Bar' : ' pH')) : '-',
                         $log->voltage !== null ? $log->voltage : '-',
                         $log->current !== null ? $log->current : '-',
                         $log->power !== null ? $log->power : '-',
