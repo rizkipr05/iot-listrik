@@ -8,6 +8,7 @@ use App\Models\MeterLog;
 use App\Models\User;
 use App\Services\ModbusTcpService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 class HistoryAndSettingsTest extends TestCase
@@ -278,5 +279,41 @@ class HistoryAndSettingsTest extends TestCase
         // 1.5 / 4.0 = 37.5% -> round 38%
         $response->assertSee('38%');
         $response->assertSee('(Range 0 ~ 4 m³/h)');
+    }
+
+    public function test_dashboard_renders_cached_live_telemetry_instantly_without_waiting_or_resetting_to_zero()
+    {
+        $device = Device::create([
+            'name' => 'FLOWMETER 1" - AREA RMS',
+            'category' => 'flow_meter',
+            'ip_address' => '192.168.1.118',
+            'port' => 502,
+            'slave_id' => 1,
+            'is_active' => true,
+        ]);
+
+        // Simulasikan data realtime telah tercatat di Cache oleh background polling
+        Cache::put("device_latest_telemetry_{$device->id}", [
+            'is_online' => true,
+            'flow_rate' => 1.8,
+            'totalizer' => 250.4,
+            'updated_at' => now()->toIso8601String(),
+        ], 86400);
+
+        Cache::put('scada_latest_telemetry', [
+            'rms' => ['flow_rate' => 1.8, 'totalizer' => 250.4, 'is_online' => true],
+        ], 86400);
+
+        // Pengguna membuka halaman device meter
+        $devicePage = $this->actingAs($this->user)->get('/devices');
+        $devicePage->assertStatus(200);
+
+        // Pengguna kembali ke menu utama dashboard
+        $response = $this->actingAs($this->user)->get('/dashboard');
+
+        $response->assertStatus(200);
+        $response->assertViewHas('currentRmsFlow', 1.8);
+        $response->assertViewHas('currentRmsTot', 250.4);
+        $response->assertSee('1.8');
     }
 }

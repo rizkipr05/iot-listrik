@@ -988,6 +988,7 @@
             }
         }
     });
+    window.scadaDonutChart = scadaDonutChart;
 
     // 4. Helper Function to update Gauges dynamically
     function setGaugeProgress(circleId, pct) {
@@ -999,13 +1000,192 @@
         circle.style.strokeDashoffset = offset;
     }
 
-    // Set initial gauge values
+    // Set initial gauge values from server-rendered Blade state
     setGaugeProgress('circleProgressRMS', {{ $gaugePctRms }});
     setGaugeProgress('circleProgressMHS', {{ $gaugePctMhs }});
     setGaugeProgress('circleProgressHRMS', {{ $gaugePctHrms }});
     setGaugeProgress('circleProgressPH', {{ $gaugePctPh }});
 
-    // Optional Telemetry live polling if active
+    // 5. Function to update all Dashboard UI elements with fresh or cached telemetry
+    function updateDashboardUI(data) {
+        if (!data || !data.scada) return;
+        const scada = data.scada;
+        let scaleRms = {{ (float) $maxRms }};
+        let scaleMhs = {{ (float) $maxMhs }};
+        let scaleHrms = {{ (float) $maxHrms }};
+        let scalePh = {{ (float) $maxPh }};
+
+        if (data.scales) {
+            if (data.scales.rms_max) scaleRms = Number(data.scales.rms_max);
+            if (data.scales.mhs_max) scaleMhs = Number(data.scales.mhs_max);
+            if (data.scales.hrms_max) scaleHrms = Number(data.scales.hrms_max);
+            if (data.scales.pressure_max) scalePh = Number(data.scales.pressure_max);
+        }
+
+        // RMS
+        const rms = Number(scada.rms?.flow_rate ?? 0);
+        const rmsTotal = Number(scada.rms?.totalizer ?? 0);
+        const elValRMS = document.getElementById('valFlowrateRMS');
+        if (elValRMS) elValRMS.textContent = rms.toFixed(1);
+        const elDetailRMS = document.getElementById('detailFlowrateRMS');
+        if (elDetailRMS) elDetailRMS.textContent = rms.toFixed(1);
+        const elTotRMS = document.getElementById('detailTotalityRMS');
+        if (elTotRMS) elTotRMS.textContent = rmsTotal.toLocaleString('en-US', {minimumFractionDigits: 1});
+        const rmsPct = Math.min(100, Math.round((rms / Math.max(0.001, scaleRms)) * 100));
+        const elPctRMS = document.getElementById('pctRMS');
+        if (elPctRMS) elPctRMS.textContent = rmsPct + '%';
+        setGaugeProgress('circleProgressRMS', rmsPct);
+
+        // MHS
+        const mhs = Number(scada.mhs?.flow_rate ?? 0);
+        const mhsTotal = Number(scada.mhs?.totalizer ?? 0);
+        const elValMHS = document.getElementById('valFlowrateMHS');
+        if (elValMHS) elValMHS.textContent = mhs.toFixed(1);
+        const elDetailMHS = document.getElementById('detailFlowrateMHS');
+        if (elDetailMHS) elDetailMHS.textContent = mhs.toFixed(1);
+        const elTotMHS = document.getElementById('detailTotalityMHS');
+        if (elTotMHS) elTotMHS.textContent = mhsTotal.toLocaleString('en-US', {minimumFractionDigits: 1});
+        const mhsPct = Math.min(100, Math.round((mhs / Math.max(0.001, scaleMhs)) * 100));
+        const elPctMHS = document.getElementById('pctMHS');
+        if (elPctMHS) elPctMHS.textContent = mhsPct + '%';
+        setGaugeProgress('circleProgressMHS', mhsPct);
+
+        // H-RMS
+        const hrms = Number(scada.h_rms?.flow_rate ?? 0);
+        const hrmsTotal = Number(scada.h_rms?.totalizer ?? 0);
+        const elValHRMS = document.getElementById('valFlowrateHRMS');
+        if (elValHRMS) elValHRMS.textContent = hrms.toFixed(1);
+        const elDetailHRMS = document.getElementById('detailFlowrateHRMS');
+        if (elDetailHRMS) elDetailHRMS.textContent = hrms.toFixed(1);
+        const elTotHRMS = document.getElementById('detailTotalityHRMS');
+        if (elTotHRMS) elTotHRMS.textContent = hrmsTotal.toLocaleString('en-US', {minimumFractionDigits: 1});
+        const hrmsPct = Math.min(100, Math.round((hrms / Math.max(0.001, scaleHrms)) * 100));
+        const elPctHRMS = document.getElementById('pctHRMS');
+        if (elPctHRMS) elPctHRMS.textContent = hrmsPct + '%';
+        setGaugeProgress('circleProgressHRMS', hrmsPct);
+
+        // Pressure
+        const pressVal = Number(scada.pressure?.value ?? scada.ph?.value ?? 0);
+        const elValPH = document.getElementById('valPH');
+        if (elValPH) elValPH.textContent = pressVal.toFixed(2);
+        const elDetailPH = document.getElementById('detailValPH');
+        if (elDetailPH) elDetailPH.textContent = pressVal.toFixed(2);
+
+        const curEl = document.getElementById('valPhStatusCurrent');
+        let statusText = 'Standby';
+        let curClass = 'text-secondary';
+        let badgeClass = 'badge bg-secondary text-white fw-bold px-2 py-0';
+        let detailClass = 'fw-bold text-secondary fs-6';
+        let iconClass = 'bi bi-pause-circle-fill fs-5 text-secondary';
+
+        if (pressVal >= 1.0 && pressVal <= 4.0) {
+            statusText = 'Normal';
+            curClass = 'text-success';
+            badgeClass = 'badge bg-success text-white fw-bold px-2 py-0';
+            detailClass = 'fw-bold text-success fs-6';
+            iconClass = 'bi bi-check-circle-fill fs-5 text-success';
+        } else if (pressVal > 0) {
+            statusText = 'Warning';
+            curClass = 'text-warning';
+            badgeClass = 'badge bg-warning text-dark fw-bold px-2 py-0';
+            detailClass = 'fw-bold text-warning fs-6';
+            iconClass = 'bi bi-exclamation-triangle-fill fs-5 text-warning';
+        }
+
+        if (curEl) {
+            curEl.textContent = pressVal.toFixed(2) + ' Bar';
+            curEl.className = curClass;
+        }
+        const statusBadge = document.getElementById('phStatusBadge');
+        if (statusBadge) {
+            statusBadge.className = badgeClass;
+            statusBadge.textContent = statusText;
+        }
+        const statusDetail = document.getElementById('phStatusDetail');
+        if (statusDetail) {
+            statusDetail.className = detailClass;
+            statusDetail.textContent = statusText;
+        }
+        const statusIcon = document.getElementById('phStatusIcon');
+        if (statusIcon) {
+            statusIcon.className = iconClass;
+        }
+
+        const pressPct = Math.min(100, Math.max(0, Math.round((pressVal / Math.max(0.001, scalePh)) * 100)));
+        setGaugeProgress('circleProgressPH', pressPct);
+        const pointer = document.getElementById('phPointer');
+        if (pointer) pointer.style.left = pressPct + '%';
+
+        // Total
+        const totalFlow = (rms + mhs + hrms).toFixed(1);
+        const elCenterTot = document.getElementById('donutCenterTotal');
+        if (elCenterTot) elCenterTot.textContent = totalFlow;
+        const totalTot = (rmsTotal + mhsTotal + hrmsTotal);
+        const elValTotAll = document.getElementById('valTotalizerAll');
+        if (elValTotAll) elValTotAll.innerHTML = `${totalTot.toLocaleString('en-US', {minimumFractionDigits: 1})} <small class="fw-normal text-muted fs-6">m³</small>`;
+        const elOvRms = document.getElementById('overviewRmsVal');
+        if (elOvRms) elOvRms.innerHTML = `${rms.toFixed(1)} <small class="fw-normal text-muted">m³/h</small>`;
+        const elOvMhs = document.getElementById('overviewMhsVal');
+        if (elOvMhs) elOvMhs.innerHTML = `${mhs.toFixed(1)} <small class="fw-normal text-muted">m³/h</small>`;
+        const elOvHrms = document.getElementById('overviewHrmsVal');
+        if (elOvHrms) elOvHrms.innerHTML = `${hrms.toFixed(1)} <small class="fw-normal text-muted">m³/h</small>`;
+        
+        const elOvRmsPct = document.getElementById('overviewRmsPct');
+        const elOvMhsPct = document.getElementById('overviewMhsPct');
+        const elOvHrmsPct = document.getElementById('overviewHrmsPct');
+        if (rms + mhs + hrms > 0) {
+            if (elOvRmsPct) elOvRmsPct.textContent = Math.round((rms / (rms + mhs + hrms)) * 100) + '%';
+            if (elOvMhsPct) elOvMhsPct.textContent = Math.round((mhs / (rms + mhs + hrms)) * 100) + '%';
+            if (elOvHrmsPct) elOvHrmsPct.textContent = Math.round((hrms / (rms + mhs + hrms)) * 100) + '%';
+        } else {
+            if (elOvRmsPct) elOvRmsPct.textContent = '0%';
+            if (elOvMhsPct) elOvMhsPct.textContent = '0%';
+            if (elOvHrmsPct) elOvHrmsPct.textContent = '0%';
+        }
+
+        const donutInstance = window.scadaDonutChart;
+        if (donutInstance) {
+            donutInstance.data.datasets[0].data = [rms, mhs, hrms];
+            donutInstance.update('none');
+        }
+
+        // Update online / offline status per device
+        updateDeviceOnlineStatus('headerBadgeRMS', 'statusTextRMS', Boolean(scada.rms?.is_online));
+        updateDeviceOnlineStatus('headerBadgeMHS', 'statusTextMHS', Boolean(scada.mhs?.is_online));
+        updateDeviceOnlineStatus('headerBadgeHRMS', 'statusTextHRMS', Boolean(scada.h_rms?.is_online));
+        updateDeviceOnlineStatus('headerBadgePH', 'statusTextPH', Boolean(scada.pressure?.is_online ?? scada.ph?.is_online));
+    }
+
+    // 6. Simpan state telemetri ke browser localStorage agar tidak ada kedip/delay saat navigasi halaman
+    function saveTelemetryToLocalStorage(data) {
+        try {
+            if (data && data.scada) {
+                localStorage.setItem('scada_last_telemetry', JSON.stringify({
+                    scada: data.scada,
+                    scales: data.scales,
+                    timestamp: Date.now()
+                }));
+            }
+        } catch (e) {
+            // Abaikan batasan quota storage
+        }
+    }
+
+    // 7. Pulihkan state terakhir dari localStorage secara instan (0 milidetik)
+    function restoreFromLocalStorage() {
+        try {
+            const raw = localStorage.getItem('scada_last_telemetry');
+            if (!raw) return;
+            const parsed = JSON.parse(raw);
+            if (parsed && parsed.scada) {
+                updateDashboardUI(parsed);
+            }
+        } catch (e) {
+            // Abaikan kesalahan parsing JSON
+        }
+    }
+
+    // 8. Polling Telemetry live di background
     let isPolling = false;
     async function checkTelemetryLive() {
         if (isPolling || document.hidden) return;
@@ -1018,126 +1198,8 @@
             const data = await resp.json();
             if (!data.success) return;
 
-            if (data.scada) {
-                const scada = data.scada;
-                let scaleRms = {{ (float) $maxRms }};
-                let scaleMhs = {{ (float) $maxMhs }};
-                let scaleHrms = {{ (float) $maxHrms }};
-                let scalePh = {{ (float) $maxPh }};
-
-                if (data.scales) {
-                    if (data.scales.rms_max) scaleRms = Number(data.scales.rms_max);
-                    if (data.scales.mhs_max) scaleMhs = Number(data.scales.mhs_max);
-                    if (data.scales.hrms_max) scaleHrms = Number(data.scales.hrms_max);
-                    if (data.scales.pressure_max) scalePh = Number(data.scales.pressure_max);
-                }
-
-                // RMS
-                const rms = Number(scada.rms?.flow_rate ?? 0);
-                const rmsTotal = Number(scada.rms?.totalizer ?? 0);
-                document.getElementById('valFlowrateRMS').textContent = rms.toFixed(1);
-                document.getElementById('detailFlowrateRMS').textContent = rms.toFixed(1);
-                document.getElementById('detailTotalityRMS').textContent = rmsTotal.toLocaleString('en-US', {minimumFractionDigits: 1});
-                const rmsPct = Math.min(100, Math.round((rms / Math.max(0.001, scaleRms)) * 100));
-                document.getElementById('pctRMS').textContent = rmsPct + '%';
-                setGaugeProgress('circleProgressRMS', rmsPct);
-
-                // MHS
-                const mhs = Number(scada.mhs?.flow_rate ?? 0);
-                const mhsTotal = Number(scada.mhs?.totalizer ?? 0);
-                document.getElementById('valFlowrateMHS').textContent = mhs.toFixed(1);
-                document.getElementById('detailFlowrateMHS').textContent = mhs.toFixed(1);
-                document.getElementById('detailTotalityMHS').textContent = mhsTotal.toLocaleString('en-US', {minimumFractionDigits: 1});
-                const mhsPct = Math.min(100, Math.round((mhs / Math.max(0.001, scaleMhs)) * 100));
-                document.getElementById('pctMHS').textContent = mhsPct + '%';
-                setGaugeProgress('circleProgressMHS', mhsPct);
-
-                // H-RMS
-                const hrms = Number(scada.h_rms?.flow_rate ?? 0);
-                const hrmsTotal = Number(scada.h_rms?.totalizer ?? 0);
-                document.getElementById('valFlowrateHRMS').textContent = hrms.toFixed(1);
-                document.getElementById('detailFlowrateHRMS').textContent = hrms.toFixed(1);
-                document.getElementById('detailTotalityHRMS').textContent = hrmsTotal.toLocaleString('en-US', {minimumFractionDigits: 1});
-                const hrmsPct = Math.min(100, Math.round((hrms / Math.max(0.001, scaleHrms)) * 100));
-                document.getElementById('pctHRMS').textContent = hrmsPct + '%';
-                setGaugeProgress('circleProgressHRMS', hrmsPct);
-
-                // Pressure
-                const pressVal = Number(scada.pressure?.value ?? scada.ph?.value ?? 0);
-                document.getElementById('valPH').textContent = pressVal.toFixed(2);
-                document.getElementById('detailValPH').textContent = pressVal.toFixed(2);
-
-                const curEl = document.getElementById('valPhStatusCurrent');
-                let statusText = 'Standby';
-                let curClass = 'text-secondary';
-                let badgeClass = 'badge bg-secondary text-white fw-bold px-2 py-0';
-                let detailClass = 'fw-bold text-secondary fs-6';
-                let iconClass = 'bi bi-pause-circle-fill fs-5 text-secondary';
-
-                if (pressVal >= 1.0 && pressVal <= 4.0) {
-                    statusText = 'Normal';
-                    curClass = 'text-success';
-                    badgeClass = 'badge bg-success text-white fw-bold px-2 py-0';
-                    detailClass = 'fw-bold text-success fs-6';
-                    iconClass = 'bi bi-check-circle-fill fs-5 text-success';
-                } else if (pressVal > 0) {
-                    statusText = 'Warning';
-                    curClass = 'text-warning';
-                    badgeClass = 'badge bg-warning text-dark fw-bold px-2 py-0';
-                    detailClass = 'fw-bold text-warning fs-6';
-                    iconClass = 'bi bi-exclamation-triangle-fill fs-5 text-warning';
-                }
-
-                if (curEl) {
-                    curEl.textContent = pressVal.toFixed(2) + ' Bar';
-                    curEl.className = curClass;
-                }
-                const statusBadge = document.getElementById('phStatusBadge');
-                if (statusBadge) {
-                    statusBadge.className = badgeClass;
-                    statusBadge.textContent = statusText;
-                }
-                const statusDetail = document.getElementById('phStatusDetail');
-                if (statusDetail) {
-                    statusDetail.className = detailClass;
-                    statusDetail.textContent = statusText;
-                }
-                const statusIcon = document.getElementById('phStatusIcon');
-                if (statusIcon) {
-                    statusIcon.className = iconClass;
-                }
-
-                const pressPct = Math.min(100, Math.max(0, Math.round((pressVal / Math.max(0.001, scalePh)) * 100)));
-                setGaugeProgress('circleProgressPH', pressPct);
-                const pointer = document.getElementById('phPointer');
-                if (pointer) pointer.style.left = pressPct + '%';
-
-                // Total
-                const totalFlow = (rms + mhs + hrms).toFixed(1);
-                document.getElementById('donutCenterTotal').textContent = totalFlow;
-                const totalTot = (rmsTotal + mhsTotal + hrmsTotal);
-                document.getElementById('valTotalizerAll').innerHTML = `${totalTot.toLocaleString('en-US', {minimumFractionDigits: 1})} <small class="fw-normal text-muted fs-6">m³</small>`;
-                document.getElementById('overviewRmsVal').innerHTML = `${rms.toFixed(1)} <small class="fw-normal text-muted">m³/h</small>`;
-                document.getElementById('overviewMhsVal').innerHTML = `${mhs.toFixed(1)} <small class="fw-normal text-muted">m³/h</small>`;
-                document.getElementById('overviewHrmsVal').innerHTML = `${hrms.toFixed(1)} <small class="fw-normal text-muted">m³/h</small>`;
-                if (rms + mhs + hrms > 0) {
-                    document.getElementById('overviewRmsPct').textContent = Math.round((rms / (rms + mhs + hrms)) * 100) + '%';
-                    document.getElementById('overviewMhsPct').textContent = Math.round((mhs / (rms + mhs + hrms)) * 100) + '%';
-                    document.getElementById('overviewHrmsPct').textContent = Math.round((hrms / (rms + mhs + hrms)) * 100) + '%';
-                } else {
-                    document.getElementById('overviewRmsPct').textContent = '0%';
-                    document.getElementById('overviewMhsPct').textContent = '0%';
-                    document.getElementById('overviewHrmsPct').textContent = '0%';
-                }
-                scadaDonutChart.data.datasets[0].data = [rms, mhs, hrms];
-                scadaDonutChart.update('none');
-
-                // Update online / offline status per device
-                updateDeviceOnlineStatus('headerBadgeRMS', 'statusTextRMS', Boolean(scada.rms?.is_online));
-                updateDeviceOnlineStatus('headerBadgeMHS', 'statusTextMHS', Boolean(scada.mhs?.is_online));
-                updateDeviceOnlineStatus('headerBadgeHRMS', 'statusTextHRMS', Boolean(scada.h_rms?.is_online));
-                updateDeviceOnlineStatus('headerBadgePH', 'statusTextPH', Boolean(scada.pressure?.is_online ?? scada.ph?.is_online));
-            }
+            updateDashboardUI(data);
+            saveTelemetryToLocalStorage(data);
         } catch (err) {
             // Offline or network error
         } finally {
@@ -1145,7 +1207,7 @@
         }
     }
 
-    // 5. Helper Function to update online/offline badge and status text
+    // 9. Helper Function to update online/offline badge and status text
     function updateDeviceOnlineStatus(badgeId, textId, isOnline) {
         const badgeEl = document.getElementById(badgeId);
         if (badgeEl) {
@@ -1164,7 +1226,10 @@
         }
     }
 
-    // Interval telemetry poll
+    // Segera pulihkan nilai meter terakhir jika tersimpan di browser
+    restoreFromLocalStorage();
+
+    // Jalankan polling live berkala
     checkTelemetryLive();
     setInterval(checkTelemetryLive, 5000);
 </script>

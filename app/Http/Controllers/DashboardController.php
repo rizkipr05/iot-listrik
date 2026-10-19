@@ -59,19 +59,66 @@ class DashboardController extends Controller
         $maxPh = (float) AppSetting::getValue('max_pressure', $this->extractMaxRange($descPh, 10.0));
         $flowWarningPct = (int) AppSetting::getValue('flow_warning_percent', '85');
 
-        // Ambil pembacaan terakhir masing-masing instrumen (default 0 jika belum ada log)
+        // Prioritas pembacaan data realtime instrumen:
+        // 1. Cek Cache telemetri realtime terakhir (menjamin nilai langsung tampil instan tanpa jeda 0 saat navigasi menu)
+        // 2. Fallback ke rekaman log terakhir di database (MeterLog)
+        // 3. Fallback ke 0.0 jika sistem baru pertama kali berjalan
+        $cachedScada = Cache::get('scada_latest_telemetry');
+        $cachedDevRms = $deviceRms ? Cache::get("device_latest_telemetry_{$deviceRms->id}") : null;
+        $cachedDevMhs = $deviceMhs ? Cache::get("device_latest_telemetry_{$deviceMhs->id}") : null;
+        $cachedDevHrms = $deviceHrms ? Cache::get("device_latest_telemetry_{$deviceHrms->id}") : null;
+        $cachedDevPh = $devicePh ? Cache::get("device_latest_telemetry_{$devicePh->id}") : null;
+
         $latestRms = $deviceRms ? MeterLog::where('device_id', $deviceRms->id)->latest('logged_at')->first() : null;
         $latestMhs = $deviceMhs ? MeterLog::where('device_id', $deviceMhs->id)->latest('logged_at')->first() : null;
         $latestHrms = $deviceHrms ? MeterLog::where('device_id', $deviceHrms->id)->latest('logged_at')->first() : null;
         $latestPh = $devicePh ? MeterLog::where('device_id', $devicePh->id)->latest('logged_at')->first() : null;
 
-        $currentRmsFlow = $latestRms ? (float) ($latestRms->flow_rate ?? 0.0) : 0.0;
-        $currentRmsTot = $latestRms ? (float) ($latestRms->totalizer ?? 0.0) : 0.0;
-        $currentMhsFlow = $latestMhs ? (float) ($latestMhs->flow_rate ?? 0.0) : 0.0;
-        $currentMhsTot = $latestMhs ? (float) ($latestMhs->totalizer ?? 0.0) : 0.0;
-        $currentHrmsFlow = $latestHrms ? (float) ($latestHrms->flow_rate ?? 0.0) : 0.0;
-        $currentHrmsTot = $latestHrms ? (float) ($latestHrms->totalizer ?? 0.0) : 0.0;
-        $currentPh = $latestPh ? (float) ($latestPh->ph ?? 0.0) : 0.0;
+        $currentRmsFlow = isset($cachedDevRms['flow_rate'])
+            ? (float) $cachedDevRms['flow_rate']
+            : (isset($cachedScada['rms']['flow_rate'])
+                ? (float) $cachedScada['rms']['flow_rate']
+                : ($latestRms ? (float) ($latestRms->flow_rate ?? 0.0) : 0.0));
+
+        $currentRmsTot = isset($cachedDevRms['totalizer'])
+            ? (float) $cachedDevRms['totalizer']
+            : (isset($cachedScada['rms']['totalizer'])
+                ? (float) $cachedScada['rms']['totalizer']
+                : ($latestRms ? (float) ($latestRms->totalizer ?? 0.0) : 0.0));
+
+        $currentMhsFlow = isset($cachedDevMhs['flow_rate'])
+            ? (float) $cachedDevMhs['flow_rate']
+            : (isset($cachedScada['mhs']['flow_rate'])
+                ? (float) $cachedScada['mhs']['flow_rate']
+                : ($latestMhs ? (float) ($latestMhs->flow_rate ?? 0.0) : 0.0));
+
+        $currentMhsTot = isset($cachedDevMhs['totalizer'])
+            ? (float) $cachedDevMhs['totalizer']
+            : (isset($cachedScada['mhs']['totalizer'])
+                ? (float) $cachedScada['mhs']['totalizer']
+                : ($latestMhs ? (float) ($latestMhs->totalizer ?? 0.0) : 0.0));
+
+        $currentHrmsFlow = isset($cachedDevHrms['flow_rate'])
+            ? (float) $cachedDevHrms['flow_rate']
+            : (isset($cachedScada['h_rms']['flow_rate'])
+                ? (float) $cachedScada['h_rms']['flow_rate']
+                : ($latestHrms ? (float) ($latestHrms->flow_rate ?? 0.0) : 0.0));
+
+        $currentHrmsTot = isset($cachedDevHrms['totalizer'])
+            ? (float) $cachedDevHrms['totalizer']
+            : (isset($cachedScada['h_rms']['totalizer'])
+                ? (float) $cachedScada['h_rms']['totalizer']
+                : ($latestHrms ? (float) ($latestHrms->totalizer ?? 0.0) : 0.0));
+
+        $currentPh = isset($cachedDevPh['pressure']) && $cachedDevPh['pressure'] > 0
+            ? (float) $cachedDevPh['pressure']
+            : (isset($cachedDevPh['ph']) && $cachedDevPh['ph'] > 0
+                ? (float) $cachedDevPh['ph']
+                : (isset($cachedScada['pressure']['value']) && $cachedScada['pressure']['value'] > 0
+                    ? (float) $cachedScada['pressure']['value']
+                    : (isset($cachedScada['ph']['value']) && $cachedScada['ph']['value'] > 0
+                        ? (float) $cachedScada['ph']['value']
+                        : ($latestPh ? (float) ($latestPh->ph ?? 0.0) : 0.0))));
 
         // Ambil riwayat log untuk tabel HISTORY DATA dan grafik
         $recentLogs = MeterLog::with('device')
@@ -157,10 +204,29 @@ class DashboardController extends Controller
 
         $statusPh = ($currentPh >= 1.0 && $currentPh <= 4.0) ? 'Normal' : ($currentPh > 0 ? 'Warning' : 'Standby');
 
-        $isRmsOnline = $deviceRms ? (bool) Cache::get("device_online_{$deviceRms->id}", false) : false;
-        $isMhsOnline = $deviceMhs ? (bool) Cache::get("device_online_{$deviceMhs->id}", false) : false;
-        $isHrmsOnline = $deviceHrms ? (bool) Cache::get("device_online_{$deviceHrms->id}", false) : false;
-        $isPhOnline = $devicePh ? (bool) Cache::get("device_online_{$devicePh->id}", false) : false;
+        $isRmsOnline = isset($cachedDevRms['is_online'])
+            ? (bool) $cachedDevRms['is_online']
+            : (isset($cachedScada['rms']['is_online'])
+                ? (bool) $cachedScada['rms']['is_online']
+                : ($deviceRms ? (bool) Cache::get("device_online_{$deviceRms->id}", false) : false));
+
+        $isMhsOnline = isset($cachedDevMhs['is_online'])
+            ? (bool) $cachedDevMhs['is_online']
+            : (isset($cachedScada['mhs']['is_online'])
+                ? (bool) $cachedScada['mhs']['is_online']
+                : ($deviceMhs ? (bool) Cache::get("device_online_{$deviceMhs->id}", false) : false));
+
+        $isHrmsOnline = isset($cachedDevHrms['is_online'])
+            ? (bool) $cachedDevHrms['is_online']
+            : (isset($cachedScada['h_rms']['is_online'])
+                ? (bool) $cachedScada['h_rms']['is_online']
+                : ($deviceHrms ? (bool) Cache::get("device_online_{$deviceHrms->id}", false) : false));
+
+        $isPhOnline = isset($cachedDevPh['is_online'])
+            ? (bool) $cachedDevPh['is_online']
+            : (isset($cachedScada['pressure']['is_online'])
+                ? (bool) $cachedScada['pressure']['is_online']
+                : ($devicePh ? (bool) Cache::get("device_online_{$devicePh->id}", false) : false));
 
         return view('dashboard', compact(
             'devices',

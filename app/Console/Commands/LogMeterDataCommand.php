@@ -86,6 +86,21 @@ class LogMeterDataCommand extends Command
 
                         // Tandai cache agar tidak terduplikasi dengan auto-logger dashboard
                         Cache::put("auto_logger_last_time_{$device->id}", time(), 180);
+                        Cache::put("device_online_{$device->id}", true, 30);
+                        Cache::put("device_latest_telemetry_{$device->id}", [
+                            'is_online' => true,
+                            'flow_rate' => (float) ($params['flow_rate']['value'] ?? 0.0),
+                            'totalizer' => (float) ($params['totalizer']['value'] ?? 0.0),
+                            'pressure' => (float) ($params['pressure']['value'] ?? $params['ph']['value'] ?? 0.0),
+                            'ph' => (float) ($params['ph']['value'] ?? $params['pressure']['value'] ?? 0.0),
+                            'voltage' => (float) ($params['voltage']['value'] ?? 0.0),
+                            'current' => (float) ($params['current']['value'] ?? 0.0),
+                            'power' => (float) ($params['power']['value'] ?? 0.0),
+                            'energy' => (float) ($params['energy']['value'] ?? 0.0),
+                            'power_factor' => (float) ($params['power_factor']['value'] ?? 0.0),
+                            'frequency' => (float) ($params['frequency']['value'] ?? 0.0),
+                            'updated_at' => now()->toIso8601String(),
+                        ], 86400);
 
                         $simTag = '<fg=green>[LIVE]</>';
                         if ($device->isPressureSensor()) {

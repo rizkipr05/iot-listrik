@@ -104,6 +104,30 @@ class TelemetryController extends Controller
                 }
             }
 
+            // Simpan telemetri realtime terakhir ke Cache agar dashboard instan tanpa delay 0 saat navigasi menu
+            if ($isDevOnline) {
+                Cache::put("device_latest_telemetry_{$dev->id}", [
+                    'is_online' => true,
+                    'flow_rate' => (float) ($params['flow_rate']['value'] ?? 0.0),
+                    'totalizer' => (float) ($params['totalizer']['value'] ?? 0.0),
+                    'pressure' => (float) ($params['pressure']['value'] ?? $params['ph']['value'] ?? 0.0),
+                    'ph' => (float) ($params['ph']['value'] ?? $params['pressure']['value'] ?? 0.0),
+                    'voltage' => (float) ($params['voltage']['value'] ?? 0.0),
+                    'current' => (float) ($params['current']['value'] ?? 0.0),
+                    'power' => (float) ($params['power']['value'] ?? 0.0),
+                    'energy' => (float) ($params['energy']['value'] ?? 0.0),
+                    'power_factor' => (float) ($params['power_factor']['value'] ?? 0.0),
+                    'frequency' => (float) ($params['frequency']['value'] ?? 0.0),
+                    'updated_at' => now()->toIso8601String(),
+                ], 86400);
+            } else {
+                $prevCached = Cache::get("device_latest_telemetry_{$dev->id}");
+                if ($prevCached) {
+                    $prevCached['is_online'] = false;
+                    Cache::put("device_latest_telemetry_{$dev->id}", $prevCached, 86400);
+                }
+            }
+
             $isDev1 = $device1 && $dev->id === $device1->id;
             $isDev2 = $device2 && $dev->id === $device2->id;
             $isDev3 = $device3 && $dev->id === $device3->id;
@@ -112,6 +136,12 @@ class TelemetryController extends Controller
             if ($dev->isPressureSensor() || $dev->isPhSensor() || $isDev4) {
                 $phCount++;
                 $val = (float) ($params['pressure']['value'] ?? $params['ph']['value'] ?? 0);
+                if (! $isDevOnline) {
+                    $prevDevCached = Cache::get("device_latest_telemetry_{$dev->id}");
+                    if ($val <= 0 && ! empty($prevDevCached['pressure'])) {
+                        $val = (float) $prevDevCached['pressure'];
+                    }
+                }
                 $status = ($val >= 1.0 && $val <= 4.0) ? 'Normal' : ($val > 0 ? 'Warning' : 'Standby');
                 $scadaMeters['pressure'] = ['value' => $val, 'status' => $status, 'is_online' => $isDevOnline];
                 $scadaMeters['ph'] = ['value' => $val, 'status' => $status, 'is_online' => $isDevOnline];
@@ -120,6 +150,17 @@ class TelemetryController extends Controller
                 $waterCount++;
                 $fr = (float) ($params['flow_rate']['value'] ?? 0);
                 $tot = (float) ($params['totalizer']['value'] ?? 0);
+
+                if (! $isDevOnline) {
+                    $prevDevCached = Cache::get("device_latest_telemetry_{$dev->id}");
+                    if ($tot <= 0 && ! empty($prevDevCached['totalizer'])) {
+                        $tot = (float) $prevDevCached['totalizer'];
+                    }
+                    if ($fr <= 0 && ! empty($prevDevCached['flow_rate'])) {
+                        $fr = (float) $prevDevCached['flow_rate'];
+                    }
+                }
+
                 $totalWater += $tot;
                 $totalFlowRate += $fr;
 
@@ -160,6 +201,24 @@ class TelemetryController extends Controller
         $avgVoltage = count($voltages) > 0 ? round(array_sum($voltages) / count($voltages), 1) : 220.0;
         $avgPf = count($pfs) > 0 ? round(array_sum($pfs) / count($pfs), 2) : 0.96;
         $avgFreq = count($freqs) > 0 ? round(array_sum($freqs) / count($freqs), 2) : 50.0;
+
+        // Simpan scada telemetri & ringkasan ke Cache agar dashboard instan saat navigasi menu
+        Cache::put('scada_latest_telemetry', $scadaMeters, 86400);
+        Cache::put('scada_latest_summary', [
+            'total_power_kw' => round($totalPower, 2),
+            'avg_voltage_v' => $avgVoltage,
+            'total_current_a' => round($totalCurrent, 1),
+            'total_energy_kwh' => round($totalEnergy, 1),
+            'avg_power_factor' => $avgPf,
+            'grid_frequency_hz' => $avgFreq,
+            'total_water_m3' => round($totalWater, 3),
+            'total_flow_rate_m3h' => round($totalFlowRate, 2),
+            'current_ph' => round($currentPh, 2),
+            'online_devices_count' => $onlineDevicesCount,
+            'water_devices_count' => $waterCount,
+            'ph_devices_count' => $phCount,
+            'electric_devices_count' => $electricCount,
+        ], 86400);
 
         $primaryDevice = $devices->first() ?? Device::first();
         $primaryGatewayIp = $primaryDevice?->ip_address ?? '192.168.1.118';

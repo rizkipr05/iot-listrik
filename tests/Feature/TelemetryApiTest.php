@@ -7,6 +7,7 @@ use App\Models\Register;
 use App\Models\User;
 use App\Services\ModbusTcpService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 class TelemetryApiTest extends TestCase
@@ -206,5 +207,46 @@ class TelemetryApiTest extends TestCase
             'is_simulated' => false,
             'voltage' => 220.5,
         ]);
+    }
+
+    public function test_live_telemetry_persists_to_cache_for_instant_navigation()
+    {
+        $device = Device::create([
+            'name' => 'Flowmeter RMS',
+            'category' => 'flow_meter',
+            'ip_address' => '192.168.1.118',
+            'port' => 502,
+            'slave_id' => 1,
+            'is_active' => true,
+        ]);
+
+        $mockModbus = $this->mock(ModbusTcpService::class);
+        $mockModbus->shouldReceive('readDeviceRegisters')
+            ->once()
+            ->andReturn([
+                'device_id' => $device->id,
+                'device_name' => $device->name,
+                'slave_id' => $device->slave_id,
+                'ip_gateway' => '192.168.1.118:502',
+                'is_online' => true,
+                'is_simulated' => false,
+                'parameters' => [
+                    'flow_rate' => ['value' => 2.4],
+                    'totalizer' => ['value' => 120.5],
+                ],
+            ]);
+        $mockModbus->shouldReceive('isGatewayReachable')->andReturn(true);
+
+        $response = $this->actingAs($this->user)->getJson('/api/telemetry/live');
+        $response->assertStatus(200);
+
+        $cachedScada = Cache::get('scada_latest_telemetry');
+        $this->assertNotNull($cachedScada);
+        $this->assertEquals(2.4, $cachedScada['rms']['flow_rate']);
+        $this->assertEquals(120.5, $cachedScada['rms']['totalizer']);
+
+        $cachedDev = Cache::get("device_latest_telemetry_{$device->id}");
+        $this->assertNotNull($cachedDev);
+        $this->assertEquals(2.4, $cachedDev['flow_rate']);
     }
 }
