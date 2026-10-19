@@ -42,17 +42,19 @@
     </div>
 
     <div class="col-sm-6 col-xl-3">
-        <div class="card p-3 border-0 shadow-sm h-100" style="border-radius: 14px; border-left: 4px solid #059669 !important;">
+        <div class="card p-3 border-0 shadow-sm h-100" style="border-radius: 14px; border-left: 4px solid {{ ($isActiveGatewayOnline ?? false) ? '#059669' : '#dc2626' }} !important;" id="cardGatewayStatus">
             <div class="d-flex align-items-center justify-content-between">
                 <div>
                     <span class="text-muted small fw-bold text-uppercase" style="font-size: 0.7rem;">Status Gateway</span>
-                    <h3 class="fw-bold mb-0 text-success mono-font mt-1">Aktif <span class="fs-6 fw-normal text-muted">TCP</span></h3>
+                    <h3 class="fw-bold mb-0 {{ ($isActiveGatewayOnline ?? false) ? 'text-success' : 'text-danger' }} mono-font mt-1" id="valGatewayStatusText">
+                        {{ ($isActiveGatewayOnline ?? false) ? 'Aktif' : 'Terputus' }} <span class="fs-6 fw-normal text-muted">TCP</span>
+                    </h3>
                 </div>
-                <div class="p-2 bg-success-subtle text-success rounded-3 fs-4">
+                <div class="p-2 {{ ($isActiveGatewayOnline ?? false) ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger' }} rounded-3 fs-4" id="iconGatewayStatusBox">
                     <i class="bi bi-router-fill"></i>
                 </div>
             </div>
-            <small class="text-muted mt-2 d-block mono-font" style="font-size: 0.74rem;">Port Default: 502 Modbus</small>
+            <small class="text-muted mt-2 d-block mono-font" style="font-size: 0.74rem;" id="subGatewayStatusIp">IP: {{ $activeGatewayIp ?? '192.168.1.118' }}:{{ $activeGatewayPort ?? 502 }}</small>
         </div>
     </div>
 
@@ -172,15 +174,23 @@
                             </a>
                         </td>
                         <td>
-                            @if($device->is_active)
-                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1" style="font-size: 0.75rem;">
-                                    <i class="bi bi-check-circle-fill me-1"></i> Aktif
+                            <div class="d-flex flex-column gap-1 align-items-start">
+                                @if($device->is_active)
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1" style="font-size: 0.72rem;">
+                                        <i class="bi bi-check-circle-fill me-1"></i> Aktif
+                                    </span>
+                                @else
+                                    <span class="badge bg-secondary-subtle text-secondary border rounded-pill px-2 py-1" style="font-size: 0.72rem;">
+                                        Non-Aktif
+                                    </span>
+                                @endif
+                                @php
+                                    $isDevOnline = \Illuminate\Support\Facades\Cache::get("device_online_{$device->id}", false);
+                                @endphp
+                                <span class="badge rounded-pill bg-white {{ $isDevOnline ? 'text-success border-success' : 'text-danger border-danger' }} border fw-bold px-2 py-0" style="font-size: 0.68rem; text-transform: lowercase;">
+                                    {{ $isDevOnline ? 'online' : 'offline' }}
                                 </span>
-                            @else
-                                <span class="badge bg-secondary-subtle text-secondary border rounded-pill px-2 py-1" style="font-size: 0.75rem;">
-                                    Non-Aktif
-                                </span>
-                            @endif
+                            </div>
                         </td>
                         <td class="text-end pe-4">
                             <div class="btn-group btn-group-sm">
@@ -262,9 +272,12 @@
                     alertBox.style.background = '#fef2f2';
                     alertBox.style.color = '#991b1b';
                     alertIcon.innerHTML = '<i class="bi bi-exclamation-triangle-fill fs-5 text-danger"></i>';
-                    alertMsg.innerHTML = `<strong>${name}:</strong> ${data.message} <em>(Pastikan gateway RS485-to-TCP aktif di port 502)</em>`;
+                    alertMsg.innerHTML = `<strong>${name}:</strong> ${data.message}`;
                 }
                 alertBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                if (typeof checkTopNavGatewayStatus === 'function') {
+                    checkTopNavGatewayStatus();
+                }
             })
             .catch(err => {
                 alertBox.classList.remove('d-none', 'alert-success');

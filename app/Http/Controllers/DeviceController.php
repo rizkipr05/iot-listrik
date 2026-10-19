@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Device;
 use App\Services\ModbusTcpService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class DeviceController extends Controller
 {
@@ -98,7 +99,7 @@ class DeviceController extends Controller
     }
 
     /**
-     * Tes koneksi socket TCP ke IP dan Port gateway device.
+     * Tes koneksi socket TCP ke IP dan Port gateway device, serta uji respon Slave ID RS485 jika memiliki register.
      */
     public function testConnection(Device $device, ModbusTcpService $modbusService)
     {
@@ -116,18 +117,43 @@ class DeviceController extends Controller
         );
         $durationMs = round((microtime(true) - $startTime) * 1000, 2);
 
-        if ($fp) {
-            fclose($fp);
+        if (! $fp) {
+            Cache::put("device_online_{$device->id}", false, 30);
 
             return response()->json([
-                'success' => true,
-                'message' => "Koneksi ke {$device->ip_address}:{$device->port} BERHASIL ({$durationMs} ms).",
+                'success' => false,
+                'message' => "Gagal terhubung ke Gateway {$device->ip_address}:{$device->port}. Error: {$errstr} ({$errno}).",
             ]);
         }
 
+        fclose($fp);
+
+        // Jika gateway aktif dan device memiliki register aktif, uji respon query Modbus ke Slave ID di jalur loop RS485
+        $firstRegister = $device->registers()->where('is_active', true)->first();
+        if ($firstRegister) {
+            $readResult = $modbusService->readRegister($device, $firstRegister, false);
+            if ($readResult['success']) {
+                Cache::put("device_online_{$device->id}", true, 30);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => "Koneksi ke Gateway ({$device->ip_address}:{$device->port}) dan respon RS485 Slave ID {$device->slave_id} BERHASIL ({$durationMs} ms). Nilai '{$firstRegister->name}': {$readResult['value']} {$readResult['unit']}.",
+                ]);
+            }
+
+            Cache::put("device_online_{$device->id}", false, 30);
+
+            return response()->json([
+                'success' => false,
+                'message' => "Koneksi socket TCP Gateway BERHASIL ({$durationMs} ms), namun Slave ID {$device->slave_id} pada loop RS485 tidak merespon: {$readResult['message']}.",
+            ]);
+        }
+
+        Cache::put("device_online_{$device->id}", true, 30);
+
         return response()->json([
-            'success' => false,
-            'message' => "Gagal terhubung ke {$device->ip_address}:{$device->port}. Error: {$errstr} ({$errno}).",
+            'success' => true,
+            'message' => "Koneksi ke Gateway {$device->ip_address}:{$device->port} BERHASIL ({$durationMs} ms).",
         ]);
     }
 }

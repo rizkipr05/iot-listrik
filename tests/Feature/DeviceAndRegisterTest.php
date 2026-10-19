@@ -37,6 +37,24 @@ class DeviceAndRegisterTest extends TestCase
         $response->assertSee('192.168.1.100:502');
     }
 
+    public function test_navbar_displays_active_device_gateway_ip()
+    {
+        Device::create([
+            'name' => 'Flowmeter Real',
+            'ip_address' => '192.168.1.118',
+            'port' => 502,
+            'slave_id' => 1,
+            'timeout_ms' => 1500,
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($this->user)->get('/devices');
+
+        $response->assertStatus(200);
+        $response->assertSee('192.168.1.118:502');
+        $response->assertDontSee('192.168.1.100:502');
+    }
+
     public function test_user_can_create_new_device()
     {
         $response = $this->actingAs($this->user)->post('/devices', [

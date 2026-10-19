@@ -139,4 +139,26 @@ class TelemetryApiTest extends TestCase
         $this->assertArrayHasKey('totalizer', $deviceData['parameters']);
         $this->assertArrayHasKey('flow_rate', $deviceData['parameters']);
     }
+
+    public function test_get_gateway_status_returns_correct_gateway_info()
+    {
+        Device::create([
+            'name' => 'Flowmeter Real',
+            'ip_address' => '192.168.1.118',
+            'port' => 502,
+            'slave_id' => 1,
+            'timeout_ms' => 100,
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($this->user)->getJson('/api/gateway/status');
+
+        $response->assertStatus(200);
+        $json = $response->json();
+        $this->assertTrue($json['success']);
+        $this->assertEquals('192.168.1.118', $json['gateway']['ip_address']);
+        $this->assertEquals(502, $json['gateway']['port']);
+        $this->assertArrayHasKey('is_online', $json['gateway']);
+        $this->assertArrayHasKey('status_label', $json['gateway']);
+    }
 }

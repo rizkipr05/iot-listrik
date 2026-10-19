@@ -16,7 +16,7 @@ return new class extends Migration
             $table->id();
             $table->string('name'); // Contoh: Main Incomer Panel
             $table->string('description')->nullable();
-            $table->string('ip_address')->default('192.168.1.100'); // IP Gateway RS485-to-TCP
+            $table->string('ip_address')->default('192.168.1.118'); // IP Gateway RS485-to-TCP
             $table->integer('port')->default(502); // Modbus TCP Port standar
             $table->unsignedTinyInteger('slave_id')->default(1); // Modbus RTU Slave/Unit ID (1 - 247)
             $table->unsignedInteger('timeout_ms')->default(1500); // Socket timeout dalam millisecond

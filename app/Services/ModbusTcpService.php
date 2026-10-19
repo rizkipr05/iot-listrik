@@ -11,9 +11,9 @@ class ModbusTcpService
 {
     /**
      * Cache waktu gateway dianggap offline (dalam detik).
-     * Diset 60 detik agar tidak memblokir worker PHP berulang kali.
+     * Diset 10 detik agar deteksi perubahan koneksi fisik RS485/jaringan responsif.
      */
-    protected const OFFLINE_CACHE_TTL = 60;
+    protected const OFFLINE_CACHE_TTL = 10;
 
     /**
      * Cek apakah gateway IP:Port dapat dijangkau dalam waktu singkat (maks 200ms).
@@ -148,33 +148,66 @@ class ModbusTcpService
         $results = [];
 
         // Cek konektivitas gateway sekali saja untuk seluruh register device ini
-        $isOnline = $this->isGatewayReachable($device->ip_address, $device->port);
+        $isGatewayOnline = $this->isGatewayReachable($device->ip_address, $device->port);
         $isSimulationActive = $allowSimulation;
-        $isAnySimulated = ! $isOnline && $isSimulationActive;
+        $isAnySimulated = false;
+        $deviceResponded = false;
+        $slaveFailed = false;
 
         foreach ($registers as $reg) {
-            if (! $isOnline && $isSimulationActive) {
-                $val = $this->generateSimulatedValue($device, $reg);
-                $results[$reg->parameter_key] = [
-                    'name' => $reg->name,
-                    'value' => $val,
-                    'unit' => $reg->unit,
-                    'register_address' => $reg->register_address,
-                    'data_type' => $reg->data_type,
-                ];
-            } elseif (! $isOnline) {
-                $results[$reg->parameter_key] = [
-                    'name' => $reg->name,
-                    'value' => 0.0,
-                    'unit' => $reg->unit,
-                    'register_address' => $reg->register_address,
-                    'data_type' => $reg->data_type,
-                ];
+            if (! $isGatewayOnline) {
+                if ($isSimulationActive) {
+                    $isAnySimulated = true;
+                    $val = $this->generateSimulatedValue($device, $reg);
+                    $results[$reg->parameter_key] = [
+                        'name' => $reg->name,
+                        'value' => $val,
+                        'unit' => $reg->unit,
+                        'register_address' => $reg->register_address,
+                        'data_type' => $reg->data_type,
+                    ];
+                } else {
+                    $results[$reg->parameter_key] = [
+                        'name' => $reg->name,
+                        'value' => 0.0,
+                        'unit' => $reg->unit,
+                        'register_address' => $reg->register_address,
+                        'data_type' => $reg->data_type,
+                    ];
+                }
+            } elseif ($slaveFailed) {
+                // Gateway terhubung, namun device RS485 ini tidak merespon di register sebelumnya.
+                // Hindari timeout berulang untuk register selanjutnya pada device yang sama.
+                if ($isSimulationActive) {
+                    $isAnySimulated = true;
+                    $val = $this->generateSimulatedValue($device, $reg);
+                    $results[$reg->parameter_key] = [
+                        'name' => $reg->name,
+                        'value' => $val,
+                        'unit' => $reg->unit,
+                        'register_address' => $reg->register_address,
+                        'data_type' => $reg->data_type,
+                    ];
+                } else {
+                    $results[$reg->parameter_key] = [
+                        'name' => $reg->name,
+                        'value' => 0.0,
+                        'unit' => $reg->unit,
+                        'register_address' => $reg->register_address,
+                        'data_type' => $reg->data_type,
+                    ];
+                }
             } else {
                 $read = $this->readRegister($device, $reg, $allowSimulation);
                 if (! empty($read['is_simulated'])) {
                     $isAnySimulated = true;
                 }
+                if (! empty($read['success']) && empty($read['is_simulated'])) {
+                    $deviceResponded = true;
+                } elseif (empty($read['success'])) {
+                    $slaveFailed = true;
+                }
+
                 $results[$reg->parameter_key] = [
                     'name' => $reg->name,
                     'value' => $read['value'] ?? 0.0,
@@ -185,15 +218,32 @@ class ModbusTcpService
             }
         }
 
+        // Status online spesifik device: jika ada respons riil dari slave RS485,
+        // atau jika gateway online dan device belum memiliki register,
+        // atau jika simulasi aktif
+        $isDeviceOnline = $deviceResponded
+            || ($registers->isEmpty() && $isGatewayOnline)
+            || ($isSimulationActive && $isAnySimulated);
+
+        Cache::put("device_online_{$device->id}", $isDeviceOnline, 30);
+
         return [
             'device_id' => $device->id,
             'device_name' => $device->name,
             'slave_id' => $device->slave_id,
             'ip_gateway' => "{$device->ip_address}:{$device->port}",
-            'is_online' => true,
+            'is_online' => $isDeviceOnline,
             'is_simulated' => $isAnySimulated,
             'parameters' => $results,
         ];
+    }
+
+    /**
+     * Cek apakah device tertentu berstatus online berdasarkan cache/polling terakhir.
+     */
+    public function isDeviceOnline(Device $device): bool
+    {
+        return (bool) Cache::get("device_online_{$device->id}", false);
     }
 
     /**

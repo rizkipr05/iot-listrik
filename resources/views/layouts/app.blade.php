@@ -237,6 +237,12 @@
             opacity: 0.8;
         }
 
+        .pulse-indicator.offline::after {
+            border-color: #ef4444;
+            animation: none;
+            opacity: 0;
+        }
+
         @keyframes radarPulse {
             0% {
                 transform: scale(0.6);
@@ -371,15 +377,15 @@
                 </button>
 
                 <!-- Gateway Status Pill -->
-                <div class="d-none d-sm-flex align-items-center gap-2 bg-light border px-3 py-1 rounded-pill">
-                    <div class="pulse-indicator">
-                        <span class="status-dot online"></span>
+                <div class="d-none d-sm-flex align-items-center gap-2 bg-light border px-3 py-1 rounded-pill" id="topNavGatewayPill">
+                    <div class="pulse-indicator {{ ($isActiveGatewayOnline ?? false) ? '' : 'offline' }}" id="topNavGatewayPulse">
+                        <span class="status-dot {{ ($isActiveGatewayOnline ?? false) ? 'online' : 'offline' }}" id="topNavGatewayDot"></span>
                     </div>
                     <span class="small fw-semibold text-dark">Gateway RS485-TCP: <span
-                            class="mono-font text-primary">192.168.1.100:502</span></span>
+                            class="mono-font text-primary" id="topNavGatewayAddress">{{ $activeGatewayIp ?? '192.168.1.118' }}:{{ $activeGatewayPort ?? 502 }}</span></span>
                     <span
-                        class="badge bg-success-subtle text-success border border-success-subtle rounded-pill py-0 px-2"
-                        style="font-size: 0.68rem;">ONLINE</span>
+                        class="badge {{ ($isActiveGatewayOnline ?? false) ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle' }} rounded-pill py-0 px-2"
+                        style="font-size: 0.68rem;" id="topNavGatewayBadge">{{ ($isActiveGatewayOnline ?? false) ? 'ONLINE' : 'OFFLINE' }}</span>
                 </div>
             </div>
 
@@ -536,6 +542,36 @@
         }
         updateTopNavClock();
         setInterval(updateTopNavClock, 1000);
+
+        // Polling status gateway untuk top navbar
+        async function checkTopNavGatewayStatus() {
+            try {
+                const res = await fetch('{{ route('api.gateway.status') }}', {
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data.success && data.gateway) {
+                    const gw = data.gateway;
+                    const addrEl = document.getElementById('topNavGatewayAddress');
+                    const badgeEl = document.getElementById('topNavGatewayBadge');
+                    const dotEl = document.getElementById('topNavGatewayDot');
+                    const pulseEl = document.getElementById('topNavGatewayPulse');
+
+                    if (addrEl) addrEl.textContent = `${gw.ip_address}:${gw.port}`;
+                    if (dotEl) dotEl.className = 'status-dot ' + (gw.is_online ? 'online' : 'offline');
+                    if (pulseEl) pulseEl.className = 'pulse-indicator ' + (gw.is_online ? '' : 'offline');
+                    if (badgeEl) {
+                        badgeEl.textContent = gw.status_label;
+                        badgeEl.className = 'badge rounded-pill py-0 px-2 ' + 
+                            (gw.is_online ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle');
+                    }
+                }
+            } catch (e) {
+                // Ignore network error
+            }
+        }
+        setInterval(checkTopNavGatewayStatus, 10000);
     </script>
     @yield('scripts')
 </body>

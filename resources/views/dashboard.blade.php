@@ -93,6 +93,7 @@
         letter-spacing: 0.03em;
         display: flex;
         align-items: center;
+        justify-content: space-between;
         gap: 8px;
         text-transform: uppercase;
     }
@@ -344,8 +345,13 @@
         <div class="col-12 col-sm-6 col-xl-3">
             <div class="scada-card">
                 <div class="scada-card-header header-rms">
-                    <i class="bi bi-broadcast fs-5"></i>
-                    <span>{{ $labelRms }}</span>
+                    <div class="d-flex align-items-center gap-2 text-truncate">
+                        <i class="bi bi-broadcast fs-5 flex-shrink-0"></i>
+                        <span class="text-truncate">{{ $labelRms }}</span>
+                    </div>
+                    <span class="badge rounded-pill bg-white {{ $isRmsOnline ? 'text-success border-success' : 'text-danger border-danger' }} border fw-bold px-2 py-0" style="font-size: 0.7rem; text-transform: lowercase;" id="headerBadgeRMS">
+                        {{ $isRmsOnline ? 'online' : 'offline' }}
+                    </span>
                 </div>
                 <div class="p-3">
                     <div class="d-flex align-items-center justify-content-between gap-2">
@@ -365,6 +371,9 @@
                                 </div>
                             </div>
                             <div class="fw-bold mono-font mt-1" style="color: #1d4ed8; font-size: 0.95rem;" id="pctRMS">{{ $gaugePctRms }}%</div>
+                            <div class="fw-bold mono-font {{ $isRmsOnline ? 'text-success' : 'text-danger' }}" style="font-size: 0.75rem; text-transform: lowercase; line-height: 1;" id="statusTextRMS">
+                                {{ $isRmsOnline ? 'online' : 'offline' }}
+                            </div>
                         </div>
 
                         <!-- Details (Right) -->
@@ -405,8 +414,13 @@
         <div class="col-12 col-sm-6 col-xl-3">
             <div class="scada-card">
                 <div class="scada-card-header header-mhs">
-                    <i class="bi bi-broadcast fs-5"></i>
-                    <span>{{ $labelMhs }}</span>
+                    <div class="d-flex align-items-center gap-2 text-truncate">
+                        <i class="bi bi-broadcast fs-5 flex-shrink-0"></i>
+                        <span class="text-truncate">{{ $labelMhs }}</span>
+                    </div>
+                    <span class="badge rounded-pill bg-white {{ $isMhsOnline ? 'text-success border-success' : 'text-danger border-danger' }} border fw-bold px-2 py-0" style="font-size: 0.7rem; text-transform: lowercase;" id="headerBadgeMHS">
+                        {{ $isMhsOnline ? 'online' : 'offline' }}
+                    </span>
                 </div>
                 <div class="p-3">
                     <div class="d-flex align-items-center justify-content-between gap-2">
@@ -426,6 +440,9 @@
                                 </div>
                             </div>
                             <div class="fw-bold mono-font mt-1" style="color: #059669; font-size: 0.95rem;" id="pctMHS">{{ $gaugePctMhs }}%</div>
+                            <div class="fw-bold mono-font {{ $isMhsOnline ? 'text-success' : 'text-danger' }}" style="font-size: 0.75rem; text-transform: lowercase; line-height: 1;" id="statusTextMHS">
+                                {{ $isMhsOnline ? 'online' : 'offline' }}
+                            </div>
                         </div>
 
                         <!-- Details (Right) -->
@@ -466,8 +483,13 @@
         <div class="col-12 col-sm-6 col-xl-3">
             <div class="scada-card">
                 <div class="scada-card-header header-h-rms">
-                    <i class="bi bi-broadcast fs-5"></i>
-                    <span>{{ $labelHrms }}</span>
+                    <div class="d-flex align-items-center gap-2 text-truncate">
+                        <i class="bi bi-broadcast fs-5 flex-shrink-0"></i>
+                        <span class="text-truncate">{{ $labelHrms }}</span>
+                    </div>
+                    <span class="badge rounded-pill bg-white {{ $isHrmsOnline ? 'text-success border-success' : 'text-danger border-danger' }} border fw-bold px-2 py-0" style="font-size: 0.7rem; text-transform: lowercase;" id="headerBadgeHRMS">
+                        {{ $isHrmsOnline ? 'online' : 'offline' }}
+                    </span>
                 </div>
                 <div class="p-3">
                     <div class="d-flex align-items-center justify-content-between gap-2">
@@ -487,6 +509,9 @@
                                 </div>
                             </div>
                             <div class="fw-bold mono-font mt-1" style="color: #7c3aed; font-size: 0.95rem;" id="pctHRMS">{{ $gaugePctHrms }}%</div>
+                            <div class="fw-bold mono-font {{ $isHrmsOnline ? 'text-success' : 'text-danger' }}" style="font-size: 0.75rem; text-transform: lowercase; line-height: 1;" id="statusTextHRMS">
+                                {{ $isHrmsOnline ? 'online' : 'offline' }}
+                            </div>
                         </div>
 
                         <!-- Details (Right) -->
@@ -527,8 +552,13 @@
         <div class="col-12 col-sm-6 col-xl-3">
             <div class="scada-card">
                 <div class="scada-card-header header-ph">
-                    <i class="bi bi-speedometer2 fs-5"></i>
-                    <span>{{ $labelPh }}</span>
+                    <div class="d-flex align-items-center gap-2 text-truncate">
+                        <i class="bi bi-speedometer2 fs-5 flex-shrink-0"></i>
+                        <span class="text-truncate">{{ $labelPh }}</span>
+                    </div>
+                    <span class="badge rounded-pill bg-white {{ $isPhOnline ? 'text-success border-success' : 'text-danger border-danger' }} border fw-bold px-2 py-0" style="font-size: 0.7rem; text-transform: lowercase;" id="headerBadgePH">
+                        {{ $isPhOnline ? 'online' : 'offline' }}
+                    </span>
                 </div>
                 <div class="p-3">
                     <div class="d-flex align-items-center justify-content-between gap-2">
@@ -549,6 +579,9 @@
                             </div>
                             <div class="mt-1">
                                 <span class="badge {{ $statusPh === 'Normal' ? 'bg-success text-white' : ($statusPh === 'Warning' ? 'bg-warning text-dark' : 'bg-secondary text-white') }} fw-bold px-2 py-0" style="font-size: 0.75rem;" id="phStatusBadge">{{ $statusPh }}</span>
+                            </div>
+                            <div class="fw-bold mono-font mt-1 {{ $isPhOnline ? 'text-success' : 'text-danger' }}" style="font-size: 0.75rem; text-transform: lowercase; line-height: 1;" id="statusTextPH">
+                                {{ $isPhOnline ? 'online' : 'offline' }}
                             </div>
                         </div>
 
@@ -1087,6 +1120,12 @@
                 }
                 scadaDonutChart.data.datasets[0].data = [rms, mhs, hrms];
                 scadaDonutChart.update('none');
+
+                // Update online / offline status per device
+                updateDeviceOnlineStatus('headerBadgeRMS', 'statusTextRMS', Boolean(scada.rms?.is_online));
+                updateDeviceOnlineStatus('headerBadgeMHS', 'statusTextMHS', Boolean(scada.mhs?.is_online));
+                updateDeviceOnlineStatus('headerBadgeHRMS', 'statusTextHRMS', Boolean(scada.h_rms?.is_online));
+                updateDeviceOnlineStatus('headerBadgePH', 'statusTextPH', Boolean(scada.pressure?.is_online ?? scada.ph?.is_online));
             }
         } catch (err) {
             // Offline or network error
@@ -1095,7 +1134,27 @@
         }
     }
 
+    // 5. Helper Function to update online/offline badge and status text
+    function updateDeviceOnlineStatus(badgeId, textId, isOnline) {
+        const badgeEl = document.getElementById(badgeId);
+        if (badgeEl) {
+            badgeEl.textContent = isOnline ? 'online' : 'offline';
+            if (isOnline) {
+                badgeEl.className = 'badge rounded-pill bg-white text-success border border-success fw-bold px-2 py-0';
+            } else {
+                badgeEl.className = 'badge rounded-pill bg-white text-danger border border-danger fw-bold px-2 py-0';
+            }
+        }
+
+        const textEl = document.getElementById(textId);
+        if (textEl) {
+            textEl.textContent = isOnline ? 'online' : 'offline';
+            textEl.className = 'fw-bold mono-font ' + (textId === 'statusTextPH' ? 'mt-1 ' : '') + (isOnline ? 'text-success' : 'text-danger');
+        }
+    }
+
     // Interval telemetry poll
+    checkTelemetryLive();
     setInterval(checkTelemetryLive, 5000);
 </script>
 @endsection

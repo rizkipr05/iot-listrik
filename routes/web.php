@@ -27,8 +27,9 @@ Route::middleware('auth')->group(function () {
     // Dashboard Monitoring
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // Endpoint API Live Telemetry Modbus
+    // Endpoint API Live Telemetry Modbus & Gateway Status
     Route::get('/api/telemetry/live', [TelemetryController::class, 'getLiveTelemetry'])->name('api.telemetry.live');
+    Route::get('/api/gateway/status', [TelemetryController::class, 'getGatewayStatus'])->name('api.gateway.status');
     Route::get('/api/devices/{device}/read-live', [TelemetryController::class, 'readDevice'])->name('api.devices.read');
 
     // Data History & Log

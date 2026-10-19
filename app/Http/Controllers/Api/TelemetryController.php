@@ -39,11 +39,11 @@ class TelemetryController extends Controller
         $phCount = 0;
 
         $scadaMeters = [
-            'rms' => ['flow_rate' => 0.0, 'totalizer' => 0.0],
-            'mhs' => ['flow_rate' => 0.0, 'totalizer' => 0.0],
-            'h_rms' => ['flow_rate' => 0.0, 'totalizer' => 0.0],
-            'ph' => ['value' => 0.0, 'status' => 'Standby'],
-            'pressure' => ['value' => 0.0, 'status' => 'Standby'],
+            'rms' => ['flow_rate' => 0.0, 'totalizer' => 0.0, 'is_online' => false],
+            'mhs' => ['flow_rate' => 0.0, 'totalizer' => 0.0, 'is_online' => false],
+            'h_rms' => ['flow_rate' => 0.0, 'totalizer' => 0.0, 'is_online' => false],
+            'ph' => ['value' => 0.0, 'status' => 'Standby', 'is_online' => false],
+            'pressure' => ['value' => 0.0, 'status' => 'Standby', 'is_online' => false],
         ];
 
         $sortedDevices = $devices->sortBy('id')->values();
@@ -54,8 +54,15 @@ class TelemetryController extends Controller
             ?? $sortedDevices->first(fn ($d) => $d->isPhSensor() || $d->isPressureSensor())
             ?? $sortedDevices->get(3);
 
+        $onlineDevicesCount = 0;
+
         foreach ($devices as $dev) {
             $readData = $modbusService->readDeviceRegisters($dev);
+            $isDevOnline = (bool) ($readData['is_online'] ?? false);
+            if ($isDevOnline) {
+                $onlineDevicesCount++;
+            }
+
             $readData['category'] = $dev->category;
             $readData['is_water'] = $dev->isWater();
             $readData['is_flow_meter'] = $dev->isFlowMeter();
@@ -72,8 +79,8 @@ class TelemetryController extends Controller
                 $phCount++;
                 $val = (float) ($params['pressure']['value'] ?? $params['ph']['value'] ?? 0);
                 $status = ($val >= 1.0 && $val <= 4.0) ? 'Normal' : ($val > 0 ? 'Warning' : 'Standby');
-                $scadaMeters['pressure'] = ['value' => $val, 'status' => $status];
-                $scadaMeters['ph'] = ['value' => $val, 'status' => $status];
+                $scadaMeters['pressure'] = ['value' => $val, 'status' => $status, 'is_online' => $isDevOnline];
+                $scadaMeters['ph'] = ['value' => $val, 'status' => $status, 'is_online' => $isDevOnline];
                 $currentPh = $val;
             } elseif ($dev->isWater() || $dev->isFlowMeter() || $isDev1 || $isDev2 || $isDev3) {
                 $waterCount++;
@@ -83,11 +90,11 @@ class TelemetryController extends Controller
                 $totalFlowRate += $fr;
 
                 if ($isDev1 || $dev->slave_id === 1) {
-                    $scadaMeters['rms'] = ['flow_rate' => $fr, 'totalizer' => $tot];
+                    $scadaMeters['rms'] = ['flow_rate' => $fr, 'totalizer' => $tot, 'is_online' => $isDevOnline];
                 } elseif ($isDev2 || $dev->slave_id === 2) {
-                    $scadaMeters['mhs'] = ['flow_rate' => $fr, 'totalizer' => $tot];
+                    $scadaMeters['mhs'] = ['flow_rate' => $fr, 'totalizer' => $tot, 'is_online' => $isDevOnline];
                 } elseif ($isDev3 || $dev->slave_id === 3) {
-                    $scadaMeters['h_rms'] = ['flow_rate' => $fr, 'totalizer' => $tot];
+                    $scadaMeters['h_rms'] = ['flow_rate' => $fr, 'totalizer' => $tot, 'is_online' => $isDevOnline];
                 }
             } else {
                 $electricCount++;
@@ -120,10 +127,21 @@ class TelemetryController extends Controller
         $avgPf = count($pfs) > 0 ? round(array_sum($pfs) / count($pfs), 2) : 0.96;
         $avgFreq = count($freqs) > 0 ? round(array_sum($freqs) / count($freqs), 2) : 50.0;
 
+        $primaryDevice = $devices->first() ?? Device::first();
+        $primaryGatewayIp = $primaryDevice?->ip_address ?? '192.168.1.118';
+        $primaryGatewayPort = $primaryDevice?->port ?? 502;
+        $isGatewayOnline = $primaryDevice ? $modbusService->isGatewayReachable($primaryGatewayIp, $primaryGatewayPort) : false;
+
         return response()->json([
             'success' => true,
             'timestamp' => now()->format('Y-m-d H:i:s'),
             'time_label' => now()->format('H:i:s'),
+            'gateway' => [
+                'ip_address' => $primaryGatewayIp,
+                'port' => $primaryGatewayPort,
+                'is_online' => $isGatewayOnline,
+                'status_label' => $isGatewayOnline ? 'ONLINE' : 'OFFLINE',
+            ],
             'summary' => [
                 'total_power_kw' => round($totalPower, 2),
                 'avg_voltage_v' => $avgVoltage,
@@ -134,13 +152,34 @@ class TelemetryController extends Controller
                 'total_water_m3' => round($totalWater, 3),
                 'total_flow_rate_m3h' => round($totalFlowRate, 2),
                 'current_ph' => round($currentPh, 2),
-                'online_devices_count' => count($devices),
+                'online_devices_count' => $onlineDevicesCount,
                 'water_devices_count' => $waterCount,
                 'ph_devices_count' => $phCount,
                 'electric_devices_count' => $electricCount,
             ],
             'scada' => $scadaMeters,
             'devices' => $deviceResults,
+        ]);
+    }
+
+    /**
+     * Endpoint API status koneksi Gateway Modbus RS485-to-TCP.
+     */
+    public function getGatewayStatus(ModbusTcpService $modbusService): JsonResponse
+    {
+        $primaryDevice = Device::active()->first() ?? Device::first();
+        $ip = $primaryDevice?->ip_address ?? '192.168.1.118';
+        $port = $primaryDevice?->port ?? 502;
+        $isOnline = $primaryDevice ? $modbusService->isGatewayReachable($ip, $port) : false;
+
+        return response()->json([
+            'success' => true,
+            'gateway' => [
+                'ip_address' => $ip,
+                'port' => $port,
+                'is_online' => $isOnline,
+                'status_label' => $isOnline ? 'ONLINE' : 'OFFLINE',
+            ],
         ]);
     }
 

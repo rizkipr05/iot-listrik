@@ -88,5 +88,57 @@ class DashboardScadaTest extends TestCase
         $this->assertTrue($json['success']);
         $this->assertEquals(0, $json['scada']['pressure']['value']);
         $this->assertEquals('Standby', $json['scada']['pressure']['status']);
+        $this->assertFalse($json['scada']['pressure']['is_online']);
+    }
+
+    public function test_dashboard_displays_device_online_and_offline_badges()
+    {
+        $device = Device::create([
+            'name' => 'Flowmeter 2" Area Chiller',
+            'category' => 'flow_meter',
+            'description' => 'Nominal Size : 2 inch | Range : 0 ~ 300 m³/h',
+            'ip_address' => '127.0.0.1',
+            'port' => 65530,
+            'slave_id' => 1,
+            'timeout_ms' => 200,
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($this->user)->get(route('dashboard'));
+
+        $response->assertStatus(200);
+        $response->assertSee('id="headerBadgeRMS"', false);
+        $response->assertSee('id="statusTextRMS"', false);
+        $response->assertSee('id="headerBadgeMHS"', false);
+        $response->assertSee('id="statusTextMHS"', false);
+        $response->assertSee('id="headerBadgeHRMS"', false);
+        $response->assertSee('id="statusTextHRMS"', false);
+        $response->assertSee('id="headerBadgePH"', false);
+        $response->assertSee('id="statusTextPH"', false);
+    }
+
+    public function test_live_telemetry_reports_is_online_status_per_slave()
+    {
+        $device1 = Device::create([
+            'name' => 'Flowmeter Chiller',
+            'category' => 'flow_meter',
+            'ip_address' => '127.0.0.1',
+            'port' => 65530,
+            'slave_id' => 1,
+            'timeout_ms' => 100,
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($this->user)->getJson(route('api.telemetry.live'));
+
+        $response->assertStatus(200);
+        $json = $response->json();
+
+        $this->assertTrue($json['success']);
+        $this->assertArrayHasKey('online_devices_count', $json['summary']);
+        $this->assertArrayHasKey('is_online', $json['scada']['rms']);
+        $this->assertArrayHasKey('is_online', $json['scada']['mhs']);
+        $this->assertArrayHasKey('is_online', $json['scada']['h_rms']);
+        $this->assertArrayHasKey('is_online', $json['scada']['pressure']);
     }
 }

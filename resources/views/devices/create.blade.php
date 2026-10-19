@@ -73,8 +73,8 @@
                                    class="form-control mono-font @error('ip_address') is-invalid @enderror" 
                                    id="ip_address" 
                                    name="ip_address" 
-                                   value="{{ old('ip_address', '192.168.1.100') }}" 
-                                   placeholder="Contoh: 192.168.1.100 atau 127.0.0.1" 
+                                   value="{{ old('ip_address', '192.168.1.118') }}" 
+                                   placeholder="Contoh: 192.168.1.118 atau 127.0.0.1" 
                                    required>
                             @error('ip_address')
                                 <div class="invalid-feedback">{{ $message }}</div>

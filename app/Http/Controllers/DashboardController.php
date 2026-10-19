@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Device;
 use App\Models\MeterLog;
+use Illuminate\Support\Facades\Cache;
 
 class DashboardController extends Controller
 {
@@ -133,6 +134,11 @@ class DashboardController extends Controller
 
         $statusPh = ($currentPh >= 1.0 && $currentPh <= 4.0) ? 'Normal' : ($currentPh > 0 ? 'Warning' : 'Standby');
 
+        $isRmsOnline = $deviceRms ? (bool) Cache::get("device_online_{$deviceRms->id}", false) : false;
+        $isMhsOnline = $deviceMhs ? (bool) Cache::get("device_online_{$deviceMhs->id}", false) : false;
+        $isHrmsOnline = $deviceHrms ? (bool) Cache::get("device_online_{$deviceHrms->id}", false) : false;
+        $isPhOnline = $devicePh ? (bool) Cache::get("device_online_{$devicePh->id}", false) : false;
+
         return view('dashboard', compact(
             'devices',
             'hourlyRows',
@@ -157,6 +163,10 @@ class DashboardController extends Controller
             'gaugeOffsetHrms',
             'gaugeOffsetPh',
             'statusPh',
+            'isRmsOnline',
+            'isMhsOnline',
+            'isHrmsOnline',
+            'isPhOnline',
             'labelRms',
             'labelMhs',
             'labelHrms',
