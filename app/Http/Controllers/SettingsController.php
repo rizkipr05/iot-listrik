@@ -18,26 +18,6 @@ class SettingsController extends Controller
         $loggerEnabled = AppSetting::getValue('logger_enabled', '1') === '1';
         $loggerIntervalSeconds = (int) AppSetting::getValue('logger_interval_seconds', '60');
 
-        $devices = Device::active()->orderBy('id')->get();
-        $deviceRms = $devices->where('slave_id', 1)->first() ?? $devices->get(0);
-        $deviceMhs = $devices->where('slave_id', 2)->first() ?? $devices->get(1);
-        $deviceHrms = $devices->where('slave_id', 3)->first() ?? $devices->get(2);
-        $devicePh = $devices->where('slave_id', 4)->first()
-            ?? $devices->first(fn ($d) => $d->isPressureSensor() || $d->isPhSensor())
-            ?? $devices->get(3);
-
-        $labelRms = $deviceRms?->name ?? 'Flowmeter 1 - Area RMS';
-        $labelMhs = $deviceMhs?->name ?? 'Flowmeter 2 - Area Toilet';
-        $labelHrms = $deviceHrms?->name ?? 'Flowmeter 3 - Area Office';
-        $labelPh = $devicePh?->name ?? 'Pressure Sensor';
-
-        // Nilai batas maksimal flowrate & pressure (kondisi 100% full scale, default: RMS 4.0 m³/h, MHS 10.0 m³/h, HRMS 10.0 m³/h, Pressure 10.0 Bar)
-        $maxFlowRms = (float) AppSetting::getValue('max_flowrate_rms', 4.0);
-        $maxFlowMhs = (float) AppSetting::getValue('max_flowrate_mhs', 10.0);
-        $maxFlowHrms = (float) AppSetting::getValue('max_flowrate_hrms', 10.0);
-        $maxPressure = (float) AppSetting::getValue('max_pressure', 10.0);
-        $flowWarningPct = (int) AppSetting::getValue('flow_warning_percent', 85);
-
         $totalDevices = Device::count();
         $totalRegisters = Register::count();
         $totalLogs = MeterLog::count();
@@ -50,19 +30,6 @@ class SettingsController extends Controller
         return view('settings.index', compact(
             'loggerEnabled',
             'loggerIntervalSeconds',
-            'maxFlowRms',
-            'maxFlowMhs',
-            'maxFlowHrms',
-            'maxPressure',
-            'flowWarningPct',
-            'labelRms',
-            'labelMhs',
-            'labelHrms',
-            'labelPh',
-            'deviceRms',
-            'deviceMhs',
-            'deviceHrms',
-            'devicePh',
             'totalDevices',
             'totalRegisters',
             'totalLogs',

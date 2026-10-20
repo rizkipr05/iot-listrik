@@ -82,6 +82,7 @@ class HistoryAndSettingsTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertSee('Pengaturan Interval Data Logger');
+        $response->assertDontSee('name="max_flowrate_rms"', false);
     }
 
     public function test_user_can_trigger_manual_log_record()
