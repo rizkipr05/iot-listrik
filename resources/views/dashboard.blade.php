@@ -788,13 +788,13 @@
                     @forelse($hourlyRows ?? [] as $row)
                         <tr>
                             <td class="fw-semibold">{{ $row['time'] }}</td>
-                            <td class="text-primary fw-bold">{{ number_format($row['rms_flow'], 1) }}</td>
-                            <td>{{ number_format($row['rms_tot'], 1) }}</td>
-                            <td class="text-success fw-bold">{{ number_format($row['mhs_flow'], 1) }}</td>
-                            <td>{{ number_format($row['mhs_tot'], 1) }}</td>
-                            <td style="color: #7c3aed;" class="fw-bold">{{ number_format($row['hrms_flow'], 1) }}</td>
-                            <td>{{ number_format($row['hrms_tot'], 1) }}</td>
-                            <td class="text-warning fw-bold">{{ number_format($row['pressure'] ?? $row['ph'] ?? 0.0, 2) }}</td>
+                            <td class="text-primary fw-bold">{{ $row['rms_flow'] !== null ? number_format($row['rms_flow'], 1) : '-' }}</td>
+                            <td>{{ $row['rms_tot'] !== null ? number_format($row['rms_tot'], 1) : '-' }}</td>
+                            <td class="text-success fw-bold">{{ $row['mhs_flow'] !== null ? number_format($row['mhs_flow'], 1) : '-' }}</td>
+                            <td>{{ $row['mhs_tot'] !== null ? number_format($row['mhs_tot'], 1) : '-' }}</td>
+                            <td style="color: #7c3aed;" class="fw-bold">{{ $row['hrms_flow'] !== null ? number_format($row['hrms_flow'], 1) : '-' }}</td>
+                            <td>{{ $row['hrms_tot'] !== null ? number_format($row['hrms_tot'], 1) : '-' }}</td>
+                            <td class="text-warning fw-bold">{{ ($row['pressure'] ?? $row['ph']) !== null ? number_format($row['pressure'] ?? $row['ph'], 2) : '-' }}</td>
                         </tr>
                     @empty
                         <tr>

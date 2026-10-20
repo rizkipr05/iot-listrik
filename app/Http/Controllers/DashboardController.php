@@ -69,154 +69,12 @@ class DashboardController extends Controller
         $cachedDevHrms = $deviceHrms ? Cache::get("device_latest_telemetry_{$deviceHrms->id}") : null;
         $cachedDevPh = $devicePh ? Cache::get("device_latest_telemetry_{$devicePh->id}") : null;
 
-        $latestRms = $deviceRms ? MeterLog::where('device_id', $deviceRms->id)->latest('logged_at')->first() : null;
-        $latestMhs = $deviceMhs ? MeterLog::where('device_id', $deviceMhs->id)->latest('logged_at')->first() : null;
-        $latestHrms = $deviceHrms ? MeterLog::where('device_id', $deviceHrms->id)->latest('logged_at')->first() : null;
-        $latestPh = $devicePh ? MeterLog::where('device_id', $devicePh->id)->latest('logged_at')->first() : null;
-
-        $currentRmsFlow = ! empty($cachedDevRms['flow_rate']) && $cachedDevRms['flow_rate'] > 0
-            ? (float) $cachedDevRms['flow_rate']
-            : (! empty($cachedScada['rms']['flow_rate']) && $cachedScada['rms']['flow_rate'] > 0
-                ? (float) $cachedScada['rms']['flow_rate']
-                : ($latestRms && $latestRms->flow_rate > 0
-                    ? (float) $latestRms->flow_rate
-                    : (float) ($cachedDevRms['flow_rate'] ?? $cachedScada['rms']['flow_rate'] ?? $latestRms?->flow_rate ?? 0.0)));
-
-        $currentRmsTot = ! empty($cachedDevRms['totalizer']) && $cachedDevRms['totalizer'] > 0
-            ? (float) $cachedDevRms['totalizer']
-            : (! empty($cachedScada['rms']['totalizer']) && $cachedScada['rms']['totalizer'] > 0
-                ? (float) $cachedScada['rms']['totalizer']
-                : ($latestRms && $latestRms->totalizer > 0
-                    ? (float) $latestRms->totalizer
-                    : (float) ($cachedDevRms['totalizer'] ?? $cachedScada['rms']['totalizer'] ?? $latestRms?->totalizer ?? 0.0)));
-
-        $currentMhsFlow = ! empty($cachedDevMhs['flow_rate']) && $cachedDevMhs['flow_rate'] > 0
-            ? (float) $cachedDevMhs['flow_rate']
-            : (! empty($cachedScada['mhs']['flow_rate']) && $cachedScada['mhs']['flow_rate'] > 0
-                ? (float) $cachedScada['mhs']['flow_rate']
-                : ($latestMhs && $latestMhs->flow_rate > 0
-                    ? (float) $latestMhs->flow_rate
-                    : (float) ($cachedDevMhs['flow_rate'] ?? $cachedScada['mhs']['flow_rate'] ?? $latestMhs?->flow_rate ?? 0.0)));
-
-        $currentMhsTot = ! empty($cachedDevMhs['totalizer']) && $cachedDevMhs['totalizer'] > 0
-            ? (float) $cachedDevMhs['totalizer']
-            : (! empty($cachedScada['mhs']['totalizer']) && $cachedScada['mhs']['totalizer'] > 0
-                ? (float) $cachedScada['mhs']['totalizer']
-                : ($latestMhs && $latestMhs->totalizer > 0
-                    ? (float) $latestMhs->totalizer
-                    : (float) ($cachedDevMhs['totalizer'] ?? $cachedScada['mhs']['totalizer'] ?? $latestMhs?->totalizer ?? 0.0)));
-
-        $currentHrmsFlow = ! empty($cachedDevHrms['flow_rate']) && $cachedDevHrms['flow_rate'] > 0
-            ? (float) $cachedDevHrms['flow_rate']
-            : (! empty($cachedScada['h_rms']['flow_rate']) && $cachedScada['h_rms']['flow_rate'] > 0
-                ? (float) $cachedScada['h_rms']['flow_rate']
-                : ($latestHrms && $latestHrms->flow_rate > 0
-                    ? (float) $latestHrms->flow_rate
-                    : (float) ($cachedDevHrms['flow_rate'] ?? $cachedScada['h_rms']['flow_rate'] ?? $latestHrms?->flow_rate ?? 0.0)));
-
-        $currentHrmsTot = ! empty($cachedDevHrms['totalizer']) && $cachedDevHrms['totalizer'] > 0
-            ? (float) $cachedDevHrms['totalizer']
-            : (! empty($cachedScada['h_rms']['totalizer']) && $cachedScada['h_rms']['totalizer'] > 0
-                ? (float) $cachedScada['h_rms']['totalizer']
-                : ($latestHrms && $latestHrms->totalizer > 0
-                    ? (float) $latestHrms->totalizer
-                    : (float) ($cachedDevHrms['totalizer'] ?? $cachedScada['h_rms']['totalizer'] ?? $latestHrms?->totalizer ?? 0.0)));
-
-        $currentPh = ! empty($cachedDevPh['pressure']) && $cachedDevPh['pressure'] > 0
-            ? (float) $cachedDevPh['pressure']
-            : (! empty($cachedDevPh['ph']) && $cachedDevPh['ph'] > 0
-                ? (float) $cachedDevPh['ph']
-                : (! empty($cachedScada['pressure']['value']) && $cachedScada['pressure']['value'] > 0
-                    ? (float) $cachedScada['pressure']['value']
-                    : (! empty($cachedScada['ph']['value']) && $cachedScada['ph']['value'] > 0
-                        ? (float) $cachedScada['ph']['value']
-                        : ($latestPh && ($latestPh->ph > 0)
-                            ? (float) $latestPh->ph
-                            : (float) ($cachedDevPh['pressure'] ?? $cachedScada['pressure']['value'] ?? $latestPh?->ph ?? 0.0)))));
-
-        // Ambil riwayat log untuk tabel HISTORY DATA dan grafik
-        $recentLogs = MeterLog::with('device')
-            ->latest('logged_at')
-            ->take(200)
-            ->get();
-
-        // Kelompokkan per jam untuk tabel riwayat
-        $hourlyRows = [];
-        if ($recentLogs->isNotEmpty()) {
-            $groupedByHour = $recentLogs->groupBy(fn ($log) => $log->logged_at->format('Y-m-d H:00'));
-
-            foreach ($groupedByHour->take(8) as $timeStr => $logsInHour) {
-                $rmsLog = $deviceRms ? $logsInHour->firstWhere('device_id', $deviceRms->id) : null;
-                $mhsLog = $deviceMhs ? $logsInHour->firstWhere('device_id', $deviceMhs->id) : null;
-                $hrmsLog = $deviceHrms ? $logsInHour->firstWhere('device_id', $deviceHrms->id) : null;
-                $phLog = $devicePh ? $logsInHour->firstWhere('device_id', $devicePh->id) : null;
-
-                $hourlyRows[] = [
-                    'time' => $timeStr,
-                    'rms_flow' => (float) ($rmsLog?->flow_rate ?? 0.0),
-                    'rms_tot' => (float) ($rmsLog?->totalizer ?? 0.0),
-                    'mhs_flow' => (float) ($mhsLog?->flow_rate ?? 0.0),
-                    'mhs_tot' => (float) ($mhsLog?->totalizer ?? 0.0),
-                    'hrms_flow' => (float) ($hrmsLog?->flow_rate ?? 0.0),
-                    'hrms_tot' => (float) ($hrmsLog?->totalizer ?? 0.0),
-                    'ph' => (float) ($phLog?->ph ?? 0.0),
-                ];
-            }
-        }
-
-        // Siapkan data grafik 24 jam terakhir (13 titik interval per 2 jam)
-        $chartLabels = [];
-        $chartRms = [];
-        $chartMhs = [];
-        $chartHrms = [];
-        $chartPh = [];
-
-        for ($i = 12; $i >= 0; $i--) {
-            $timePoint = now()->subHours($i * 2);
-            $chartLabels[] = $timePoint->format('H:00');
-
-            if ($recentLogs->isEmpty()) {
-                $chartRms[] = 0.0;
-                $chartMhs[] = 0.0;
-                $chartHrms[] = 0.0;
-                $chartPh[] = 0.0;
-            } else {
-                $start = $timePoint->copy()->subHours(1);
-                $end = $timePoint->copy()->addHours(1);
-
-                $bucketLogs = $recentLogs->filter(fn ($l) => $l->logged_at >= $start && $l->logged_at <= $end);
-
-                $l1 = $deviceRms ? $bucketLogs->firstWhere('device_id', $deviceRms->id) : null;
-                $l2 = $deviceMhs ? $bucketLogs->firstWhere('device_id', $deviceMhs->id) : null;
-                $l3 = $deviceHrms ? $bucketLogs->firstWhere('device_id', $deviceHrms->id) : null;
-                $l4 = $devicePh ? $bucketLogs->firstWhere('device_id', $devicePh->id) : null;
-
-                $chartRms[] = $l1 ? round((float) ($l1->flow_rate ?? 0), 1) : 0.0;
-                $chartMhs[] = $l2 ? round((float) ($l2->flow_rate ?? 0), 1) : 0.0;
-                $chartHrms[] = $l3 ? round((float) ($l3->flow_rate ?? 0), 1) : 0.0;
-                $chartPh[] = $l4 ? round((float) ($l4->ph ?? 0), 2) : 0.0;
-            }
-        }
-
-        $totalFlowCurrent = $currentRmsFlow + $currentMhsFlow + $currentHrmsFlow;
-        $totalizerAllCurrent = $currentRmsTot + $currentMhsTot + $currentHrmsTot;
-
-        $pctRms = $totalFlowCurrent > 0 ? (int) round(($currentRmsFlow / $totalFlowCurrent) * 100) : 0;
-        $pctMhs = $totalFlowCurrent > 0 ? (int) round(($currentMhsFlow / $totalFlowCurrent) * 100) : 0;
-        $pctHrms = $totalFlowCurrent > 0 ? (int) round(($currentHrmsFlow / $totalFlowCurrent) * 100) : 0;
-
-        $gaugePctRms = (int) min(100, max(0, round(($currentRmsFlow / max(0.001, $maxRms)) * 100)));
-        $gaugePctMhs = (int) min(100, max(0, round(($currentMhsFlow / max(0.001, $maxMhs)) * 100)));
-        $gaugePctHrms = (int) min(100, max(0, round(($currentHrmsFlow / max(0.001, $maxHrms)) * 100)));
-        $gaugePctPh = (int) min(100, max(0, round(($currentPh / max(0.001, $maxPh)) * 100)));
-
-        $circumference = 251.32;
-        $gaugeOffsetRms = round($circumference - ($gaugePctRms / 100) * $circumference, 1);
-        $gaugeOffsetMhs = round($circumference - ($gaugePctMhs / 100) * $circumference, 1);
-        $gaugeOffsetHrms = round($circumference - ($gaugePctHrms / 100) * $circumference, 1);
-        $gaugeOffsetPh = round($circumference - ($gaugePctPh / 100) * $circumference, 1);
-
-        $statusPh = ($currentPh >= 1.0 && $currentPh <= 4.0) ? 'Normal' : ($currentPh > 0 ? 'Warning' : 'Standby');
+        $latestRms = $deviceRms ? MeterLog::where('device_id', $deviceRms->id)->where('is_simulated', false)->latest('logged_at')->first() : null;
+        $latestMhs = $deviceMhs ? MeterLog::where('device_id', $deviceMhs->id)->where('is_simulated', false)->latest('logged_at')->first() : null;
+        $latestHrms = $deviceHrms ? MeterLog::where('device_id', $deviceHrms->id)->where('is_simulated', false)->latest('logged_at')->first() : null;
+        $latestPh = $devicePh ? MeterLog::where('device_id', $devicePh->id)->where('is_simulated', false)->where(function ($q) {
+            $q->whereNull('ph')->orWhere('ph', '<=', 5.0);
+        })->latest('logged_at')->first() : null;
 
         $isRmsOnline = isset($cachedDevRms['is_online'])
             ? (bool) $cachedDevRms['is_online']
@@ -241,6 +99,180 @@ class DashboardController extends Controller
             : (isset($cachedScada['pressure']['is_online'])
                 ? (bool) $cachedScada['pressure']['is_online']
                 : ($devicePh ? (bool) Cache::get("device_online_{$devicePh->id}", false) : false));
+
+        $currentRmsFlow = $isRmsOnline ? (
+            ! empty($cachedDevRms['flow_rate']) && $cachedDevRms['flow_rate'] > 0
+                ? (float) $cachedDevRms['flow_rate']
+                : (! empty($cachedScada['rms']['flow_rate']) && $cachedScada['rms']['flow_rate'] > 0
+                    ? (float) $cachedScada['rms']['flow_rate']
+                    : ($latestRms && $latestRms->flow_rate > 0
+                        ? (float) $latestRms->flow_rate
+                        : 0.0))
+        ) : 0.0;
+
+        $currentRmsTot = ! empty($cachedDevRms['totalizer']) && $cachedDevRms['totalizer'] > 0
+            ? (float) $cachedDevRms['totalizer']
+            : (! empty($cachedScada['rms']['totalizer']) && $cachedScada['rms']['totalizer'] > 0
+                ? (float) $cachedScada['rms']['totalizer']
+                : ($latestRms && $latestRms->totalizer > 0
+                    ? (float) $latestRms->totalizer
+                    : 0.0));
+
+        $currentMhsFlow = $isMhsOnline ? (
+            ! empty($cachedDevMhs['flow_rate']) && $cachedDevMhs['flow_rate'] > 0
+                ? (float) $cachedDevMhs['flow_rate']
+                : (! empty($cachedScada['mhs']['flow_rate']) && $cachedScada['mhs']['flow_rate'] > 0
+                    ? (float) $cachedScada['mhs']['flow_rate']
+                    : ($latestMhs && $latestMhs->flow_rate > 0
+                        ? (float) $latestMhs->flow_rate
+                        : 0.0))
+        ) : 0.0;
+
+        $currentMhsTot = $isMhsOnline ? (
+            ! empty($cachedDevMhs['totalizer']) && $cachedDevMhs['totalizer'] > 0
+                ? (float) $cachedDevMhs['totalizer']
+                : (! empty($cachedScada['mhs']['totalizer']) && $cachedScada['mhs']['totalizer'] > 0
+                    ? (float) $cachedScada['mhs']['totalizer']
+                    : ($latestMhs && $latestMhs->totalizer > 0
+                        ? (float) $latestMhs->totalizer
+                        : 0.0))
+        ) : 0.0;
+
+        $currentHrmsFlow = $isHrmsOnline ? (
+            ! empty($cachedDevHrms['flow_rate']) && $cachedDevHrms['flow_rate'] > 0
+                ? (float) $cachedDevHrms['flow_rate']
+                : (! empty($cachedScada['h_rms']['flow_rate']) && $cachedScada['h_rms']['flow_rate'] > 0
+                    ? (float) $cachedScada['h_rms']['flow_rate']
+                    : ($latestHrms && $latestHrms->flow_rate > 0
+                        ? (float) $latestHrms->flow_rate
+                        : 0.0))
+        ) : 0.0;
+
+        $currentHrmsTot = $isHrmsOnline ? (
+            ! empty($cachedDevHrms['totalizer']) && $cachedDevHrms['totalizer'] > 0
+                ? (float) $cachedDevHrms['totalizer']
+                : (! empty($cachedScada['h_rms']['totalizer']) && $cachedScada['h_rms']['totalizer'] > 0
+                    ? (float) $cachedScada['h_rms']['totalizer']
+                    : ($latestHrms && $latestHrms->totalizer > 0
+                        ? (float) $latestHrms->totalizer
+                        : 0.0))
+        ) : 0.0;
+
+        $currentPh = $isPhOnline ? (
+            ! empty($cachedDevPh['pressure']) && $cachedDevPh['pressure'] > 0 && $cachedDevPh['pressure'] <= 5.0
+                ? (float) $cachedDevPh['pressure']
+                : (! empty($cachedScada['pressure']['value']) && $cachedScada['pressure']['value'] > 0 && $cachedScada['pressure']['value'] <= 5.0
+                    ? (float) $cachedScada['pressure']['value']
+                    : ($latestPh && $latestPh->ph > 0 && $latestPh->ph <= 5.0
+                        ? (float) $latestPh->ph
+                        : 0.0))
+        ) : 0.0;
+
+        // Ambil riwayat log telemetri real (kecualikan data simulasi dummy & anomali lama)
+        $recentLogs = MeterLog::with('device')
+            ->where('is_simulated', false)
+            ->where(function ($q) {
+                $q->whereNull('ph')->orWhere('ph', '<=', 5.0);
+            })
+            ->latest('logged_at')
+            ->take(200)
+            ->get();
+
+        // Kelompokkan per jam untuk tabel riwayat HISTORY DATA
+        $hourlyRows = [];
+        if ($recentLogs->isNotEmpty()) {
+            $groupedByHour = $recentLogs->groupBy(fn ($log) => $log->logged_at->format('Y-m-d H:00'));
+
+            foreach ($groupedByHour->take(8) as $timeStr => $logsInHour) {
+                $rmsLog = $deviceRms ? $logsInHour->firstWhere('device_id', $deviceRms->id) : null;
+                $mhsLog = $deviceMhs ? $logsInHour->firstWhere('device_id', $deviceMhs->id) : null;
+                $hrmsLog = $deviceHrms ? $logsInHour->firstWhere('device_id', $deviceHrms->id) : null;
+                $phLog = $devicePh ? $logsInHour->firstWhere('device_id', $devicePh->id) : null;
+
+                $hourlyRows[] = [
+                    'time' => $timeStr,
+                    'rms_flow' => ($isRmsOnline && $rmsLog) ? (float) $rmsLog->flow_rate : ($isRmsOnline && $currentRmsFlow > 0 ? $currentRmsFlow : null),
+                    'rms_tot' => ($isRmsOnline && $rmsLog) ? (float) $rmsLog->totalizer : ($isRmsOnline && $currentRmsTot > 0 ? $currentRmsTot : null),
+                    'mhs_flow' => ($isMhsOnline && $mhsLog) ? (float) $mhsLog->flow_rate : null,
+                    'mhs_tot' => ($isMhsOnline && $mhsLog) ? (float) $mhsLog->totalizer : null,
+                    'hrms_flow' => ($isHrmsOnline && $hrmsLog) ? (float) $hrmsLog->flow_rate : null,
+                    'hrms_tot' => ($isHrmsOnline && $hrmsLog) ? (float) $hrmsLog->totalizer : null,
+                    'ph' => ($isPhOnline && $phLog) ? (float) $phLog->ph : null,
+                    'pressure' => ($isPhOnline && $phLog) ? (float) $phLog->ph : null,
+                ];
+            }
+        } elseif ($isRmsOnline && ($currentRmsFlow > 0 || $currentRmsTot > 0)) {
+            $hourlyRows[] = [
+                'time' => now()->format('Y-m-d H:00'),
+                'rms_flow' => $currentRmsFlow,
+                'rms_tot' => $currentRmsTot,
+                'mhs_flow' => null,
+                'mhs_tot' => null,
+                'hrms_flow' => null,
+                'hrms_tot' => null,
+                'ph' => null,
+                'pressure' => null,
+            ];
+        }
+
+        // Siapkan data grafik 24 jam terakhir (13 titik interval per 2 jam)
+        $chartLabels = [];
+        $chartRms = [];
+        $chartMhs = [];
+        $chartHrms = [];
+        $chartPh = [];
+
+        for ($i = 12; $i >= 0; $i--) {
+            $timePoint = now()->subHours($i * 2);
+            $chartLabels[] = $timePoint->format('H:00');
+
+            $start = $timePoint->copy()->subHours(1);
+            $end = $timePoint->copy()->addHours(1);
+
+            $bucketLogs = $recentLogs->filter(fn ($l) => $l->logged_at >= $start && $l->logged_at <= $end);
+
+            $l1 = $deviceRms ? $bucketLogs->firstWhere('device_id', $deviceRms->id) : null;
+            $l2 = $deviceMhs ? $bucketLogs->firstWhere('device_id', $deviceMhs->id) : null;
+            $l3 = $deviceHrms ? $bucketLogs->firstWhere('device_id', $deviceHrms->id) : null;
+            $l4 = $devicePh ? $bucketLogs->firstWhere('device_id', $devicePh->id) : null;
+
+            // Device yang sedang offline / belum terhubung nilainya mutlak 0.0 agar grafik flat dan tidak anomali
+            $chartRms[] = $isRmsOnline
+                ? ($l1 ? round((float) ($l1->flow_rate ?? 0), 1) : (($i === 0) ? round($currentRmsFlow, 1) : 0.0))
+                : 0.0;
+
+            $chartMhs[] = $isMhsOnline
+                ? ($l2 ? round((float) ($l2->flow_rate ?? 0), 1) : (($i === 0) ? round($currentMhsFlow, 1) : 0.0))
+                : 0.0;
+
+            $chartHrms[] = $isHrmsOnline
+                ? ($l3 ? round((float) ($l3->flow_rate ?? 0), 1) : (($i === 0) ? round($currentHrmsFlow, 1) : 0.0))
+                : 0.0;
+
+            $chartPh[] = $isPhOnline
+                ? ($l4 ? round((float) ($l4->ph ?? 0), 2) : (($i === 0 && $currentPh <= 5.0) ? round($currentPh, 2) : 0.0))
+                : 0.0;
+        }
+
+        $totalFlowCurrent = $currentRmsFlow + $currentMhsFlow + $currentHrmsFlow;
+        $totalizerAllCurrent = $currentRmsTot + $currentMhsTot + $currentHrmsTot;
+
+        $pctRms = $totalFlowCurrent > 0 ? (int) round(($currentRmsFlow / $totalFlowCurrent) * 100) : 0;
+        $pctMhs = $totalFlowCurrent > 0 ? (int) round(($currentMhsFlow / $totalFlowCurrent) * 100) : 0;
+        $pctHrms = $totalFlowCurrent > 0 ? (int) round(($currentHrmsFlow / $totalFlowCurrent) * 100) : 0;
+
+        $gaugePctRms = (int) min(100, max(0, round(($currentRmsFlow / max(0.001, $maxRms)) * 100)));
+        $gaugePctMhs = (int) min(100, max(0, round(($currentMhsFlow / max(0.001, $maxMhs)) * 100)));
+        $gaugePctHrms = (int) min(100, max(0, round(($currentHrmsFlow / max(0.001, $maxHrms)) * 100)));
+        $gaugePctPh = (int) min(100, max(0, round(($currentPh / max(0.001, $maxPh)) * 100)));
+
+        $circumference = 251.32;
+        $gaugeOffsetRms = round($circumference - ($gaugePctRms / 100) * $circumference, 1);
+        $gaugeOffsetMhs = round($circumference - ($gaugePctMhs / 100) * $circumference, 1);
+        $gaugeOffsetHrms = round($circumference - ($gaugePctHrms / 100) * $circumference, 1);
+        $gaugeOffsetPh = round($circumference - ($gaugePctPh / 100) * $circumference, 1);
+
+        $statusPh = ($currentPh >= 1.0 && $currentPh <= 4.0) ? 'Normal' : ($currentPh > 0 ? 'Warning' : 'Standby');
 
         return view('dashboard', compact(
             'devices',

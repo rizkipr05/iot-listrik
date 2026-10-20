@@ -404,36 +404,40 @@ class ModbusTcpService
         $seed = time() + $index;
         $nameLower = strtolower($device->name);
 
+        if ($register->parameter_key === 'pressure' || $device->isPressureSensor()) {
+            return round(2.35 + (sin($seed / 25) * 0.15), 2);
+        }
+
         if ($register->parameter_key === 'ph' || $device->isPhSensor()) {
-            return round(7.62 + (sin($seed / 25) * 0.06), 2);
+            return round(7.20 + (sin($seed / 25) * 0.06), 2);
         }
 
         if ($register->parameter_key === 'flow_rate') {
             if ($index === 1 || (str_contains($nameLower, 'rms') && ! str_contains($nameLower, 'h-rms'))) {
-                return round(185.6 + (sin($seed / 15) * 2.5), 1);
+                return round(1.5 + (sin($seed / 15) * 0.1), 1);
             }
             if ($index === 2 || str_contains($nameLower, 'mhs')) {
-                return round(142.7 + (cos($seed / 15) * 2.0), 1);
+                return round(0.8 + (cos($seed / 15) * 0.08), 1);
             }
             if ($index === 3 || str_contains($nameLower, 'h-rms')) {
-                return round(97.4 + (sin($seed / 12) * 1.5), 1);
+                return round(0.5 + (sin($seed / 12) * 0.05), 1);
             }
 
-            return round(max(0.1, 80.0 + (sin($seed / 8) * 15.0) + ($index * 10)), 1);
+            return round(max(0.1, 1.2 + (sin($seed / 8) * 0.2)), 1);
         }
 
         if ($register->parameter_key === 'totalizer') {
             if ($index === 1 || (str_contains($nameLower, 'rms') && ! str_contains($nameLower, 'h-rms'))) {
-                return round(8542.3 + ((time() % 86400) * 0.003), 1);
+                return round(152.4 + ((time() % 86400) * 0.0003), 1);
             }
             if ($index === 2 || str_contains($nameLower, 'mhs')) {
-                return round(6783.5 + ((time() % 86400) * 0.0025), 1);
+                return round(84.6 + ((time() % 86400) * 0.0002), 1);
             }
             if ($index === 3 || str_contains($nameLower, 'h-rms')) {
-                return round(4126.8 + ((time() % 86400) * 0.002), 1);
+                return round(41.2 + ((time() % 86400) * 0.0001), 1);
             }
 
-            return round(5000.0 + ($index * 1200) + ((time() % 86400) * 0.002), 1);
+            return round(50.0 + ($index * 10) + ((time() % 86400) * 0.0001), 1);
         }
 
         return match ($register->parameter_key) {

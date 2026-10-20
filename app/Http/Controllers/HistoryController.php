@@ -7,6 +7,7 @@ use App\Models\MeterLog;
 use App\Services\ModbusTcpService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class HistoryController extends Controller
@@ -16,9 +17,21 @@ class HistoryController extends Controller
      */
     public function index(Request $request)
     {
-        $devices = Device::orderBy('name')->get();
+        $devices = Device::orderBy('slave_id')->get();
+        foreach ($devices as $dev) {
+            $cached = Cache::get("device_latest_telemetry_{$dev->id}");
+            $dev->is_online_now = ! empty($cached['is_online']);
+        }
+        $activeOnlineDevice = $devices->first(fn ($d) => ! empty($d->is_online_now));
+        if (! $activeOnlineDevice) {
+            $lastRealLog = MeterLog::where('is_simulated', false)->latest('logged_at')->first();
+            if ($lastRealLog) {
+                $activeOnlineDevice = $devices->firstWhere('id', $lastRealLog->device_id);
+            }
+        }
 
         $selectedDeviceId = $request->query('device_id');
+        $selectedSource = $request->query('source', 'all'); // 'all', 'real', 'simulated'
         $rawDateStart = $request->query('date_start');
         $rawDateEnd = $request->query('date_end');
 
@@ -30,6 +43,19 @@ class HistoryController extends Controller
 
         if ($selectedDeviceId) {
             $query->where('device_id', $selectedDeviceId);
+        }
+
+        if ($selectedSource === 'real') {
+            $query->where('is_simulated', false)->where(function ($q) {
+                $q->whereNull('ph')->orWhere('ph', '<=', 5.0);
+            });
+        } elseif ($selectedSource === 'simulated') {
+            $query->where('is_simulated', true);
+        } else {
+            // 'all': kecualikan anomali data pH lama >= 6.0 jika ada
+            $query->where(function ($q) {
+                $q->whereNull('ph')->orWhere('ph', '<=', 5.0);
+            });
         }
 
         if ($rawDateStart) {
@@ -45,14 +71,86 @@ class HistoryController extends Controller
         // Hitung ringkasan statistik untuk periode yang difilter
         $statsQuery = clone $query;
         $totalLogs = $statsQuery->count();
+
+        $selectedDevice = $selectedDeviceId ? $devices->firstWhere('id', (int) $selectedDeviceId) : null;
+        $hasPressureSensor = $devices->contains(fn ($d) => $d->isPressureSensor());
+        $hasPhSensor = $devices->contains(fn ($d) => $d->isPhSensor());
+
+        // 1. Perhitungan Volume Air Kumulatif (Tanpa mengurangkan antar-device yang berbeda)
+        if ($selectedDevice) {
+            if ($selectedDevice->isFlowMeter() || $selectedDevice->isWater()) {
+                $maxTot = (clone $statsQuery)->max('totalizer');
+                $minTot = (clone $statsQuery)->min('totalizer');
+                if ($maxTot !== null && $minTot !== null && ($maxTot - $minTot) > 0) {
+                    $totalWaterVolume = round($maxTot - $minTot, 2);
+                    $volumeLabel = 'Delta Pemakaian Air';
+                    $volumeDesc = 'Selisih totalizer '.$selectedDevice->name;
+                } elseif ($maxTot !== null) {
+                    $totalWaterVolume = round((float) $maxTot, 1);
+                    $volumeLabel = 'Totalizer Terkini';
+                    $volumeDesc = 'Akumulasi totalizer '.$selectedDevice->name;
+                } else {
+                    $totalWaterVolume = 0.0;
+                    $volumeLabel = 'Volume Totalizer';
+                    $volumeDesc = 'Belum ada data tercatat';
+                }
+            } else {
+                $totalWaterVolume = 0.0;
+                $volumeLabel = 'Volume Air';
+                $volumeDesc = 'Device bertipe sensor tekanan (bukan water meter)';
+            }
+        } else {
+            // Semua meter dipilih: hitung per device agar tidak terjadi anomali selisih antar meter berbeda
+            $waterDeviceIds = $devices->filter(fn ($d) => $d->isFlowMeter() || $d->isWater())->pluck('id');
+            $deltaSum = 0.0;
+            $latestSum = 0.0;
+            $hasAnyDelta = false;
+
+            foreach ($waterDeviceIds as $wId) {
+                $wQuery = (clone $statsQuery)->where('device_id', $wId);
+                $wMax = $wQuery->max('totalizer');
+                $wMin = $wQuery->min('totalizer');
+                if ($wMax !== null) {
+                    $latestSum += (float) $wMax;
+                    if ($wMin !== null && ($wMax - $wMin) > 0) {
+                        $deltaSum += (float) ($wMax - $wMin);
+                        $hasAnyDelta = true;
+                    }
+                }
+            }
+
+            if ($hasAnyDelta && $deltaSum > 0) {
+                $totalWaterVolume = round($deltaSum, 2);
+                $volumeLabel = 'Delta Volume Kumulatif';
+                $volumeDesc = 'Total selisih volume seluruh flowmeter';
+            } else {
+                $totalWaterVolume = round($latestSum, 1);
+                $volumeLabel = 'Volume Air Kumulatif';
+                $volumeDesc = 'Akumulasi totalizer seluruh flowmeter';
+            }
+        }
+
+        // 2. Perhitungan Rata-rata Flowrate
+        $flowQuery = (clone $statsQuery)->whereNotNull('flow_rate')->where('flow_rate', '>', 0);
+        $avgFlowRate = round($flowQuery->avg('flow_rate') ?? ((clone $statsQuery)->whereNotNull('flow_rate')->avg('flow_rate') ?? 0.0), 2);
+
+        // 3. Perhitungan Tekanan Pipa / Sensor (Kolom ph pada database)
+        $pressureQuery = (clone $statsQuery)->whereNotNull('ph')->where('ph', '<=', 5.0);
+        if (! $selectedDevice) {
+            $pressureDev = $devices->first(fn ($d) => $d->isPressureSensor());
+            if ($pressureDev) {
+                $pressureQuery->where('device_id', $pressureDev->id);
+            }
+        }
+        $avgPressure = round($pressureQuery->avg('ph') ?? 0.0, 2);
+        $minPressure = round($pressureQuery->min('ph') ?? 0.0, 2);
+        $maxPressure = round($pressureQuery->max('ph') ?? 0.0, 2);
+        $avgPh = $avgPressure; // alias kompatibilitas
+
+        // Listrik (jika ada instrumen power meter)
         $avgPower = round($statsQuery->avg('power') ?? 0, 2);
         $maxPower = round($statsQuery->max('power') ?? 0, 2);
-        $minEnergy = $statsQuery->min('energy') ?? 0;
-        $maxEnergy = $statsQuery->max('energy') ?? 0;
-        $energyConsumed = round(max(0, $maxEnergy - $minEnergy), 2);
-        $totalWaterVolume = round(max(0, ($statsQuery->max('totalizer') ?? 0) - ($statsQuery->min('totalizer') ?? 0)), 2);
-        $avgFlowRate = round($statsQuery->avg('flow_rate') ?? 0, 2);
-        $avgPh = round($statsQuery->whereNotNull('ph')->avg('ph') ?? 0.0, 2);
+        $energyConsumed = round(max(0, ($statsQuery->max('energy') ?? 0) - ($statsQuery->min('energy') ?? 0)), 2);
 
         $logs = $query->paginate(20)->withQueryString();
 
@@ -63,12 +161,16 @@ class HistoryController extends Controller
         $chartPowers = $chartLogs->map(fn ($item) => (float) ($item->power ?? 0))->values();
         $chartCurrents = $chartLogs->map(fn ($item) => (float) ($item->current ?? 0))->values();
         $chartFlowRates = $chartLogs->map(fn ($item) => (float) ($item->flow_rate ?? 0))->values();
-        $chartPhs = $chartLogs->map(fn ($item) => (float) ($item->ph ?? 0))->values();
+        $chartPressures = $chartLogs->map(fn ($item) => (float) ($item->ph ?? 0))->values();
+        $chartPhs = $chartPressures;
 
         return view('history.index', compact(
             'logs',
             'devices',
             'selectedDeviceId',
+            'selectedDevice',
+            'selectedSource',
+            'activeOnlineDevice',
             'dateStart',
             'dateEnd',
             'totalLogs',
@@ -76,12 +178,20 @@ class HistoryController extends Controller
             'maxPower',
             'energyConsumed',
             'totalWaterVolume',
+            'volumeLabel',
+            'volumeDesc',
             'avgFlowRate',
+            'avgPressure',
+            'minPressure',
+            'maxPressure',
             'avgPh',
+            'hasPressureSensor',
+            'hasPhSensor',
             'chartLabels',
             'chartPowers',
             'chartCurrents',
             'chartFlowRates',
+            'chartPressures',
             'chartPhs'
         ));
     }
@@ -104,30 +214,45 @@ class HistoryController extends Controller
         $offlineCount = 0;
 
         foreach ($devices as $dev) {
-            // Hanya baca dari instrumen fisik riil, jangan izinkan simulasi dummy
+            // Coba baca langsung dari instrumen fisik via socket Modbus
             $readData = $modbusService->readDeviceRegisters($dev, false);
+            $isLiveModbus = ! empty($readData['is_online']) && empty($readData['is_simulated']);
 
-            // Lewati jika device offline atau tidak ada respon riil dari RS485 loop
-            if (empty($readData['is_online']) || ! empty($readData['is_simulated'])) {
+            // Jika socket Modbus sedang sibuk namun device online dan memiliki data realtime di cache dashboard
+            $cached = Cache::get("device_latest_telemetry_{$dev->id}");
+            $hasFreshCache = $cached && ! empty($cached['is_online']);
+
+            if (! $isLiveModbus && ! $hasFreshCache) {
                 $offlineCount++;
 
                 continue;
             }
 
-            $params = $readData['parameters'];
+            if ($isLiveModbus) {
+                $params = $readData['parameters'];
+                $flowRate = $params['flow_rate']['value'] ?? null;
+                $totalizer = $params['totalizer']['value'] ?? null;
+                $pressureVal = $params['pressure']['value'] ?? $params['ph']['value'] ?? null;
+                $rawParams = $params;
+            } else {
+                $flowRate = ! empty($cached['flow_rate']) ? (float) $cached['flow_rate'] : null;
+                $totalizer = ! empty($cached['totalizer']) ? (float) $cached['totalizer'] : null;
+                $pressureVal = ! empty($cached['pressure']) ? (float) $cached['pressure'] : (! empty($cached['ph']) ? (float) $cached['ph'] : null);
+                $rawParams = $cached;
+            }
 
             MeterLog::create([
                 'device_id' => $dev->id,
-                'voltage' => $params['voltage']['value'] ?? null,
-                'current' => $params['current']['value'] ?? null,
-                'power' => $params['power']['value'] ?? null,
-                'frequency' => $params['frequency']['value'] ?? null,
-                'power_factor' => $params['power_factor']['value'] ?? null,
-                'energy' => $params['energy']['value'] ?? null,
-                'totalizer' => $params['totalizer']['value'] ?? null,
-                'flow_rate' => $params['flow_rate']['value'] ?? null,
-                'ph' => $params['pressure']['value'] ?? $params['ph']['value'] ?? null,
-                'raw_parameters' => $params,
+                'voltage' => $rawParams['voltage']['value'] ?? $rawParams['voltage'] ?? null,
+                'current' => $rawParams['current']['value'] ?? $rawParams['current'] ?? null,
+                'power' => $rawParams['power']['value'] ?? $rawParams['power'] ?? null,
+                'frequency' => $rawParams['frequency']['value'] ?? $rawParams['frequency'] ?? null,
+                'power_factor' => $rawParams['power_factor']['value'] ?? $rawParams['power_factor'] ?? null,
+                'energy' => $rawParams['energy']['value'] ?? $rawParams['energy'] ?? null,
+                'totalizer' => $totalizer,
+                'flow_rate' => $flowRate,
+                'ph' => $pressureVal,
+                'raw_parameters' => $rawParams,
                 'is_simulated' => false,
                 'logged_at' => $now,
             ]);
@@ -135,10 +260,10 @@ class HistoryController extends Controller
         }
 
         if ($count === 0) {
-            return back()->with('warning', 'Tidak ada data log yang dicatat karena tidak ada meter yang merespons (online) pada jalur RS485 saat ini. Sistem tidak mencatat data simulasi.');
+            return back()->with('warning', 'Tidak ada data log yang dicatat karena tidak ada meter yang online / merespons saat ini. Sistem tidak mencatat data simulasi dummy.');
         }
 
-        $message = "Berhasil mencatat data telemetri untuk {$count} meter online ke database.";
+        $message = "Berhasil mencatat data telemetri real untuk {$count} meter online ke database.";
         if ($offlineCount > 0) {
             $message .= " ({$offlineCount} meter offline dilewati).";
         }
@@ -183,6 +308,7 @@ class HistoryController extends Controller
     public function exportCsv(Request $request): StreamedResponse
     {
         $selectedDeviceId = $request->query('device_id');
+        $selectedSource = $request->query('source', 'all');
         $dateStart = $request->query('date_start');
         $dateEnd = $request->query('date_end');
 
@@ -190,6 +316,18 @@ class HistoryController extends Controller
 
         if ($selectedDeviceId) {
             $query->where('device_id', $selectedDeviceId);
+        }
+        if ($selectedSource === 'real') {
+            $query->where('is_simulated', false)->where(function ($q) {
+                $q->whereNull('ph')->orWhere('ph', '<=', 5.0);
+            });
+        } elseif ($selectedSource === 'simulated') {
+            $query->where('is_simulated', true);
+        } else {
+            // 'all': kecualikan anomali data pH lama >= 6.0 jika ada
+            $query->where(function ($q) {
+                $q->whereNull('ph')->orWhere('ph', '<=', 5.0);
+            });
         }
         if ($dateStart) {
             $query->where('logged_at', '>=', Carbon::parse($dateStart)->startOfMinute());

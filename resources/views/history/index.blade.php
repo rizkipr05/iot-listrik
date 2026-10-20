@@ -53,7 +53,7 @@
             </span>
         </div>
         <h4 class="fw-bold mb-0 text-dark">Data History & Log Meter</h4>
-        <small class="text-muted">Riwayat pencatatan otomatis parameter kelistrikan, tren beban daya, dan ekspor data CSV.</small>
+        <small class="text-muted">Riwayat pencatatan otomatis parameter flowmeter, tekanan pipa, tren debit air, dan ekspor data CSV.</small>
     </div>
     <div class="d-flex flex-wrap gap-2">
         <form action="{{ route('history.log-now') }}" method="POST" class="d-inline">
@@ -96,7 +96,7 @@
     <div class="col-sm-6 col-xl-3">
         <div class="card kpi-card-hist kpi-power p-3 h-100">
             <div class="d-flex align-items-center justify-content-between mb-2">
-                <span class="text-muted small fw-bold text-uppercase" style="font-size: 0.7rem;">Volume Air Kumulatif</span>
+                <span class="text-muted small fw-bold text-uppercase" style="font-size: 0.7rem;">{{ $volumeLabel ?? 'Volume Air Kumulatif' }}</span>
                 <span class="badge bg-info-subtle text-info rounded-pill small" style="font-size: 0.7rem;">Totalizer</span>
             </div>
             <div class="d-flex align-items-center gap-3 my-1">
@@ -105,7 +105,7 @@
                 </div>
                 <div>
                     <h3 class="fw-bold mb-0 mono-font text-info">{{ number_format($totalWaterVolume, 1) }} <span class="fs-6 fw-normal text-muted">m³</span></h3>
-                    <small class="text-muted" style="font-size: 0.74rem;">Delta volume flowmeter</small>
+                    <small class="text-muted" style="font-size: 0.74rem;">{{ $volumeDesc ?? 'Delta volume flowmeter' }}</small>
                 </div>
             </div>
         </div>
@@ -130,20 +130,25 @@
         </div>
     </div>
 
-    <!-- Rata-rata pH Sensor -->
+    <!-- Rata-rata Tekanan Pipa / Sensor -->
     <div class="col-sm-6 col-xl-3">
         <div class="card kpi-card-hist kpi-voltage p-3 h-100">
             <div class="d-flex align-items-center justify-content-between mb-2">
-                <span class="text-muted small fw-bold text-uppercase" style="font-size: 0.7rem;">Rata-rata pH Sensor</span>
-                <span class="badge bg-success-subtle text-success rounded-pill small" style="font-size: 0.7rem;">pH Range</span>
+                <span class="text-muted small fw-bold text-uppercase" style="font-size: 0.7rem;">{{ $hasPressureSensor || ! $hasPhSensor ? 'Rata-rata Tekanan Pipa' : 'Rata-rata pH Sensor' }}</span>
+                <span class="badge bg-success-subtle text-success rounded-pill small" style="font-size: 0.7rem;">{{ $hasPressureSensor || ! $hasPhSensor ? 'Pressure' : 'pH Range' }}</span>
             </div>
             <div class="d-flex align-items-center gap-3 my-1">
                 <div class="p-2 bg-success-subtle text-success rounded-3 fs-4">
-                    <i class="bi bi-activity"></i>
+                    <i class="bi {{ $hasPressureSensor || ! $hasPhSensor ? 'bi-speedometer2' : 'bi-activity' }}"></i>
                 </div>
                 <div>
-                    <h3 class="fw-bold mb-0 mono-font text-success">{{ number_format($avgPh, 2) }} <span class="fs-6 fw-normal text-muted">pH</span></h3>
-                    <small class="text-muted" style="font-size: 0.74rem;">Status: <span class="text-success fw-bold">NORMAL (7.0 - 8.0)</span></small>
+                    @if($hasPressureSensor || ! $hasPhSensor)
+                        <h3 class="fw-bold mb-0 mono-font text-success">{{ number_format($avgPressure, 2) }} <span class="fs-6 fw-normal text-muted">Bar</span></h3>
+                        <small class="text-muted" style="font-size: 0.74rem;">Status: <span class="text-success fw-bold">NORMAL (1.0 - 4.0 Bar)</span></small>
+                    @else
+                        <h3 class="fw-bold mb-0 mono-font text-success">{{ number_format($avgPh, 2) }} <span class="fs-6 fw-normal text-muted">pH</span></h3>
+                        <small class="text-muted" style="font-size: 0.74rem;">Status: <span class="text-success fw-bold">NORMAL (7.0 - 8.5)</span></small>
+                    @endif
                 </div>
             </div>
         </div>
@@ -166,22 +171,46 @@
         </div>
     </div>
     <div class="card-body p-3 p-md-4">
+        @if(!empty($activeOnlineDevice) && (string)$selectedDeviceId !== (string)$activeOnlineDevice->id)
+            <div class="alert alert-info py-2 px-3 small d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 border-0 rounded-3 shadow-sm" style="background: rgba(2, 132, 199, 0.08);">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="spinner-grow spinner-grow-sm text-info" role="status"></span>
+                    <span>
+                        Device meter yang sedang online / berjalan: <strong>{{ $activeOnlineDevice->name }}</strong> (Slave ID: {{ $activeOnlineDevice->slave_id }})
+                    </span>
+                </div>
+                <a href="{{ route('history.index', ['device_id' => $activeOnlineDevice->id, 'source' => $selectedSource, 'date_start' => $dateStart, 'date_end' => $dateEnd]) }}" class="btn btn-primary btn-sm rounded-pill px-3 py-1 shadow-sm" style="font-size: 0.78rem;">
+                    <i class="bi bi-funnel-fill me-1"></i> Filter Hanya Device Ini
+                </a>
+            </div>
+        @endif
+
         <form method="GET" action="{{ route('history.index') }}" id="historyFilterForm" class="row g-3 align-items-end">
             <!-- Filter Device -->
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label for="device_id" class="form-label fw-bold small text-secondary">Pilih Device Meter</label>
                 <select name="device_id" id="device_id" class="form-select form-select-sm">
-                    <option value="">-- Semua Device Meter ({{ $devices->count() }} Unit) --</option>
+                    <option value="">-- Semua Meter ({{ $devices->count() }} Unit) --</option>
                     @foreach($devices as $dev)
-                        <option value="{{ $dev->id }}" {{ $selectedDeviceId == $dev->id ? 'selected' : '' }}>
-                            {{ $dev->name }} (Slave ID: {{ $dev->slave_id }})
+                        <option value="{{ $dev->id }}" {{ (string)$selectedDeviceId === (string)$dev->id ? 'selected' : '' }}>
+                            {{ $dev->name }} (Slave ID: {{ $dev->slave_id }}){{ !empty($dev->is_online_now) ? ' • [ONLINE / AKTIF]' : '' }}
                         </option>
                     @endforeach
                 </select>
             </div>
 
+            <!-- Filter Sumber Data -->
+            <div class="col-md-2">
+                <label for="source" class="form-label fw-bold small text-secondary">Sumber Data</label>
+                <select name="source" id="source" class="form-select form-select-sm">
+                    <option value="all" {{ ($selectedSource ?? 'all') === 'all' ? 'selected' : '' }}>Semua Data</option>
+                    <option value="real" {{ ($selectedSource ?? 'all') === 'real' ? 'selected' : '' }}>Hanya Data Real (Live)</option>
+                    <option value="simulated" {{ ($selectedSource ?? 'all') === 'simulated' ? 'selected' : '' }}>Data Simulasi (Sim)</option>
+                </select>
+            </div>
+
             <!-- Dari Tanggal & Jam -->
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label for="date_start" class="form-label fw-bold small text-secondary">Dari Tanggal & Jam</label>
                 <input type="datetime-local" 
                        class="form-control form-select-sm mono-font" 
@@ -191,7 +220,7 @@
             </div>
 
             <!-- Sampai Tanggal & Jam -->
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label for="date_end" class="form-label fw-bold small text-secondary">Sampai Tanggal & Jam</label>
                 <input type="datetime-local" 
                        class="form-control form-select-sm mono-font" 
@@ -201,7 +230,7 @@
             </div>
 
             <!-- Tombol Aksi -->
-            <div class="col-md-2 d-flex gap-2">
+            <div class="col-md-3 d-flex gap-2">
                 <button type="submit" class="btn btn-primary btn-sm flex-grow-1 rounded-pill">
                     <i class="bi bi-search me-1"></i> Terapkan
                 </button>
@@ -223,7 +252,7 @@
             </div>
             <div>
                 <span class="fw-bold text-dark d-block">Grafik Tren Historis Telemetri Instrument</span>
-                <small class="text-muted fw-normal" style="font-size: 0.74rem;">Visualisasi fluktuasi laju alir (m³/h), nilai pH, dan beban sepanjang rentang waktu terpilih</small>
+                <small class="text-muted fw-normal" style="font-size: 0.74rem;">Visualisasi fluktuasi laju alir (m³/h), tekanan pipa (Bar), dan akumulasi volume sepanjang rentang waktu terpilih</small>
             </div>
         </div>
         <span class="badge bg-light text-muted border mono-font px-2 py-1">{{ count($chartLabels) }} Titik Sampel</span>
@@ -261,11 +290,13 @@
                     <th>Device Instrument</th>
                     <th>Totalizer (m³)</th>
                     <th>Flow Rate (m³/h)</th>
-                    <th>Nilai pH / Tekanan</th>
-                    <th>Tegangan (V)</th>
-                    <th>Arus (A)</th>
-                    <th>Daya (kW)</th>
-                    <th>Total (kWh)</th>
+                    <th>{{ $hasPhSensor ? 'Tekanan / pH' : 'Tekanan Pipa (Bar)' }}</th>
+                    @if($avgPower > 0 || $maxPower > 0)
+                        <th>Tegangan (V)</th>
+                        <th>Arus (A)</th>
+                        <th>Daya (kW)</th>
+                        <th>Total (kWh)</th>
+                    @endif
                     <th class="text-center pe-4">Sumber</th>
                 </tr>
             </thead>
@@ -280,14 +311,14 @@
                         <td>
                             <div class="d-flex align-items-center gap-1">
                                 <span class="fw-bold text-dark">{{ $log->device->name ?? 'Meter Dihapus' }}</span>
-                                @if($log->device && $log->device->isPhSensor())
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill py-0 px-1" style="font-size: 0.65rem;">{{ $log->device->category_badge }}</span>
-                                @elseif($log->device && $log->device->isPressureSensor())
+                                @if($log->device && $log->device->isPressureSensor())
                                     <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill py-0 px-1" style="font-size: 0.65rem;">{{ $log->device->category_badge }}</span>
+                                @elseif($log->device && $log->device->isPhSensor())
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill py-0 px-1" style="font-size: 0.65rem;">{{ $log->device->category_badge }}</span>
                                 @elseif($log->device && ($log->device->isFlowMeter() || $log->device->isWater()))
                                     <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill py-0 px-1" style="font-size: 0.65rem;">{{ $log->device->category_badge }}</span>
                                 @else
-                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill py-0 px-1" style="font-size: 0.65rem;">{{ $log->device->category_badge ?? 'Listrik' }}</span>
+                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill py-0 px-1" style="font-size: 0.65rem;">{{ $log->device->category_badge ?? 'Meter' }}</span>
                                 @endif
                             </div>
                             <small class="text-muted mono-font">Slave ID: {{ $log->device->slave_id ?? '-' }} &bull; {{ $log->device->ip_address ?? '-' }}</small>
@@ -310,41 +341,45 @@
                             @if($log->ph !== null)
                                 @if($log->device && $log->device->isPressureSensor())
                                     <span class="mono-font fw-bold text-primary">{{ number_format($log->ph, 2) }} Bar</span>
-                                @else
+                                @elseif($log->device && $log->device->isPhSensor())
                                     <span class="mono-font fw-bold text-success">{{ number_format($log->ph, 2) }} pH</span>
+                                @else
+                                    <span class="mono-font fw-bold text-primary">{{ number_format($log->ph, 2) }} Bar</span>
                                 @endif
                             @else
                                 <span class="text-muted">-</span>
                             @endif
                         </td>
-                        <td>
-                            @if($log->voltage !== null)
-                                <span class="mono-font fw-semibold text-primary">{{ number_format($log->voltage, 1) }} V</span>
-                            @else
-                                <span class="text-muted">-</span>
-                            @endif
-                        </td>
-                        <td>
-                            @if($log->current !== null)
-                                <span class="mono-font fw-semibold text-warning">{{ number_format($log->current, 1) }} A</span>
-                            @else
-                                <span class="text-muted">-</span>
-                            @endif
-                        </td>
-                        <td>
-                            @if($log->power !== null)
-                                <span class="mono-font fw-bold text-danger">{{ number_format($log->power, 2) }} kW</span>
-                            @else
-                                <span class="text-muted">-</span>
-                            @endif
-                        </td>
-                        <td>
-                            @if($log->energy !== null)
-                                <span class="mono-font fw-bold text-success">{{ number_format($log->energy, 1) }} kWh</span>
-                            @else
-                                <span class="text-muted">-</span>
-                            @endif
-                        </td>
+                        @if($avgPower > 0 || $maxPower > 0)
+                            <td>
+                                @if($log->voltage !== null)
+                                    <span class="mono-font fw-semibold text-primary">{{ number_format($log->voltage, 1) }} V</span>
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
+                            <td>
+                                @if($log->current !== null)
+                                    <span class="mono-font fw-semibold text-warning">{{ number_format($log->current, 1) }} A</span>
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
+                            <td>
+                                @if($log->power !== null)
+                                    <span class="mono-font fw-bold text-danger">{{ number_format($log->power, 2) }} kW</span>
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
+                            <td>
+                                @if($log->energy !== null)
+                                    <span class="mono-font fw-bold text-success">{{ number_format($log->energy, 1) }} kWh</span>
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
+                        @endif
                         <td class="text-center pe-4">
                             @if($log->is_simulated)
                                 <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-2 py-1" title="Mode Simulator Offline">
@@ -359,7 +394,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="11" class="text-center py-5 text-muted">
+                        <td colspan="{{ ($avgPower > 0 || $maxPower > 0) ? 11 : 7 }}" class="text-center py-5 text-muted">
                             <i class="bi bi-clock-history fs-1 d-block mb-2 text-secondary opacity-50"></i>
                             <h6 class="fw-bold mb-1">Belum Ada Data Log Telemetri Tersimpan</h6>
                             <p class="small text-muted mb-0">Data log riwayat otomatis dicatat saat instrumen meter merespons (online) pada Gateway RS485 loop.</p>
@@ -498,7 +533,7 @@
             });
 
             datasets.push({
-                label: 'Nilai pH',
+                label: '{{ $hasPressureSensor || ! $hasPhSensor ? 'Tekanan Pipa (Bar)' : 'Nilai pH' }}',
                 data: chartPhs,
                 borderColor: '#10b981',
                 backgroundColor: 'rgba(16, 185, 129, 0.05)',
@@ -524,7 +559,7 @@
             }
 
             yUnit = 'm³/h';
-            y1Unit = 'pH';
+            y1Unit = '{{ $hasPressureSensor || ! $hasPhSensor ? 'Bar' : 'pH' }}';
         } else {
             const gradPower = ctx.createLinearGradient(0, 0, 0, 240);
             gradPower.addColorStop(0, 'rgba(37, 99, 235, 0.2)');

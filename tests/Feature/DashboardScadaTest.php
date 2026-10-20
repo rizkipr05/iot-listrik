@@ -3,9 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\Device;
+use App\Models\MeterLog;
 use App\Models\Register;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 class DashboardScadaTest extends TestCase
@@ -147,5 +149,90 @@ class DashboardScadaTest extends TestCase
         $this->assertArrayHasKey('is_online', $json['scada']['mhs']);
         $this->assertArrayHasKey('is_online', $json['scada']['h_rms']);
         $this->assertArrayHasKey('is_online', $json['scada']['pressure']);
+    }
+
+    public function test_offline_devices_do_not_show_anomalous_or_simulated_values_in_trend_chart_and_history_table()
+    {
+        $dev1 = Device::create([
+            'name' => 'FLOWMETER 1" - AREA RMS',
+            'category' => 'flow_meter',
+            'ip_address' => '192.168.1.118',
+            'port' => 502,
+            'slave_id' => 1,
+            'is_active' => true,
+        ]);
+
+        $dev2 = Device::create([
+            'name' => 'FLOWMETER 1" - AREA MHS',
+            'category' => 'flow_meter',
+            'ip_address' => '192.168.1.118',
+            'port' => 502,
+            'slave_id' => 2,
+            'is_active' => true,
+        ]);
+
+        $dev3 = Device::create([
+            'name' => 'Water Meter Photoelectric - AREA H-RMS',
+            'category' => 'flow_meter',
+            'ip_address' => '192.168.1.118',
+            'port' => 502,
+            'slave_id' => 3,
+            'is_active' => true,
+        ]);
+
+        $dev4 = Device::create([
+            'name' => 'Pressure Sensor',
+            'category' => 'pressure_sensor',
+            'ip_address' => '192.168.1.118',
+            'port' => 502,
+            'slave_id' => 4,
+            'is_active' => true,
+        ]);
+
+        // Simulasikan hanya Device 1 yang online
+        Cache::put("device_latest_telemetry_{$dev1->id}", [
+            'is_online' => true,
+            'flow_rate' => 1.4,
+            'totalizer' => 2.34,
+            'updated_at' => now()->toIso8601String(),
+        ], 86400);
+
+        // Buat data anomali dummy lama di database (simulasi dan nilai pH 7.68)
+        MeterLog::create([
+            'device_id' => $dev4->id,
+            'ph' => 7.68,
+            'is_simulated' => true,
+            'logged_at' => now()->subHour(),
+        ]);
+
+        MeterLog::create([
+            'device_id' => $dev2->id,
+            'flow_rate' => 142.7,
+            'totalizer' => 6783.5,
+            'is_simulated' => true,
+            'logged_at' => now()->subHour(),
+        ]);
+
+        $response = $this->actingAs($this->user)->get(route('dashboard'));
+
+        $response->assertStatus(200);
+
+        // Pastikan nilai grafik untuk device 2, 3, dan 4 mutlak 0.0 (tidak ada spike ke 7.68)
+        $chartMhs = $response->viewData('chartMhs');
+        $chartHrms = $response->viewData('chartHrms');
+        $chartPh = $response->viewData('chartPh');
+        $chartRms = $response->viewData('chartRms');
+
+        $this->assertEquals(array_fill(0, count($chartMhs), 0.0), $chartMhs);
+        $this->assertEquals(array_fill(0, count($chartHrms), 0.0), $chartHrms);
+        $this->assertEquals(array_fill(0, count($chartPh), 0.0), $chartPh);
+        $this->assertFalse(in_array(7.68, $chartPh));
+
+        // Device 1 yang online memiliki nilai terkini 1.4
+        $this->assertEquals(1.4, end($chartRms));
+
+        // Di tabel history, pastikan tidak menampilkan 7.68 atau 142.7
+        $response->assertDontSee('7.68');
+        $response->assertDontSee('142.7');
     }
 }

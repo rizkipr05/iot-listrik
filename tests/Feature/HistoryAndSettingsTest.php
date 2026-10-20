@@ -341,4 +341,139 @@ class HistoryAndSettingsTest extends TestCase
 
         $this->assertEquals('4', AppSetting::getValue('max_flowrate_rms'));
     }
+
+    public function test_history_displays_pressure_in_bar_and_calculates_proper_flow_aggregates()
+    {
+        $flowDev = Device::create([
+            'name' => 'Flowmeter 2" Area Chiller',
+            'category' => 'flow_meter',
+            'ip_address' => '192.168.1.118',
+            'port' => 502,
+            'slave_id' => 1,
+            'is_active' => true,
+        ]);
+
+        $pressureDev = Device::create([
+            'name' => 'Pressure Sensor Pipa Distribusi',
+            'category' => 'pressure_sensor',
+            'ip_address' => '192.168.1.118',
+            'port' => 502,
+            'slave_id' => 4,
+            'is_active' => true,
+        ]);
+
+        MeterLog::create([
+            'device_id' => $flowDev->id,
+            'flow_rate' => 1.5,
+            'totalizer' => 100.0,
+            'is_simulated' => false,
+            'logged_at' => now()->subHours(2),
+        ]);
+
+        MeterLog::create([
+            'device_id' => $flowDev->id,
+            'flow_rate' => 1.7,
+            'totalizer' => 105.0,
+            'is_simulated' => false,
+            'logged_at' => now()->subHour(),
+        ]);
+
+        MeterLog::create([
+            'device_id' => $pressureDev->id,
+            'ph' => 2.35,
+            'is_simulated' => false,
+            'logged_at' => now(),
+        ]);
+
+        $response = $this->actingAs($this->user)->get('/history');
+
+        $response->assertStatus(200);
+        $response->assertSee('Rata-rata Tekanan Pipa');
+        $response->assertSee('2.35');
+        $response->assertSee('Bar');
+        $response->assertSee('NORMAL (1.0 - 4.0 Bar)');
+        $response->assertSee('Tekanan Pipa (Bar)');
+        $response->assertViewHas('totalWaterVolume', 5.0);
+        $response->assertViewHas('avgPressure', 2.35);
+    }
+
+    public function test_history_supports_source_filter_and_active_device_detection()
+    {
+        $device = Device::create([
+            'name' => 'Flowmeter 2" Area Chiller',
+            'category' => 'flow_meter',
+            'ip_address' => '192.168.1.118',
+            'port' => 502,
+            'slave_id' => 1,
+            'is_active' => true,
+        ]);
+
+        MeterLog::create([
+            'device_id' => $device->id,
+            'flow_rate' => 1.5,
+            'totalizer' => 100.0,
+            'is_simulated' => false,
+            'logged_at' => now()->subHour(),
+        ]);
+
+        MeterLog::create([
+            'device_id' => $device->id,
+            'flow_rate' => 185.0,
+            'totalizer' => 8500.0,
+            'is_simulated' => true,
+            'logged_at' => now(),
+        ]);
+
+        // Filter hanya real
+        $realResp = $this->actingAs($this->user)->get('/history?source=real');
+        $realResp->assertStatus(200);
+        $realResp->assertViewHas('totalLogs', 1);
+
+        // Filter hanya simulated
+        $simResp = $this->actingAs($this->user)->get('/history?source=simulated');
+        $simResp->assertStatus(200);
+        $simResp->assertViewHas('totalLogs', 1);
+    }
+
+    public function test_manual_log_records_cached_real_telemetry_when_device_online()
+    {
+        $device = Device::create([
+            'name' => 'Flowmeter 2" Area Chiller',
+            'category' => 'flow_meter',
+            'ip_address' => '192.168.1.118',
+            'port' => 502,
+            'slave_id' => 1,
+            'is_active' => true,
+        ]);
+
+        // Simulasikan cache telemetry terisi dari live background loop
+        Cache::put("device_latest_telemetry_{$device->id}", [
+            'is_online' => true,
+            'flow_rate' => 1.55,
+            'totalizer' => 108.5,
+            'pressure' => 0.0,
+            'updated_at' => now()->toIso8601String(),
+        ], 86400);
+
+        $mockModbus = $this->mock(ModbusTcpService::class);
+        $mockModbus->shouldReceive('readDeviceRegisters')
+            ->once()
+            ->with(\Mockery::type(Device::class), false)
+            ->andReturn([
+                'device_id' => $device->id,
+                'is_online' => false, // Modbus socket busy saat tombol diklik
+                'is_simulated' => false,
+                'parameters' => [],
+            ]);
+
+        $response = $this->actingAs($this->user)->post('/history/log-now');
+
+        $response->assertSessionHas('success');
+        $this->assertDatabaseHas('meter_logs', [
+            'device_id' => $device->id,
+            'flow_rate' => 1.55,
+            'totalizer' => 108.5,
+            'is_simulated' => false,
+        ]);
+    }
 }
