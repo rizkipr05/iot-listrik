@@ -121,9 +121,10 @@ class DashboardScadaTest extends TestCase
         $response->assertSee('id="statusTextHRMS"', false);
         $response->assertSee('id="statusTextPH"', false);
 
-        // Quick scale configuration button and modal must exist on dashboard
+        // Scale configuration link to dedicated page must exist on dashboard (modal moved to separate page)
         $response->assertSee('ATUR SKALA MAX');
-        $response->assertSee('id="scaleSettingsModal"', false);
+        $response->assertSee(route('settings.scales'));
+        $response->assertDontSee('id="scaleSettingsModal"', false);
     }
 
     public function test_live_telemetry_reports_is_online_status_per_slave()

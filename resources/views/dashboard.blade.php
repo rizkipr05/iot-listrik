@@ -325,14 +325,14 @@
             </div>
 
             <div class="d-flex align-items-center gap-2">
-                <!-- Tombol Cepat Pengaturan Skala Maksimal Meter -->
-                <button type="button" class="btn btn-sm text-white border border-light-subtle d-flex align-items-center gap-2 px-3 py-2 rounded-3 shadow-sm" style="background: rgba(255, 255, 255, 0.16); backdrop-filter: blur(4px);" data-bs-toggle="modal" data-bs-target="#scaleSettingsModal" title="Pengaturan Skala & Rentang Maksimal (Kondisi 100% Gauge)">
+                <!-- Tombol Halaman Pengaturan Skala Maksimal Meter -->
+                <a href="{{ route('settings.scales') }}" class="btn btn-sm text-white border border-light-subtle d-flex align-items-center gap-2 px-3 py-2 rounded-3 shadow-sm text-decoration-none" style="background: rgba(255, 255, 255, 0.16); backdrop-filter: blur(4px);" title="Buka Halaman Pengaturan Skala & Rentang Maksimal (Kondisi 100% Gauge)">
                     <i class="bi bi-sliders text-warning fs-5"></i>
                     <div class="text-start lh-1 d-none d-sm-block">
                         <div class="fw-bold" style="font-size: 0.78rem; letter-spacing: 0.03em;">ATUR SKALA MAX</div>
-                        <small class="text-info-subtle" style="font-size: 0.65rem;">Kondisi 100% Gauge</small>
+                        <small class="text-info-subtle" style="font-size: 0.65rem;">Halaman Kalibrasi Gauge</small>
                     </div>
-                </button>
+                </a>
 
                 <!-- Real-time Clock & Date Widget -->
                 <div class="scada-time-box">
@@ -396,9 +396,9 @@
                                     </div>
                                     <div class="text-secondary d-flex align-items-center gap-1" style="font-size: 0.68rem;">
                                         <span id="rangeTextRMS">(Range 0 ~ {{ $maxRms }} m³/h)</span>
-                                        <button type="button" class="btn btn-link p-0 text-decoration-none text-muted" data-bs-toggle="modal" data-bs-target="#scaleSettingsModal" title="Ubah Skala Max">
+                                        <a href="{{ route('settings.scales') }}" class="text-decoration-none text-muted" title="Ubah Skala Max">
                                             <i class="bi bi-gear-fill" style="font-size: 0.68rem;"></i>
-                                        </button>
+                                        </a>
                                     </div>
                                 </div>
                             </div>
@@ -467,9 +467,9 @@
                                     </div>
                                     <div class="text-secondary d-flex align-items-center gap-1" style="font-size: 0.68rem;">
                                         <span id="rangeTextMHS">(Range 0 ~ {{ $maxMhs }} m³/h)</span>
-                                        <button type="button" class="btn btn-link p-0 text-decoration-none text-muted" data-bs-toggle="modal" data-bs-target="#scaleSettingsModal" title="Ubah Skala Max">
+                                        <a href="{{ route('settings.scales') }}" class="text-decoration-none text-muted" title="Ubah Skala Max">
                                             <i class="bi bi-gear-fill" style="font-size: 0.68rem;"></i>
-                                        </button>
+                                        </a>
                                     </div>
                                 </div>
                             </div>
@@ -538,9 +538,9 @@
                                     </div>
                                     <div class="text-secondary d-flex align-items-center gap-1" style="font-size: 0.68rem;">
                                         <span id="rangeTextHRMS">(Range 0 ~ {{ $maxHrms }} m³/h)</span>
-                                        <button type="button" class="btn btn-link p-0 text-decoration-none text-muted" data-bs-toggle="modal" data-bs-target="#scaleSettingsModal" title="Ubah Skala Max">
+                                        <a href="{{ route('settings.scales') }}" class="text-decoration-none text-muted" title="Ubah Skala Max">
                                             <i class="bi bi-gear-fill" style="font-size: 0.68rem;"></i>
-                                        </button>
+                                        </a>
                                     </div>
                                 </div>
                             </div>
@@ -611,9 +611,9 @@
                                     </div>
                                     <div class="text-secondary d-flex align-items-center gap-1" style="font-size: 0.68rem;">
                                         <span id="rangeTextPH">(Range 0 ~ {{ $maxPh }} bar)</span>
-                                        <button type="button" class="btn btn-link p-0 text-decoration-none text-muted" data-bs-toggle="modal" data-bs-target="#scaleSettingsModal" title="Ubah Skala Max">
+                                        <a href="{{ route('settings.scales') }}" class="text-decoration-none text-muted" title="Ubah Skala Max">
                                             <i class="bi bi-gear-fill" style="font-size: 0.68rem;"></i>
-                                        </button>
+                                        </a>
                                     </div>
                                 </div>
                             </div>
@@ -814,170 +814,6 @@
         <span>Develop by: <strong>PT. Arsy Bamun Sejahtera</strong></span>
         <span class="mx-2 text-secondary">|</span>
         <a href="mailto:sales@edmmeters.com">sales@edmmeters.com</a>
-    </div>
-
-    <!-- Modal Cepat Pengaturan Skala Maksimal & Rentang Flow / Pressure -->
-    <div class="modal fade" id="scaleSettingsModal" tabindex="-1" aria-labelledby="scaleSettingsModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content shadow-lg border-0 rounded-4">
-                <div class="modal-header bg-navy text-white px-4 py-3" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-sliders text-warning fs-5"></i>
-                        <div>
-                            <h6 class="modal-title fw-bold text-white mb-0" id="scaleSettingsModalLabel">Pengaturan Skala & Rentang Maksimal (Kondisi 100% Gauge)</h6>
-                            <small class="text-white-50" style="font-size: 0.72rem;">Atur kapasitas maksimal instrumen flowrate & pressure untuk normalisasi jarum/lingkaran meter.</small>
-                        </div>
-                    </div>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <form id="scaleSettingsModalForm" action="{{ route('settings.scales.update') }}" method="POST">
-                    @csrf
-                    @method('PUT')
-                    <div class="modal-body p-4 bg-light-subtle">
-                        <div id="scaleModalAlert" class="alert d-none py-2 px-3 small mb-3"></div>
-
-                        <div class="row g-3">
-                            <!-- 1. Meter 1: RMS -->
-                            <div class="col-md-6">
-                                <div class="card h-100 border-0 shadow-sm rounded-3">
-                                    <div class="card-body p-3">
-                                        <div class="d-flex align-items-center justify-content-between mb-2">
-                                            <div class="d-flex align-items-center gap-2">
-                                                <i class="bi bi-broadcast text-primary"></i>
-                                                <label for="modal_max_flowrate_rms" class="fw-bold small mb-0">{{ $labelRms }}</label>
-                                            </div>
-                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 0.68rem;">Meter 1 (RMS)</span>
-                                        </div>
-                                        <div class="input-group input-group-sm mb-2">
-                                            <input type="number" step="0.1" min="0.1" max="100000" class="form-control mono-font fw-bold" id="modal_max_flowrate_rms" name="max_flowrate_rms" value="{{ $maxRms }}" required>
-                                            <span class="input-group-text bg-white mono-font">m³/h</span>
-                                        </div>
-                                        <div class="d-flex flex-wrap gap-1 align-items-center">
-                                            <small class="text-muted me-1" style="font-size: 0.68rem;">Preset:</small>
-                                            <button type="button" class="btn btn-xs btn-outline-primary py-0 px-2 btn-scale-preset" data-target="modal_max_flowrate_rms" data-val="4.0" style="font-size: 0.7rem;">4 m³/h (DN20 1")</button>
-                                            <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-2 btn-scale-preset" data-target="modal_max_flowrate_rms" data-val="10.0" style="font-size: 0.7rem;">10</button>
-                                            <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-2 btn-scale-preset" data-target="modal_max_flowrate_rms" data-val="25.0" style="font-size: 0.7rem;">25</button>
-                                            <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-2 btn-scale-preset" data-target="modal_max_flowrate_rms" data-val="50.0" style="font-size: 0.7rem;">50</button>
-                                            <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-2 btn-scale-preset" data-target="modal_max_flowrate_rms" data-val="300.0" style="font-size: 0.7rem;">300</button>
-                                        </div>
-                                        <small class="text-muted d-block mt-2" style="font-size: 0.68rem;">Kondisi 100% pada nilai ini (misal real 1.5 m³/h & max 4.0 m³/h = 38%).</small>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- 2. Meter 2: MHS (Toilet) -->
-                            <div class="col-md-6">
-                                <div class="card h-100 border-0 shadow-sm rounded-3">
-                                    <div class="card-body p-3">
-                                        <div class="d-flex align-items-center justify-content-between mb-2">
-                                            <div class="d-flex align-items-center gap-2">
-                                                <i class="bi bi-broadcast text-success"></i>
-                                                <label for="modal_max_flowrate_mhs" class="fw-bold small mb-0">{{ $labelMhs }}</label>
-                                            </div>
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.68rem;">Meter 2 (Toilet)</span>
-                                        </div>
-                                        <div class="input-group input-group-sm mb-2">
-                                            <input type="number" step="0.1" min="0.1" max="100000" class="form-control mono-font fw-bold" id="modal_max_flowrate_mhs" name="max_flowrate_mhs" value="{{ $maxMhs }}" required>
-                                            <span class="input-group-text bg-white mono-font">m³/h</span>
-                                        </div>
-                                        <div class="d-flex flex-wrap gap-1 align-items-center">
-                                            <small class="text-muted me-1" style="font-size: 0.68rem;">Preset:</small>
-                                            <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-2 btn-scale-preset" data-target="modal_max_flowrate_mhs" data-val="4.0" style="font-size: 0.7rem;">4</button>
-                                            <button type="button" class="btn btn-xs btn-outline-success py-0 px-2 btn-scale-preset" data-target="modal_max_flowrate_mhs" data-val="10.0" style="font-size: 0.7rem;">10 m³/h (DN20 3/4")</button>
-                                            <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-2 btn-scale-preset" data-target="modal_max_flowrate_mhs" data-val="25.0" style="font-size: 0.7rem;">25</button>
-                                            <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-2 btn-scale-preset" data-target="modal_max_flowrate_mhs" data-val="300.0" style="font-size: 0.7rem;">300</button>
-                                        </div>
-                                        <small class="text-muted d-block mt-2" style="font-size: 0.68rem;">Kondisi 100% kapasitas aliran air area toilet.</small>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- 3. Meter 3: Office (H-RMS) -->
-                            <div class="col-md-6">
-                                <div class="card h-100 border-0 shadow-sm rounded-3">
-                                    <div class="card-body p-3">
-                                        <div class="d-flex align-items-center justify-content-between mb-2">
-                                            <div class="d-flex align-items-center gap-2">
-                                                <i class="bi bi-broadcast" style="color: #7c3aed;"></i>
-                                                <label for="modal_max_flowrate_hrms" class="fw-bold small mb-0">{{ $labelHrms }}</label>
-                                            </div>
-                                            <span class="badge border" style="background-color: #f5f3ff; color: #7c3aed; border-color: #ddd6fe !important; font-size: 0.68rem;">Meter 3 (Office)</span>
-                                        </div>
-                                        <div class="input-group input-group-sm mb-2">
-                                            <input type="number" step="0.1" min="0.1" max="100000" class="form-control mono-font fw-bold" id="modal_max_flowrate_hrms" name="max_flowrate_hrms" value="{{ $maxHrms }}" required>
-                                            <span class="input-group-text bg-white mono-font">m³/h</span>
-                                        </div>
-                                        <div class="d-flex flex-wrap gap-1 align-items-center">
-                                            <small class="text-muted me-1" style="font-size: 0.68rem;">Preset:</small>
-                                            <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-2 btn-scale-preset" data-target="modal_max_flowrate_hrms" data-val="4.0" style="font-size: 0.7rem;">4</button>
-                                            <button type="button" class="btn btn-xs py-0 px-2 btn-scale-preset" data-target="modal_max_flowrate_hrms" data-val="10.0" style="font-size: 0.7rem; color: #7c3aed; border: 1px solid #7c3aed;">10 m³/h (DN15 1/2")</button>
-                                            <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-2 btn-scale-preset" data-target="modal_max_flowrate_hrms" data-val="25.0" style="font-size: 0.7rem;">25</button>
-                                            <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-2 btn-scale-preset" data-target="modal_max_flowrate_hrms" data-val="300.0" style="font-size: 0.7rem;">300</button>
-                                        </div>
-                                        <small class="text-muted d-block mt-2" style="font-size: 0.68rem;">Kondisi 100% kapasitas aliran air area gedung kantor.</small>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- 4. Sensor Tekanan / Pressure -->
-                            <div class="col-md-6">
-                                <div class="card h-100 border-0 shadow-sm rounded-3">
-                                    <div class="card-body p-3">
-                                        <div class="d-flex align-items-center justify-content-between mb-2">
-                                            <div class="d-flex align-items-center gap-2">
-                                                <i class="bi bi-speedometer2 text-warning"></i>
-                                                <label for="modal_max_pressure" class="fw-bold small mb-0">{{ $labelPh }}</label>
-                                            </div>
-                                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle" style="font-size: 0.68rem;">Pressure Sensor</span>
-                                        </div>
-                                        <div class="input-group input-group-sm mb-2">
-                                            <input type="number" step="0.1" min="0.1" max="1000" class="form-control mono-font fw-bold" id="modal_max_pressure" name="max_pressure" value="{{ $maxPh }}" required>
-                                            <span class="input-group-text bg-white mono-font">Bar</span>
-                                        </div>
-                                        <div class="d-flex flex-wrap gap-1 align-items-center">
-                                            <small class="text-muted me-1" style="font-size: 0.68rem;">Preset:</small>
-                                            <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-2 btn-scale-preset" data-target="modal_max_pressure" data-val="6.0" style="font-size: 0.7rem;">6 Bar</button>
-                                            <button type="button" class="btn btn-xs btn-outline-warning text-dark py-0 px-2 btn-scale-preset" data-target="modal_max_pressure" data-val="10.0" style="font-size: 0.7rem;">10 Bar (Default)</button>
-                                            <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-2 btn-scale-preset" data-target="modal_max_pressure" data-val="16.0" style="font-size: 0.7rem;">16 Bar</button>
-                                        </div>
-                                        <small class="text-muted d-block mt-2" style="font-size: 0.68rem;">Skala gauge horizontal & chart tekanan pipa.</small>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- 5. Warning Threshold % -->
-                            <div class="col-12">
-                                <div class="card border-0 shadow-sm rounded-3">
-                                    <div class="card-body p-3">
-                                        <div class="d-flex align-items-center gap-2 mb-2">
-                                            <i class="bi bi-exclamation-triangle-fill text-warning"></i>
-                                            <label for="modal_flow_warning_percent" class="fw-bold small mb-0">Ambang Batas Peringatan Aliran Tinggi (%)</label>
-                                        </div>
-                                        <div class="input-group input-group-sm" style="max-width: 250px;">
-                                            <input type="number" step="1" min="1" max="100" class="form-control mono-font fw-bold" id="modal_flow_warning_percent" name="flow_warning_percent" value="{{ $flowWarningPct }}" required>
-                                            <span class="input-group-text bg-white mono-font">% Kapasitas</span>
-                                        </div>
-                                        <small class="text-muted d-block mt-2" style="font-size: 0.68rem;">Jika laju aliran melebihi persentase ini dari kapasitas maksimal, gauge akan memberi indikasi visual waspada.</small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer bg-white border-top px-4 py-2 d-flex justify-content-between align-items-center">
-                        <a href="{{ route('settings.index') }}#scales" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1">
-                            <i class="bi bi-box-arrow-up-right"></i>
-                            <span class="d-none d-sm-inline">Ke Pengaturan Penuh</span>
-                        </a>
-                        <div class="d-flex gap-2">
-                            <button type="button" class="btn btn-sm btn-light border px-3" data-bs-dismiss="modal">Batal</button>
-                            <button type="submit" class="btn btn-sm btn-primary px-4 fw-semibold" id="btnSaveScalesModal">
-                                <i class="bi bi-check2-circle me-1"></i> Simpan Skala
-                            </button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
     </div>
 
 </div>
@@ -1413,83 +1249,6 @@
             textEl.textContent = isOnline ? 'online' : 'offline';
             textEl.className = 'fw-bold mono-font ' + (textId === 'statusTextPH' ? 'mt-1 ' : '') + (isOnline ? 'text-success' : 'text-danger');
         }
-    }
-
-    // 10. Handler tombol Preset Skala Cepat di Modal
-    document.querySelectorAll('.btn-scale-preset').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const targetId = this.getAttribute('data-target');
-            const val = this.getAttribute('data-val');
-            const input = document.getElementById(targetId);
-            if (input) {
-                input.value = val;
-                input.focus();
-            }
-        });
-    });
-
-    // 11. Handler Submit AJAX Form Pengaturan Skala Modal
-    const scaleForm = document.getElementById('scaleSettingsModalForm');
-    if (scaleForm) {
-        scaleForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const btn = document.getElementById('btnSaveScalesModal');
-            const alertBox = document.getElementById('scaleModalAlert');
-            const origContent = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Menyimpan...';
-            
-            try {
-                const formData = new FormData(this);
-                const resp = await fetch(this.action, {
-                    method: 'POST',
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    },
-                    body: formData
-                });
-                const res = await resp.json();
-                if (resp.ok && res.success) {
-                    alertBox.className = 'alert alert-success py-2 px-3 small mb-3';
-                    alertBox.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> ' + (res.message || 'Skala maksimal berhasil disimpan.');
-                    alertBox.classList.remove('d-none');
-                    
-                    // Perbarui teks rentang skala pada kartu meter SCADA
-                    if (res.scales) {
-                        const rRms = document.getElementById('rangeTextRMS');
-                        if (rRms) rRms.textContent = `(Range 0 ~ ${res.scales.rms_max} m³/h)`;
-                        const rMhs = document.getElementById('rangeTextMHS');
-                        if (rMhs) rMhs.textContent = `(Range 0 ~ ${res.scales.mhs_max} m³/h)`;
-                        const rHrms = document.getElementById('rangeTextHRMS');
-                        if (rHrms) rHrms.textContent = `(Range 0 ~ ${res.scales.hrms_max} m³/h)`;
-                        const rPh = document.getElementById('rangeTextPH');
-                        if (rPh) rPh.textContent = `(Range 0 ~ ${res.scales.pressure_max} bar)`;
-                    }
-
-                    // Segera muat telemetri terkini dengan skala baru
-                    await checkTelemetryLive();
-
-                    setTimeout(() => {
-                        const modalEl = document.getElementById('scaleSettingsModal');
-                        const modalInstance = bootstrap.Modal.getInstance(modalEl);
-                        if (modalInstance) modalInstance.hide();
-                        alertBox.classList.add('d-none');
-                    }, 1200);
-                } else {
-                    alertBox.className = 'alert alert-danger py-2 px-3 small mb-3';
-                    alertBox.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i> ' + (res.message || 'Gagal menyimpan konfigurasi skala.');
-                    alertBox.classList.remove('d-none');
-                }
-            } catch (err) {
-                alertBox.className = 'alert alert-danger py-2 px-3 small mb-3';
-                alertBox.innerHTML = '<i class="bi bi-x-circle-fill me-1"></i> Terjadi kesalahan: ' + err.message;
-                alertBox.classList.remove('d-none');
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = origContent;
-            }
-        });
     }
 
     // Segera pulihkan nilai meter terakhir jika tersimpan di browser

@@ -72,6 +72,56 @@ class SettingsController extends Controller
     }
 
     /**
+     * Tampilkan halaman khusus pengaturan skala maksimal gauge.
+     */
+    public function scales()
+    {
+        $devices = Device::active()->orderBy('id')->get();
+        $deviceRms = $devices->where('slave_id', 1)->first() ?? $devices->get(0);
+        $deviceMhs = $devices->where('slave_id', 2)->first() ?? $devices->get(1);
+        $deviceHrms = $devices->where('slave_id', 3)->first() ?? $devices->get(2);
+        $devicePh = $devices->where('slave_id', 4)->first()
+            ?? $devices->first(fn ($d) => $d->isPressureSensor() || $d->isPhSensor())
+            ?? $devices->get(3);
+
+        $labelRms = $deviceRms?->name ?? 'Flowmeter 1 - Area RMS';
+        $labelMhs = $deviceMhs?->name ?? 'Flowmeter 2 - Area Toilet';
+        $labelHrms = $deviceHrms?->name ?? 'Flowmeter 3 - Area Office';
+        $labelPh = $devicePh?->name ?? 'Pressure Sensor';
+
+        $descRms = $deviceRms?->description ?: 'Nominal Size : 1 inch | Range : 0 ~ 4 m³/h';
+        $descMhs = $deviceMhs?->description ?: 'Nominal Size : 3/4 inch | Range : 0 ~ 10 m³/h';
+        $descHrms = $deviceHrms?->description ?: 'Nominal Size : 1/2 inch | Range : 0 ~ 10 m³/h';
+        $descPh = $devicePh?->description ?: 'Range : 0 ~ 10 bar';
+
+        $maxFlowRms = (float) AppSetting::getValue('max_flowrate_rms', 4.0);
+        $maxFlowMhs = (float) AppSetting::getValue('max_flowrate_mhs', 10.0);
+        $maxFlowHrms = (float) AppSetting::getValue('max_flowrate_hrms', 10.0);
+        $maxPressure = (float) AppSetting::getValue('max_pressure', 10.0);
+        $flowWarningPct = (int) AppSetting::getValue('flow_warning_percent', 85);
+
+        return view('settings.scales', compact(
+            'maxFlowRms',
+            'maxFlowMhs',
+            'maxFlowHrms',
+            'maxPressure',
+            'flowWarningPct',
+            'labelRms',
+            'labelMhs',
+            'labelHrms',
+            'labelPh',
+            'descRms',
+            'descMhs',
+            'descHrms',
+            'descPh',
+            'deviceRms',
+            'deviceMhs',
+            'deviceHrms',
+            'devicePh'
+        ));
+    }
+
+    /**
      * Simpan batas kapasitas maksimal flowrate (kondisi 100%) dan pressure.
      */
     public function updateScales(Request $request)

@@ -233,6 +233,19 @@ class HistoryAndSettingsTest extends TestCase
         $this->assertStringContainsString('attachment; filename=backup_iotlistrik_', $response->headers->get('content-disposition'));
     }
 
+    public function test_user_can_view_gauge_scales_settings_page()
+    {
+        $response = $this->actingAs($this->user)->get('/settings/scales');
+
+        $response->assertStatus(200);
+        $response->assertSee('Pengaturan Skala Maksimal Gauge');
+        $response->assertSee('name="max_flowrate_rms"', false);
+        $response->assertSee('name="max_flowrate_mhs"', false);
+        $response->assertSee('name="max_flowrate_hrms"', false);
+        $response->assertSee('name="max_pressure"', false);
+        $response->assertSee('name="flow_warning_percent"', false);
+    }
+
     public function test_user_can_update_meter_max_scales_setting()
     {
         $response = $this->actingAs($this->user)->put('/settings/scales', [
@@ -264,6 +277,8 @@ class HistoryAndSettingsTest extends TestCase
             'slave_id' => 1,
             'is_active' => true,
         ]);
+
+        Cache::put("device_online_{$device->id}", true, 60);
 
         MeterLog::create([
             'device_id' => $device->id,

@@ -47,6 +47,7 @@ Route::middleware('auth')->group(function () {
 
     // Pengaturan Sistem, Interval Data Logger & Skala Maksimal Meter
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+    Route::get('/settings/scales', [SettingsController::class, 'scales'])->name('settings.scales');
     Route::put('/settings/logger', [SettingsController::class, 'updateLogger'])->name('settings.logger.update');
     Route::put('/settings/scales', [SettingsController::class, 'updateScales'])->name('settings.scales.update');
     Route::get('/settings/backup-db', [SettingsController::class, 'downloadDatabase'])->name('settings.backup-db');

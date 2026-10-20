@@ -240,14 +240,19 @@
 
         <!-- Kartu Pengaturan Skala & Rentang Maksimal Meter (Kondisi 100% Gauge) -->
         <div class="card shadow-sm border-0 mt-4" id="scales" style="border-radius: 16px;">
-            <div class="card-header bg-white py-3 px-4 d-flex align-items-center gap-2 border-bottom">
-                <div class="p-2 bg-info-subtle text-info rounded-3">
-                    <i class="bi bi-speedometer2"></i>
+            <div class="card-header bg-white py-3 px-4 d-flex justify-content-between align-items-center border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="p-2 bg-info-subtle text-info rounded-3">
+                        <i class="bi bi-speedometer2"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold text-dark mb-0">Pengaturan Skala & Rentang Maksimal (Kondisi 100% Gauge)</h6>
+                        <small class="text-muted">Tentukan kapasitas aliran (m³/h) dan tekanan (Bar) acuan 100% pada circular gauge SCADA</small>
+                    </div>
                 </div>
-                <div>
-                    <h6 class="fw-bold text-dark mb-0">Pengaturan Skala & Rentang Maksimal (Kondisi 100% Gauge)</h6>
-                    <small class="text-muted">Tentukan kapasitas aliran (m³/h) dan tekanan (Bar) acuan 100% pada circular gauge SCADA</small>
-                </div>
+                <a href="{{ route('settings.scales') }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                    <i class="bi bi-box-arrow-up-right me-1"></i> Buka Halaman Khusus
+                </a>
             </div>
             <div class="card-body p-4">
                 <form action="{{ route('settings.scales.update') }}" method="POST">

@@ -326,15 +326,15 @@
             <div class="sidebar-heading">Sistem & Profil</div>
             <ul class="nav flex-column mb-2">
                 <li class="nav-item">
-                    <a class="nav-link {{ request()->is('settings*') ? 'active' : '' }}" href="{{ url('/settings') }}">
+                    <a class="nav-link {{ request()->is('settings') ? 'active' : '' }}" href="{{ url('/settings') }}">
                         <i class="bi bi-sliders"></i>
                         <span>Pengaturan Sistem</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ url('/settings#scales') }}">
+                    <a class="nav-link {{ request()->routeIs('settings.scales') ? 'active' : '' }}" href="{{ route('settings.scales') }}">
                         <i class="bi bi-speedometer2 text-warning"></i>
-                        <span>Skala Maksimal Gauge (%)</span>
+                        <span>Skala Maksimal Gauge</span>
                     </a>
                 </li>
             </ul>
