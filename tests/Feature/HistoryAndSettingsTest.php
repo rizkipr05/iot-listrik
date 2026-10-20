@@ -316,4 +316,29 @@ class HistoryAndSettingsTest extends TestCase
         $response->assertViewHas('currentRmsTot', 250.4);
         $response->assertSee('1.8');
     }
+
+    public function test_scale_modal_can_save_settings_via_ajax_json_response()
+    {
+        $response = $this->actingAs($this->user)->putJson(route('settings.scales.update'), [
+            'max_flowrate_rms' => 4.0,
+            'max_flowrate_mhs' => 10.0,
+            'max_flowrate_hrms' => 10.0,
+            'max_pressure' => 10.0,
+            'flow_warning_percent' => 85,
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'success' => true,
+            'scales' => [
+                'rms_max' => 4.0,
+                'mhs_max' => 10.0,
+                'hrms_max' => 10.0,
+                'pressure_max' => 10.0,
+                'warning_percent' => 85,
+            ],
+        ]);
+
+        $this->assertEquals('4', AppSetting::getValue('max_flowrate_rms'));
+    }
 }

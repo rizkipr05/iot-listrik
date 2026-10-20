@@ -31,12 +31,12 @@ class SettingsController extends Controller
         $labelHrms = $deviceHrms?->name ?? 'Flowmeter 3 - Area Office';
         $labelPh = $devicePh?->name ?? 'Pressure Sensor';
 
-        // Nilai batas maksimal flowrate & pressure (kondisi 100% full scale)
-        $maxFlowRms = (float) AppSetting::getValue('max_flowrate_rms', $this->extractMaxRange($deviceRms?->description, 4.0));
-        $maxFlowMhs = (float) AppSetting::getValue('max_flowrate_mhs', $this->extractMaxRange($deviceMhs?->description, 300.0));
-        $maxFlowHrms = (float) AppSetting::getValue('max_flowrate_hrms', $this->extractMaxRange($deviceHrms?->description, 300.0));
-        $maxPressure = (float) AppSetting::getValue('max_pressure', $this->extractMaxRange($devicePh?->description, 10.0));
-        $flowWarningPct = (int) AppSetting::getValue('flow_warning_percent', '85');
+        // Nilai batas maksimal flowrate & pressure (kondisi 100% full scale, default: RMS 4.0 m³/h, MHS 10.0 m³/h, HRMS 10.0 m³/h, Pressure 10.0 Bar)
+        $maxFlowRms = (float) AppSetting::getValue('max_flowrate_rms', 4.0);
+        $maxFlowMhs = (float) AppSetting::getValue('max_flowrate_mhs', 10.0);
+        $maxFlowHrms = (float) AppSetting::getValue('max_flowrate_hrms', 10.0);
+        $maxPressure = (float) AppSetting::getValue('max_pressure', 10.0);
+        $flowWarningPct = (int) AppSetting::getValue('flow_warning_percent', 85);
 
         $totalDevices = Device::count();
         $totalRegisters = Register::count();
@@ -96,6 +96,20 @@ class SettingsController extends Controller
 
         if (isset($validated['flow_warning_percent'])) {
             AppSetting::setValue('flow_warning_percent', (string) $validated['flow_warning_percent'], 'Ambang batas peringatan aliran tinggi (%)');
+        }
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Pengaturan batas maksimal (kondisi 100% gauge) flowrate & pressure berhasil disimpan.',
+                'scales' => [
+                    'rms_max' => (float) $validated['max_flowrate_rms'],
+                    'mhs_max' => (float) $validated['max_flowrate_mhs'],
+                    'hrms_max' => (float) $validated['max_flowrate_hrms'],
+                    'pressure_max' => (float) $validated['max_pressure'],
+                    'warning_percent' => (int) ($validated['flow_warning_percent'] ?? 85),
+                ],
+            ]);
         }
 
         return back()->with('success', 'Pengaturan batas maksimal (kondisi 100% gauge) flowrate & pressure berhasil disimpan.');

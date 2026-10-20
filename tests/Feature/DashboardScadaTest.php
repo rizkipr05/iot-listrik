@@ -96,7 +96,7 @@ class DashboardScadaTest extends TestCase
         $device = Device::create([
             'name' => 'Flowmeter 2" Area Chiller',
             'category' => 'flow_meter',
-            'description' => 'Nominal Size : 2 inch | Range : 0 ~ 300 m³/h',
+            'description' => 'Nominal Size : 1 inch | Range : 0 ~ 4 m³/h',
             'ip_address' => '127.0.0.1',
             'port' => 65530,
             'slave_id' => 1,
@@ -107,14 +107,21 @@ class DashboardScadaTest extends TestCase
         $response = $this->actingAs($this->user)->get(route('dashboard'));
 
         $response->assertStatus(200);
-        $response->assertSee('id="headerBadgeRMS"', false);
+        // Header badges removed as requested (no double status), status only below % Flow
+        $response->assertDontSee('id="headerBadgeRMS"', false);
+        $response->assertDontSee('id="headerBadgeMHS"', false);
+        $response->assertDontSee('id="headerBadgeHRMS"', false);
+        $response->assertDontSee('id="headerBadgePH"', false);
+
+        // Status text below % Flow must exist
         $response->assertSee('id="statusTextRMS"', false);
-        $response->assertSee('id="headerBadgeMHS"', false);
         $response->assertSee('id="statusTextMHS"', false);
-        $response->assertSee('id="headerBadgeHRMS"', false);
         $response->assertSee('id="statusTextHRMS"', false);
-        $response->assertSee('id="headerBadgePH"', false);
         $response->assertSee('id="statusTextPH"', false);
+
+        // Quick scale configuration button and modal must exist on dashboard
+        $response->assertSee('ATUR SKALA MAX');
+        $response->assertSee('id="scaleSettingsModal"', false);
     }
 
     public function test_live_telemetry_reports_is_online_status_per_slave()

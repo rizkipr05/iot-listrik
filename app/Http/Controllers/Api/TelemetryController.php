@@ -106,12 +106,27 @@ class TelemetryController extends Controller
 
             // Simpan telemetri realtime terakhir ke Cache agar dashboard instan tanpa delay 0 saat navigasi menu
             if ($isDevOnline) {
+                $frVal = (float) ($params['flow_rate']['value'] ?? 0.0);
+                $totVal = (float) ($params['totalizer']['value'] ?? 0.0);
+                $pressVal = (float) ($params['pressure']['value'] ?? $params['ph']['value'] ?? 0.0);
+
+                $prevCached = Cache::get("device_latest_telemetry_{$dev->id}");
+                if ($frVal <= 0 && ! empty($prevCached['flow_rate'])) {
+                    $frVal = (float) $prevCached['flow_rate'];
+                }
+                if ($totVal <= 0 && ! empty($prevCached['totalizer'])) {
+                    $totVal = (float) $prevCached['totalizer'];
+                }
+                if ($pressVal <= 0 && ! empty($prevCached['pressure'])) {
+                    $pressVal = (float) $prevCached['pressure'];
+                }
+
                 Cache::put("device_latest_telemetry_{$dev->id}", [
                     'is_online' => true,
-                    'flow_rate' => (float) ($params['flow_rate']['value'] ?? 0.0),
-                    'totalizer' => (float) ($params['totalizer']['value'] ?? 0.0),
-                    'pressure' => (float) ($params['pressure']['value'] ?? $params['ph']['value'] ?? 0.0),
-                    'ph' => (float) ($params['ph']['value'] ?? $params['pressure']['value'] ?? 0.0),
+                    'flow_rate' => $frVal,
+                    'totalizer' => $totVal,
+                    'pressure' => $pressVal,
+                    'ph' => $pressVal,
                     'voltage' => (float) ($params['voltage']['value'] ?? 0.0),
                     'current' => (float) ($params['current']['value'] ?? 0.0),
                     'power' => (float) ($params['power']['value'] ?? 0.0),
@@ -226,8 +241,8 @@ class TelemetryController extends Controller
         $isGatewayOnline = $primaryDevice ? $modbusService->isGatewayReachable($primaryGatewayIp, $primaryGatewayPort) : false;
 
         $maxRms = (float) AppSetting::getValue('max_flowrate_rms', 4.0);
-        $maxMhs = (float) AppSetting::getValue('max_flowrate_mhs', 300.0);
-        $maxHrms = (float) AppSetting::getValue('max_flowrate_hrms', 300.0);
+        $maxMhs = (float) AppSetting::getValue('max_flowrate_mhs', 10.0);
+        $maxHrms = (float) AppSetting::getValue('max_flowrate_hrms', 10.0);
         $maxPressure = (float) AppSetting::getValue('max_pressure', 10.0);
         $flowWarningPct = (int) AppSetting::getValue('flow_warning_percent', 85);
 

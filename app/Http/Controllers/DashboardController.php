@@ -47,17 +47,17 @@ class DashboardController extends Controller
         $labelHrms = $deviceHrms?->name ?? 'Water meter 1/2" Area Office';
         $labelPh = $devicePh?->name ?? 'Pressure Sensor';
 
-        $descRms = $deviceRms?->description ?: 'Nominal Size : 2 inch | Range : 0 ~ 300 m³/h';
-        $descMhs = $deviceMhs?->description ?: 'Nominal Size : 3/4 inch | Range : 0 ~ 300 m³/h';
-        $descHrms = $deviceHrms?->description ?: 'Nominal Size : 1/2 inch | Range : 0 ~ 300 m³/h';
+        $descRms = $deviceRms?->description ?: 'Nominal Size : 1 inch | Range : 0 ~ 4 m³/h';
+        $descMhs = $deviceMhs?->description ?: 'Nominal Size : 3/4 inch | Range : 0 ~ 10 m³/h';
+        $descHrms = $deviceHrms?->description ?: 'Nominal Size : 1/2 inch | Range : 0 ~ 10 m³/h';
         $descPh = $devicePh?->description ?: 'Range : 0 ~ 10 bar';
 
-        // Ambil konfigurasi batas maksimal (kondisi 100% skala gauge) dari AppSetting
-        $maxRms = (float) AppSetting::getValue('max_flowrate_rms', $this->extractMaxRange($descRms, 4.0));
-        $maxMhs = (float) AppSetting::getValue('max_flowrate_mhs', $this->extractMaxRange($descMhs, 300.0));
-        $maxHrms = (float) AppSetting::getValue('max_flowrate_hrms', $this->extractMaxRange($descHrms, 300.0));
-        $maxPh = (float) AppSetting::getValue('max_pressure', $this->extractMaxRange($descPh, 10.0));
-        $flowWarningPct = (int) AppSetting::getValue('flow_warning_percent', '85');
+        // Ambil konfigurasi batas maksimal (kondisi 100% skala gauge) dari AppSetting (default: RMS 4.0 m³/h, MHS 10.0 m³/h, HRMS 10.0 m³/h, Pressure 10.0 Bar)
+        $maxRms = (float) AppSetting::getValue('max_flowrate_rms', 4.0);
+        $maxMhs = (float) AppSetting::getValue('max_flowrate_mhs', 10.0);
+        $maxHrms = (float) AppSetting::getValue('max_flowrate_hrms', 10.0);
+        $maxPh = (float) AppSetting::getValue('max_pressure', 10.0);
+        $flowWarningPct = (int) AppSetting::getValue('flow_warning_percent', 85);
 
         // Prioritas pembacaan data realtime instrumen:
         // 1. Cek Cache telemetri realtime terakhir (menjamin nilai langsung tampil instan tanpa jeda 0 saat navigasi menu)
@@ -74,51 +74,65 @@ class DashboardController extends Controller
         $latestHrms = $deviceHrms ? MeterLog::where('device_id', $deviceHrms->id)->latest('logged_at')->first() : null;
         $latestPh = $devicePh ? MeterLog::where('device_id', $devicePh->id)->latest('logged_at')->first() : null;
 
-        $currentRmsFlow = isset($cachedDevRms['flow_rate'])
+        $currentRmsFlow = ! empty($cachedDevRms['flow_rate']) && $cachedDevRms['flow_rate'] > 0
             ? (float) $cachedDevRms['flow_rate']
-            : (isset($cachedScada['rms']['flow_rate'])
+            : (! empty($cachedScada['rms']['flow_rate']) && $cachedScada['rms']['flow_rate'] > 0
                 ? (float) $cachedScada['rms']['flow_rate']
-                : ($latestRms ? (float) ($latestRms->flow_rate ?? 0.0) : 0.0));
+                : ($latestRms && $latestRms->flow_rate > 0
+                    ? (float) $latestRms->flow_rate
+                    : (float) ($cachedDevRms['flow_rate'] ?? $cachedScada['rms']['flow_rate'] ?? $latestRms?->flow_rate ?? 0.0)));
 
-        $currentRmsTot = isset($cachedDevRms['totalizer'])
+        $currentRmsTot = ! empty($cachedDevRms['totalizer']) && $cachedDevRms['totalizer'] > 0
             ? (float) $cachedDevRms['totalizer']
-            : (isset($cachedScada['rms']['totalizer'])
+            : (! empty($cachedScada['rms']['totalizer']) && $cachedScada['rms']['totalizer'] > 0
                 ? (float) $cachedScada['rms']['totalizer']
-                : ($latestRms ? (float) ($latestRms->totalizer ?? 0.0) : 0.0));
+                : ($latestRms && $latestRms->totalizer > 0
+                    ? (float) $latestRms->totalizer
+                    : (float) ($cachedDevRms['totalizer'] ?? $cachedScada['rms']['totalizer'] ?? $latestRms?->totalizer ?? 0.0)));
 
-        $currentMhsFlow = isset($cachedDevMhs['flow_rate'])
+        $currentMhsFlow = ! empty($cachedDevMhs['flow_rate']) && $cachedDevMhs['flow_rate'] > 0
             ? (float) $cachedDevMhs['flow_rate']
-            : (isset($cachedScada['mhs']['flow_rate'])
+            : (! empty($cachedScada['mhs']['flow_rate']) && $cachedScada['mhs']['flow_rate'] > 0
                 ? (float) $cachedScada['mhs']['flow_rate']
-                : ($latestMhs ? (float) ($latestMhs->flow_rate ?? 0.0) : 0.0));
+                : ($latestMhs && $latestMhs->flow_rate > 0
+                    ? (float) $latestMhs->flow_rate
+                    : (float) ($cachedDevMhs['flow_rate'] ?? $cachedScada['mhs']['flow_rate'] ?? $latestMhs?->flow_rate ?? 0.0)));
 
-        $currentMhsTot = isset($cachedDevMhs['totalizer'])
+        $currentMhsTot = ! empty($cachedDevMhs['totalizer']) && $cachedDevMhs['totalizer'] > 0
             ? (float) $cachedDevMhs['totalizer']
-            : (isset($cachedScada['mhs']['totalizer'])
+            : (! empty($cachedScada['mhs']['totalizer']) && $cachedScada['mhs']['totalizer'] > 0
                 ? (float) $cachedScada['mhs']['totalizer']
-                : ($latestMhs ? (float) ($latestMhs->totalizer ?? 0.0) : 0.0));
+                : ($latestMhs && $latestMhs->totalizer > 0
+                    ? (float) $latestMhs->totalizer
+                    : (float) ($cachedDevMhs['totalizer'] ?? $cachedScada['mhs']['totalizer'] ?? $latestMhs?->totalizer ?? 0.0)));
 
-        $currentHrmsFlow = isset($cachedDevHrms['flow_rate'])
+        $currentHrmsFlow = ! empty($cachedDevHrms['flow_rate']) && $cachedDevHrms['flow_rate'] > 0
             ? (float) $cachedDevHrms['flow_rate']
-            : (isset($cachedScada['h_rms']['flow_rate'])
+            : (! empty($cachedScada['h_rms']['flow_rate']) && $cachedScada['h_rms']['flow_rate'] > 0
                 ? (float) $cachedScada['h_rms']['flow_rate']
-                : ($latestHrms ? (float) ($latestHrms->flow_rate ?? 0.0) : 0.0));
+                : ($latestHrms && $latestHrms->flow_rate > 0
+                    ? (float) $latestHrms->flow_rate
+                    : (float) ($cachedDevHrms['flow_rate'] ?? $cachedScada['h_rms']['flow_rate'] ?? $latestHrms?->flow_rate ?? 0.0)));
 
-        $currentHrmsTot = isset($cachedDevHrms['totalizer'])
+        $currentHrmsTot = ! empty($cachedDevHrms['totalizer']) && $cachedDevHrms['totalizer'] > 0
             ? (float) $cachedDevHrms['totalizer']
-            : (isset($cachedScada['h_rms']['totalizer'])
+            : (! empty($cachedScada['h_rms']['totalizer']) && $cachedScada['h_rms']['totalizer'] > 0
                 ? (float) $cachedScada['h_rms']['totalizer']
-                : ($latestHrms ? (float) ($latestHrms->totalizer ?? 0.0) : 0.0));
+                : ($latestHrms && $latestHrms->totalizer > 0
+                    ? (float) $latestHrms->totalizer
+                    : (float) ($cachedDevHrms['totalizer'] ?? $cachedScada['h_rms']['totalizer'] ?? $latestHrms?->totalizer ?? 0.0)));
 
-        $currentPh = isset($cachedDevPh['pressure']) && $cachedDevPh['pressure'] > 0
+        $currentPh = ! empty($cachedDevPh['pressure']) && $cachedDevPh['pressure'] > 0
             ? (float) $cachedDevPh['pressure']
-            : (isset($cachedDevPh['ph']) && $cachedDevPh['ph'] > 0
+            : (! empty($cachedDevPh['ph']) && $cachedDevPh['ph'] > 0
                 ? (float) $cachedDevPh['ph']
-                : (isset($cachedScada['pressure']['value']) && $cachedScada['pressure']['value'] > 0
+                : (! empty($cachedScada['pressure']['value']) && $cachedScada['pressure']['value'] > 0
                     ? (float) $cachedScada['pressure']['value']
-                    : (isset($cachedScada['ph']['value']) && $cachedScada['ph']['value'] > 0
+                    : (! empty($cachedScada['ph']['value']) && $cachedScada['ph']['value'] > 0
                         ? (float) $cachedScada['ph']['value']
-                        : ($latestPh ? (float) ($latestPh->ph ?? 0.0) : 0.0))));
+                        : ($latestPh && ($latestPh->ph > 0)
+                            ? (float) $latestPh->ph
+                            : (float) ($cachedDevPh['pressure'] ?? $cachedScada['pressure']['value'] ?? $latestPh?->ph ?? 0.0)))));
 
         // Ambil riwayat log untuk tabel HISTORY DATA dan grafik
         $recentLogs = MeterLog::with('device')

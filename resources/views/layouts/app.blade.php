@@ -331,6 +331,12 @@
                         <span>Pengaturan Sistem</span>
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url('/settings#scales') }}">
+                        <i class="bi bi-speedometer2 text-warning"></i>
+                        <span>Skala Maksimal Gauge (%)</span>
+                    </a>
+                </li>
             </ul>
         </div>
 

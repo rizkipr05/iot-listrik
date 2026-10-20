@@ -239,7 +239,7 @@
         </div>
 
         <!-- Kartu Pengaturan Skala & Rentang Maksimal Meter (Kondisi 100% Gauge) -->
-        <div class="card shadow-sm border-0 mt-4" style="border-radius: 16px;">
+        <div class="card shadow-sm border-0 mt-4" id="scales" style="border-radius: 16px;">
             <div class="card-header bg-white py-3 px-4 d-flex align-items-center gap-2 border-bottom">
                 <div class="p-2 bg-info-subtle text-info rounded-3">
                     <i class="bi bi-speedometer2"></i>
