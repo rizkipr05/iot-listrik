@@ -208,6 +208,60 @@ class HistoryAndSettingsTest extends TestCase
         $this->assertEquals(0, MeterLog::count());
     }
 
+    public function test_user_can_purge_history_logs_for_today()
+    {
+        $device = Device::create([
+            'name' => 'Meter Purge Today',
+            'ip_address' => '192.168.1.17',
+            'port' => 502,
+            'slave_id' => 1,
+            'is_active' => true,
+        ]);
+
+        MeterLog::create([
+            'device_id' => $device->id,
+            'voltage' => 220.0,
+            'logged_at' => now(), // hari ini
+        ]);
+
+        MeterLog::create([
+            'device_id' => $device->id,
+            'voltage' => 220.0,
+            'logged_at' => now()->subDays(2), // 2 hari lalu
+        ]);
+
+        $this->assertEquals(2, MeterLog::count());
+
+        $response = $this->actingAs($this->user)->delete('/history/purge', [
+            'range' => 'today',
+        ]);
+
+        $response->assertSessionHas('success');
+        $this->assertEquals(1, MeterLog::count());
+    }
+
+    public function test_user_can_delete_individual_log_entry()
+    {
+        $device = Device::create([
+            'name' => 'Meter Single Delete',
+            'ip_address' => '192.168.1.18',
+            'port' => 502,
+            'slave_id' => 1,
+            'is_active' => true,
+        ]);
+
+        $log = MeterLog::create([
+            'device_id' => $device->id,
+            'voltage' => 220.0,
+            'logged_at' => now(),
+        ]);
+
+        $response = $this->actingAs($this->user)->delete(route('history.destroy', $log->id));
+
+        $response->assertSessionHas('success');
+        $this->assertDatabaseMissing('meter_logs', ['id' => $log->id]);
+    }
+
     public function test_user_can_update_logger_interval_setting()
     {
         $response = $this->actingAs($this->user)->put('/settings/logger', [

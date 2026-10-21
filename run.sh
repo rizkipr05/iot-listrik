@@ -16,7 +16,11 @@ if [ ! -f "database/database.sqlite" ]; then
     touch database/database.sqlite
     php artisan migrate --force
     php artisan db:seed --force
+else
+    php artisan migrate --force
 fi
+
+php artisan optimize:clear
 
 echo "[*] Alamat Aplikasi: http://127.0.0.1:8000"
 echo "[*] Akun Login     : admin / admin123"

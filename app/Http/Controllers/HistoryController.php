@@ -46,16 +46,9 @@ class HistoryController extends Controller
         }
 
         if ($selectedSource === 'real') {
-            $query->where('is_simulated', false)->where(function ($q) {
-                $q->whereNull('ph')->orWhere('ph', '<=', 5.0);
-            });
+            $query->where('is_simulated', false);
         } elseif ($selectedSource === 'simulated') {
             $query->where('is_simulated', true);
-        } else {
-            // 'all': kecualikan anomali data pH lama >= 6.0 jika ada
-            $query->where(function ($q) {
-                $q->whereNull('ph')->orWhere('ph', '<=', 5.0);
-            });
         }
 
         if ($rawDateStart) {
@@ -135,7 +128,7 @@ class HistoryController extends Controller
         $avgFlowRate = round($flowQuery->avg('flow_rate') ?? ((clone $statsQuery)->whereNotNull('flow_rate')->avg('flow_rate') ?? 0.0), 2);
 
         // 3. Perhitungan Tekanan Pipa / Sensor (Kolom ph pada database)
-        $pressureQuery = (clone $statsQuery)->whereNotNull('ph')->where('ph', '<=', 5.0);
+        $pressureQuery = (clone $statsQuery)->whereNotNull('ph');
         if (! $selectedDevice) {
             $pressureDev = $devices->first(fn ($d) => $d->isPressureSensor());
             if ($pressureDev) {
@@ -157,7 +150,7 @@ class HistoryController extends Controller
         // Ambil data tren historis untuk grafik (maks 40 titik data berurutan waktu)
         $chartQuery = (clone $query)->reorder()->oldest('logged_at')->limit(40);
         $chartLogs = $chartQuery->get(['logged_at', 'power', 'current', 'voltage', 'flow_rate', 'totalizer', 'ph']);
-        $chartLabels = $chartLogs->map(fn ($item) => $item->logged_at->format('H:i'))->values();
+        $chartLabels = $chartLogs->map(fn ($item) => $item->logged_at->timezone(config('app.timezone', 'Asia/Jakarta'))->format('H:i'))->values();
         $chartPowers = $chartLogs->map(fn ($item) => (float) ($item->power ?? 0))->values();
         $chartCurrents = $chartLogs->map(fn ($item) => (float) ($item->current ?? 0))->values();
         $chartFlowRates = $chartLogs->map(fn ($item) => (float) ($item->flow_rate ?? 0))->values();
@@ -279,7 +272,10 @@ class HistoryController extends Controller
         $range = $request->input('range', 'older_30_days');
         $query = MeterLog::query();
 
-        if ($range === 'older_30_days') {
+        if ($range === 'today') {
+            $query->whereDate('logged_at', now()->toDateString());
+            $label = 'hari ini';
+        } elseif ($range === 'older_30_days') {
             $query->where('logged_at', '<', now()->subDays(30));
             $label = 'lebih dari 30 hari yang lalu';
         } elseif ($range === 'older_7_days') {
@@ -303,6 +299,16 @@ class HistoryController extends Controller
     }
 
     /**
+     * Hapus satu baris log riwayat secara spesifik.
+     */
+    public function destroy(MeterLog $log)
+    {
+        $log->delete();
+
+        return back()->with('success', 'Baris data log berhasil dihapus.');
+    }
+
+    /**
      * Ekspor data log terpilih ke format file CSV.
      */
     public function exportCsv(Request $request): StreamedResponse
@@ -318,16 +324,9 @@ class HistoryController extends Controller
             $query->where('device_id', $selectedDeviceId);
         }
         if ($selectedSource === 'real') {
-            $query->where('is_simulated', false)->where(function ($q) {
-                $q->whereNull('ph')->orWhere('ph', '<=', 5.0);
-            });
+            $query->where('is_simulated', false);
         } elseif ($selectedSource === 'simulated') {
             $query->where('is_simulated', true);
-        } else {
-            // 'all': kecualikan anomali data pH lama >= 6.0 jika ada
-            $query->where(function ($q) {
-                $q->whereNull('ph')->orWhere('ph', '<=', 5.0);
-            });
         }
         if ($dateStart) {
             $query->where('logged_at', '>=', Carbon::parse($dateStart)->startOfMinute());
@@ -373,7 +372,7 @@ class HistoryController extends Controller
                 foreach ($logs as $log) {
                     $isPressure = $log->device && $log->device->isPressureSensor();
                     fputcsv($handle, [
-                        $log->logged_at->format('Y-m-d H:i:s'),
+                        $log->logged_at->timezone(config('app.timezone', 'Asia/Jakarta'))->format('Y-m-d H:i:s'),
                         $log->device->name ?? 'Meter Tidak Diketahui',
                         $log->device->category_badge ?? $log->device->category ?? 'meter',
                         $log->device->slave_id ?? '-',

@@ -11,7 +11,11 @@ if not exist "database\database.sqlite" (
     type nul > "database\database.sqlite"
     php artisan migrate --force
     php artisan db:seed --force
+) else (
+    php artisan migrate --force
 )
+
+php artisan optimize:clear
 
 echo [*] Alamat Aplikasi: http://127.0.0.1:8000
 echo [*] Akun Login     : admin / admin123

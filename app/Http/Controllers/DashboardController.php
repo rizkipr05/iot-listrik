@@ -33,13 +33,12 @@ class DashboardController extends Controller
             $query->active();
         }])->active()->orderBy('id')->get();
 
-        // Ambil device aktif berdasarkan slave_id atau urutan index
-        $deviceRms = $devices->where('slave_id', 1)->first() ?? $devices->get(0);
-        $deviceMhs = $devices->where('slave_id', 2)->first() ?? $devices->get(1);
-        $deviceHrms = $devices->where('slave_id', 3)->first() ?? $devices->get(2);
-        $devicePh = $devices->where('slave_id', 4)->first()
-            ?? $devices->first(fn ($d) => $d->isPressureSensor() || $d->isPhSensor())
-            ?? $devices->get(3);
+        // Petakan instrumen SCADA secara konsisten berdasarkan kategori dan penamaan
+        $scadaInstruments = Device::resolveScadaInstruments($devices);
+        $deviceRms = $scadaInstruments['rms'];
+        $deviceMhs = $scadaInstruments['mhs'];
+        $deviceHrms = $scadaInstruments['hrms'];
+        $devicePh = $scadaInstruments['pressure'];
 
         // Label dan deskripsi langsung membaca dari konfigurasi database
         $labelRms = $deviceRms?->name ?? 'Flowmeter 2" Area Chiller';
@@ -72,9 +71,7 @@ class DashboardController extends Controller
         $latestRms = $deviceRms ? MeterLog::where('device_id', $deviceRms->id)->where('is_simulated', false)->latest('logged_at')->first() : null;
         $latestMhs = $deviceMhs ? MeterLog::where('device_id', $deviceMhs->id)->where('is_simulated', false)->latest('logged_at')->first() : null;
         $latestHrms = $deviceHrms ? MeterLog::where('device_id', $deviceHrms->id)->where('is_simulated', false)->latest('logged_at')->first() : null;
-        $latestPh = $devicePh ? MeterLog::where('device_id', $devicePh->id)->where('is_simulated', false)->where(function ($q) {
-            $q->whereNull('ph')->orWhere('ph', '<=', 5.0);
-        })->latest('logged_at')->first() : null;
+        $latestPh = $devicePh ? MeterLog::where('device_id', $devicePh->id)->where('is_simulated', false)->whereNotNull('ph')->latest('logged_at')->first() : null;
 
         $isRmsOnline = isset($cachedDevRms['is_online'])
             ? (bool) $cachedDevRms['is_online']
@@ -159,21 +156,18 @@ class DashboardController extends Controller
         ) : 0.0;
 
         $currentPh = $isPhOnline ? (
-            ! empty($cachedDevPh['pressure']) && $cachedDevPh['pressure'] > 0 && $cachedDevPh['pressure'] <= 5.0
+            ! empty($cachedDevPh['pressure']) && $cachedDevPh['pressure'] > 0
                 ? (float) $cachedDevPh['pressure']
-                : (! empty($cachedScada['pressure']['value']) && $cachedScada['pressure']['value'] > 0 && $cachedScada['pressure']['value'] <= 5.0
+                : (! empty($cachedScada['pressure']['value']) && $cachedScada['pressure']['value'] > 0
                     ? (float) $cachedScada['pressure']['value']
-                    : ($latestPh && $latestPh->ph > 0 && $latestPh->ph <= 5.0
+                    : ($latestPh && $latestPh->ph > 0
                         ? (float) $latestPh->ph
                         : 0.0))
         ) : 0.0;
 
-        // Ambil riwayat log telemetri real (kecualikan data simulasi dummy & anomali lama)
+        // Ambil riwayat log telemetri real (kecualikan data simulasi dummy)
         $recentLogs = MeterLog::with('device')
             ->where('is_simulated', false)
-            ->where(function ($q) {
-                $q->whereNull('ph')->orWhere('ph', '<=', 5.0);
-            })
             ->latest('logged_at')
             ->take(200)
             ->get();
@@ -250,7 +244,7 @@ class DashboardController extends Controller
                 : 0.0;
 
             $chartPh[] = $isPhOnline
-                ? ($l4 ? round((float) ($l4->ph ?? 0), 2) : (($i === 0 && $currentPh <= 5.0) ? round($currentPh, 2) : 0.0))
+                ? ($l4 ? round((float) ($l4->ph ?? 0), 2) : (($i === 0) ? round($currentPh, 2) : 0.0))
                 : 0.0;
         }
 

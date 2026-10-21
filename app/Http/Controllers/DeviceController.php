@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Device;
+use App\Models\MeterLog;
 use App\Services\ModbusTcpService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -133,7 +134,40 @@ class DeviceController extends Controller
         if ($firstRegister) {
             $readResult = $modbusService->readRegister($device, $firstRegister, false);
             if ($readResult['success']) {
-                Cache::put("device_online_{$device->id}", true, 30);
+                $val = (float) ($readResult['value'] ?? 0);
+                Cache::put("device_online_{$device->id}", true, 300);
+
+                // Segera simpan nilai hasil pembacaan real ke cache telemetri agar instan tampil di dashboard
+                $prevCached = Cache::get("device_latest_telemetry_{$device->id}", []);
+                $prevCached['is_online'] = true;
+                $prevCached['updated_at'] = now()->toIso8601String();
+
+                if ($device->isPressureSensor() || $device->isPhSensor()) {
+                    $prevCached['pressure'] = $val;
+                    $prevCached['ph'] = $val;
+
+                    $scada = Cache::get('scada_latest_telemetry', []);
+                    $status = ($val >= 1.0 && $val <= 4.0) ? 'Normal' : ($val > 0 ? 'Warning' : 'Standby');
+                    $scada['pressure'] = ['value' => $val, 'status' => $status, 'is_online' => true];
+                    $scada['ph'] = ['value' => $val, 'status' => $status, 'is_online' => true];
+                    Cache::put('scada_latest_telemetry', $scada, 86400);
+
+                    // Catat ke MeterLog agar historis dan grafik langsung menangkap nilai real
+                    MeterLog::create([
+                        'device_id' => $device->id,
+                        'ph' => $val,
+                        'is_simulated' => false,
+                        'logged_at' => now(),
+                    ]);
+                } elseif ($device->isFlowMeter() || $device->isWater()) {
+                    $paramKey = $firstRegister->parameter_key ?? 'flow_rate';
+                    if ($paramKey === 'flow_rate') {
+                        $prevCached['flow_rate'] = $val;
+                    } elseif ($paramKey === 'totalizer') {
+                        $prevCached['totalizer'] = $val;
+                    }
+                }
+                Cache::put("device_latest_telemetry_{$device->id}", $prevCached, 86400);
 
                 return response()->json([
                     'success' => true,

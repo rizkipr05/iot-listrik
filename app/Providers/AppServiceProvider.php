@@ -22,6 +22,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        date_default_timezone_set(config('app.timezone', 'Asia/Jakarta'));
+
         View::composer(['layouts.app', 'devices.index'], function ($view) {
             try {
                 $primaryDevice = Device::active()->first() ?? Device::first();

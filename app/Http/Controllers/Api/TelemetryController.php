@@ -49,13 +49,11 @@ class TelemetryController extends Controller
             'pressure' => ['value' => 0.0, 'status' => 'Standby', 'is_online' => false],
         ];
 
-        $sortedDevices = $devices->sortBy('id')->values();
-        $device1 = $sortedDevices->where('slave_id', 1)->first() ?? $sortedDevices->get(0);
-        $device2 = $sortedDevices->where('slave_id', 2)->first() ?? $sortedDevices->get(1);
-        $device3 = $sortedDevices->where('slave_id', 3)->first() ?? $sortedDevices->get(2);
-        $device4 = $sortedDevices->where('slave_id', 4)->first()
-            ?? $sortedDevices->first(fn ($d) => $d->isPhSensor() || $d->isPressureSensor())
-            ?? $sortedDevices->get(3);
+        $scadaInstruments = Device::resolveScadaInstruments($devices);
+        $deviceRms = $scadaInstruments['rms'];
+        $deviceMhs = $scadaInstruments['mhs'];
+        $deviceHrms = $scadaInstruments['hrms'];
+        $devicePh = $scadaInstruments['pressure'];
 
         $onlineDevicesCount = 0;
 
@@ -139,31 +137,28 @@ class TelemetryController extends Controller
                 $prevCached = Cache::get("device_latest_telemetry_{$dev->id}");
                 if ($prevCached) {
                     $prevCached['is_online'] = false;
+                    $prevCached['flow_rate'] = 0.0;
+                    $prevCached['pressure'] = 0.0;
+                    $prevCached['ph'] = 0.0;
                     Cache::put("device_latest_telemetry_{$dev->id}", $prevCached, 86400);
                 }
             }
 
-            $isDev1 = $device1 && $dev->id === $device1->id;
-            $isDev2 = $device2 && $dev->id === $device2->id;
-            $isDev3 = $device3 && $dev->id === $device3->id;
-            $isDev4 = $device4 && $dev->id === $device4->id;
+            $isPhDev = ($devicePh && $dev->id === $devicePh->id) || $dev->isPressureSensor() || $dev->isPhSensor();
+            $isRmsDev = $deviceRms && $dev->id === $deviceRms->id;
+            $isMhsDev = $deviceMhs && $dev->id === $deviceMhs->id;
+            $isHrmsDev = $deviceHrms && $dev->id === $deviceHrms->id;
 
-            if ($dev->isPressureSensor() || $dev->isPhSensor() || $isDev4) {
+            if ($isPhDev) {
                 $phCount++;
-                $val = (float) ($params['pressure']['value'] ?? $params['ph']['value'] ?? 0);
-                if (! $isDevOnline) {
-                    $prevDevCached = Cache::get("device_latest_telemetry_{$dev->id}");
-                    if ($val <= 0 && ! empty($prevDevCached['pressure'])) {
-                        $val = (float) $prevDevCached['pressure'];
-                    }
-                }
+                $val = $isDevOnline ? (float) ($params['pressure']['value'] ?? $params['ph']['value'] ?? 0) : 0.0;
                 $status = ($val >= 1.0 && $val <= 4.0) ? 'Normal' : ($val > 0 ? 'Warning' : 'Standby');
                 $scadaMeters['pressure'] = ['value' => $val, 'status' => $status, 'is_online' => $isDevOnline];
                 $scadaMeters['ph'] = ['value' => $val, 'status' => $status, 'is_online' => $isDevOnline];
                 $currentPh = $val;
-            } elseif ($dev->isWater() || $dev->isFlowMeter() || $isDev1 || $isDev2 || $isDev3) {
+            } elseif ($dev->isWater() || $dev->isFlowMeter() || $isRmsDev || $isMhsDev || $isHrmsDev) {
                 $waterCount++;
-                $fr = (float) ($params['flow_rate']['value'] ?? 0);
+                $fr = $isDevOnline ? (float) ($params['flow_rate']['value'] ?? 0) : 0.0;
                 $tot = (float) ($params['totalizer']['value'] ?? 0);
 
                 if (! $isDevOnline) {
@@ -171,20 +166,20 @@ class TelemetryController extends Controller
                     if ($tot <= 0 && ! empty($prevDevCached['totalizer'])) {
                         $tot = (float) $prevDevCached['totalizer'];
                     }
-                    if ($fr <= 0 && ! empty($prevDevCached['flow_rate'])) {
-                        $fr = (float) $prevDevCached['flow_rate'];
-                    }
+                    $fr = 0.0;
                 }
 
                 $totalWater += $tot;
-                $totalFlowRate += $fr;
+                if ($isDevOnline) {
+                    $totalFlowRate += $fr;
+                }
 
-                if ($isDev1 || $dev->slave_id === 1) {
-                    $scadaMeters['rms'] = ['flow_rate' => $fr, 'totalizer' => $tot, 'is_online' => $isDevOnline];
-                } elseif ($isDev2 || $dev->slave_id === 2) {
-                    $scadaMeters['mhs'] = ['flow_rate' => $fr, 'totalizer' => $tot, 'is_online' => $isDevOnline];
-                } elseif ($isDev3 || $dev->slave_id === 3) {
-                    $scadaMeters['h_rms'] = ['flow_rate' => $fr, 'totalizer' => $tot, 'is_online' => $isDevOnline];
+                if ($isRmsDev) {
+                    $scadaMeters['rms'] = ['flow_rate' => $isDevOnline ? $fr : 0.0, 'totalizer' => $tot, 'is_online' => $isDevOnline];
+                } elseif ($isMhsDev) {
+                    $scadaMeters['mhs'] = ['flow_rate' => $isDevOnline ? $fr : 0.0, 'totalizer' => $tot, 'is_online' => $isDevOnline];
+                } elseif ($isHrmsDev) {
+                    $scadaMeters['h_rms'] = ['flow_rate' => $isDevOnline ? $fr : 0.0, 'totalizer' => $tot, 'is_online' => $isDevOnline];
                 }
             } else {
                 $electricCount++;

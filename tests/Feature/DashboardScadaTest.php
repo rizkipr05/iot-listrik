@@ -152,6 +152,38 @@ class DashboardScadaTest extends TestCase
         $this->assertArrayHasKey('is_online', $json['scada']['pressure']);
     }
 
+    public function test_offline_flow_meters_return_zero_flow_rate_even_if_cached_previously()
+    {
+        $device = Device::create([
+            'name' => 'WATER METER DN20 | AREA OFFICE',
+            'category' => 'flow_meter',
+            'ip_address' => '127.0.0.1',
+            'port' => 65530,
+            'slave_id' => 3,
+            'timeout_ms' => 100,
+            'is_active' => true,
+        ]);
+
+        // Simulasikan cache sebelumnya sempat terisi flow rate tinggi saat meter sempat tersambung
+        Cache::put("device_latest_telemetry_{$device->id}", [
+            'is_online' => true,
+            'flow_rate' => 226.7,
+            'totalizer' => 1.7,
+            'pressure' => 0.0,
+            'updated_at' => now()->toIso8601String(),
+        ], 86400);
+
+        $response = $this->actingAs($this->user)->getJson(route('api.telemetry.live'));
+
+        $response->assertStatus(200);
+        $json = $response->json();
+
+        // Saat device offline, flow_rate mutlak 0.0, sedangkan totalizer tetap terjaga
+        $this->assertFalse($json['scada']['h_rms']['is_online']);
+        $this->assertEquals(0.0, $json['scada']['h_rms']['flow_rate']);
+        $this->assertEquals(1.7, $json['scada']['h_rms']['totalizer']);
+    }
+
     public function test_offline_devices_do_not_show_anomalous_or_simulated_values_in_trend_chart_and_history_table()
     {
         $dev1 = Device::create([
@@ -235,5 +267,128 @@ class DashboardScadaTest extends TestCase
         // Di tabel history, pastikan tidak menampilkan 7.68 atau 142.7
         $response->assertDontSee('7.68');
         $response->assertDontSee('142.7');
+    }
+
+    public function test_client_screenshot_device_mapping_with_pressure_on_slave_1(): void
+    {
+        // Setup persis seperti kondisi pada screenshot user
+        $pressDev = Device::create([
+            'name' => 'Pressure Sensor',
+            'category' => 'pressure_sensor',
+            'description' => 'Range : 0 - 10 bar (Normal : 1 - 4 bar)',
+            'ip_address' => '192.168.1.118',
+            'port' => 502,
+            'slave_id' => 1,
+            'timeout_ms' => 1500,
+            'is_active' => true,
+        ]);
+
+        $chillerDev = Device::create([
+            'name' => 'Flowmeter 2" Area Chiller',
+            'category' => 'flow_meter',
+            'description' => 'Nominal Size : 2 inch | Range : 0 ~ 300 m³/h',
+            'ip_address' => '192.168.1.118',
+            'port' => 502,
+            'slave_id' => 22,
+            'timeout_ms' => 1500,
+            'is_active' => true,
+        ]);
+
+        $toiletDev = Device::create([
+            'name' => 'Water meter 3/4" Area Toilet',
+            'category' => 'flow_meter',
+            'description' => 'Nominal Size : 3/4 inch | Range : 0 ~ 4 m³/h',
+            'ip_address' => '192.168.1.118',
+            'port' => 502,
+            'slave_id' => 2,
+            'timeout_ms' => 1500,
+            'is_active' => true,
+        ]);
+
+        $officeDev = Device::create([
+            'name' => 'Water Meter DN20 | Area Office',
+            'category' => 'flow_meter',
+            'description' => 'Nominal Size : 3/4 inch | Range : 0 ~ 3 m³/h',
+            'ip_address' => '192.168.1.118',
+            'port' => 502,
+            'slave_id' => 10,
+            'timeout_ms' => 1500,
+            'is_active' => true,
+        ]);
+
+        // Simulasikan data telemetri real
+        Cache::put("device_latest_telemetry_{$pressDev->id}", [
+            'is_online' => true,
+            'pressure' => 20.2,
+            'ph' => 20.2,
+            'flow_rate' => 0.0,
+            'totalizer' => 0.0,
+            'updated_at' => now()->toIso8601String(),
+        ], 86400);
+
+        Cache::put("device_latest_telemetry_{$toiletDev->id}", [
+            'is_online' => true,
+            'flow_rate' => 1.5,
+            'totalizer' => 3.72,
+            'updated_at' => now()->toIso8601String(),
+        ], 86400);
+
+        Cache::put("device_latest_telemetry_{$officeDev->id}", [
+            'is_online' => true,
+            'flow_rate' => 226.5,
+            'totalizer' => 0.17,
+            'updated_at' => now()->toIso8601String(),
+        ], 86400);
+
+        $response = $this->actingAs($this->user)->get(route('dashboard'));
+        $response->assertStatus(200);
+
+        // Pastikan Card 1 adalah Flowmeter 2" Area Chiller (Bukan Pressure Sensor!)
+        $this->assertEquals($chillerDev->id, $response->viewData('deviceRms')?->id);
+        $this->assertEquals('Flowmeter 2" Area Chiller', $response->viewData('labelRms'));
+
+        // Pastikan Card 2 adalah Toilet, Card 3 adalah Office, Card 4 adalah Pressure Sensor
+        $this->assertEquals($toiletDev->id, $response->viewData('deviceMhs')?->id);
+        $this->assertEquals($officeDev->id, $response->viewData('deviceHrms')?->id);
+        $this->assertEquals($pressDev->id, $response->viewData('devicePh')?->id);
+
+        // Pastikan nilai tekanan 20.2 Bar tampil di dashboard, bukan 0.00 Bar
+        $this->assertEquals(20.2, $response->viewData('currentPh'));
+        $this->assertTrue($response->viewData('isPhOnline'));
+        $response->assertSee('20.20');
+        $response->assertSee('Bar');
+
+        // Pastikan donat legend menampilkan nama flowmeter Chiller, bukan Pressure Sensor
+        $response->assertSee('Flowmeter 2&quot; Area Chiller', false);
+    }
+
+    public function test_real_pressure_sensor_log_above_5_bar_is_read_and_displayed(): void
+    {
+        $pressDev = Device::create([
+            'name' => 'Pressure Sensor Pipa',
+            'category' => 'pressure_sensor',
+            'description' => 'Range : 0 - 25 bar',
+            'ip_address' => '192.168.1.118',
+            'port' => 502,
+            'slave_id' => 1,
+            'timeout_ms' => 1500,
+            'is_active' => true,
+        ]);
+
+        // Simpan log riil dengan tekanan 20.2 Bar
+        MeterLog::create([
+            'device_id' => $pressDev->id,
+            'ph' => 20.2,
+            'is_simulated' => false,
+            'logged_at' => now()->subMinute(),
+        ]);
+
+        Cache::put("device_online_{$pressDev->id}", true, 300);
+
+        $response = $this->actingAs($this->user)->get(route('dashboard'));
+        $response->assertStatus(200);
+
+        $this->assertEquals(20.2, $response->viewData('currentPh'));
+        $response->assertSee('20.20');
     }
 }

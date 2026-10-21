@@ -744,13 +744,13 @@
                         <div class="ph-gradient-bar mb-1">
                             <div class="ph-pointer-indicator" id="phPointer" style="left: {{ $gaugePctPh }}%;"></div>
                         </div>
-                        <div class="d-flex justify-content-between text-muted mono-font" style="font-size: 0.65rem;">
+                        <div class="d-flex justify-content-between text-muted mono-font" style="font-size: 0.65rem;" id="phBarTicks">
                             <span>0</span>
-                            <span>2</span>
-                            <span>4</span>
-                            <span>6</span>
-                            <span>8</span>
-                            <span>10 bar</span>
+                            <span>{{ round($maxPh * 0.2, 1) }}</span>
+                            <span>{{ round($maxPh * 0.4, 1) }}</span>
+                            <span>{{ round($maxPh * 0.6, 1) }}</span>
+                            <span>{{ round($maxPh * 0.8, 1) }}</span>
+                            <span id="phBarMaxTick">{{ $maxPh }} bar</span>
                         </div>
                     </div>
                 </div>
@@ -1055,10 +1055,13 @@
             if (rHrms) rHrms.textContent = `(Range 0 ~ ${scaleHrms} m³/h)`;
             const rPh = document.getElementById('rangeTextPH');
             if (rPh) rPh.textContent = `(Range 0 ~ ${scalePh} bar)`;
+            const maxTick = document.getElementById('phBarMaxTick');
+            if (maxTick) maxTick.textContent = `${scalePh} bar`;
         }
 
         // RMS
-        const rms = Number(scada.rms?.flow_rate ?? 0);
+        const isRmsOnline = Boolean(scada.rms?.is_online);
+        const rms = isRmsOnline ? Number(scada.rms?.flow_rate ?? 0) : 0;
         const rmsTotal = Number(scada.rms?.totalizer ?? 0);
         const elValRMS = document.getElementById('valFlowrateRMS');
         if (elValRMS) elValRMS.textContent = rms.toFixed(1);
@@ -1066,13 +1069,14 @@
         if (elDetailRMS) elDetailRMS.textContent = rms.toFixed(1);
         const elTotRMS = document.getElementById('detailTotalityRMS');
         if (elTotRMS) elTotRMS.textContent = rmsTotal.toLocaleString('en-US', {minimumFractionDigits: 1});
-        const rmsPct = Math.min(100, Math.round((rms / Math.max(0.001, scaleRms)) * 100));
+        const rmsPct = isRmsOnline ? Math.min(100, Math.round((rms / Math.max(0.001, scaleRms)) * 100)) : 0;
         const elPctRMS = document.getElementById('pctRMS');
         if (elPctRMS) elPctRMS.textContent = rmsPct + '%';
         setGaugeProgress('circleProgressRMS', rmsPct);
 
         // MHS
-        const mhs = Number(scada.mhs?.flow_rate ?? 0);
+        const isMhsOnline = Boolean(scada.mhs?.is_online);
+        const mhs = isMhsOnline ? Number(scada.mhs?.flow_rate ?? 0) : 0;
         const mhsTotal = Number(scada.mhs?.totalizer ?? 0);
         const elValMHS = document.getElementById('valFlowrateMHS');
         if (elValMHS) elValMHS.textContent = mhs.toFixed(1);
@@ -1080,13 +1084,14 @@
         if (elDetailMHS) elDetailMHS.textContent = mhs.toFixed(1);
         const elTotMHS = document.getElementById('detailTotalityMHS');
         if (elTotMHS) elTotMHS.textContent = mhsTotal.toLocaleString('en-US', {minimumFractionDigits: 1});
-        const mhsPct = Math.min(100, Math.round((mhs / Math.max(0.001, scaleMhs)) * 100));
+        const mhsPct = isMhsOnline ? Math.min(100, Math.round((mhs / Math.max(0.001, scaleMhs)) * 100)) : 0;
         const elPctMHS = document.getElementById('pctMHS');
         if (elPctMHS) elPctMHS.textContent = mhsPct + '%';
         setGaugeProgress('circleProgressMHS', mhsPct);
 
         // H-RMS
-        const hrms = Number(scada.h_rms?.flow_rate ?? 0);
+        const isHrmsOnline = Boolean(scada.h_rms?.is_online);
+        const hrms = isHrmsOnline ? Number(scada.h_rms?.flow_rate ?? 0) : 0;
         const hrmsTotal = Number(scada.h_rms?.totalizer ?? 0);
         const elValHRMS = document.getElementById('valFlowrateHRMS');
         if (elValHRMS) elValHRMS.textContent = hrms.toFixed(1);
@@ -1094,13 +1099,14 @@
         if (elDetailHRMS) elDetailHRMS.textContent = hrms.toFixed(1);
         const elTotHRMS = document.getElementById('detailTotalityHRMS');
         if (elTotHRMS) elTotHRMS.textContent = hrmsTotal.toLocaleString('en-US', {minimumFractionDigits: 1});
-        const hrmsPct = Math.min(100, Math.round((hrms / Math.max(0.001, scaleHrms)) * 100));
+        const hrmsPct = isHrmsOnline ? Math.min(100, Math.round((hrms / Math.max(0.001, scaleHrms)) * 100)) : 0;
         const elPctHRMS = document.getElementById('pctHRMS');
         if (elPctHRMS) elPctHRMS.textContent = hrmsPct + '%';
         setGaugeProgress('circleProgressHRMS', hrmsPct);
 
         // Pressure
-        const pressVal = Number(scada.pressure?.value ?? scada.ph?.value ?? 0);
+        const isPressOnline = Boolean(scada.pressure?.is_online ?? scada.ph?.is_online);
+        const pressVal = isPressOnline ? Number(scada.pressure?.value ?? scada.ph?.value ?? 0) : 0;
         const elValPH = document.getElementById('valPH');
         if (elValPH) elValPH.textContent = pressVal.toFixed(2);
         const elDetailPH = document.getElementById('detailValPH');
@@ -1113,7 +1119,13 @@
         let detailClass = 'fw-bold text-secondary fs-6';
         let iconClass = 'bi bi-pause-circle-fill fs-5 text-secondary';
 
-        if (pressVal >= 1.0 && pressVal <= 4.0) {
+        if (!isPressOnline) {
+            statusText = 'Offline';
+            curClass = 'text-danger';
+            badgeClass = 'badge bg-danger-subtle text-danger border border-danger-subtle fw-bold px-2 py-0';
+            detailClass = 'fw-bold text-danger fs-6';
+            iconClass = 'bi bi-x-circle-fill fs-5 text-danger';
+        } else if (pressVal >= 1.0 && pressVal <= 4.0) {
             statusText = 'Normal';
             curClass = 'text-success';
             badgeClass = 'badge bg-success text-white fw-bold px-2 py-0';
@@ -1146,7 +1158,7 @@
             statusIcon.className = iconClass;
         }
 
-        const pressPct = Math.min(100, Math.max(0, Math.round((pressVal / Math.max(0.001, scalePh)) * 100)));
+        const pressPct = isPressOnline ? Math.min(100, Math.max(0, Math.round((pressVal / Math.max(0.001, scalePh)) * 100))) : 0;
         setGaugeProgress('circleProgressPH', pressPct);
         const pointer = document.getElementById('phPointer');
         if (pointer) pointer.style.left = pressPct + '%';
@@ -1212,7 +1224,8 @@
             const raw = localStorage.getItem('scada_last_telemetry');
             if (!raw) return;
             const parsed = JSON.parse(raw);
-            if (parsed && parsed.scada) {
+            // Hanya pulihkan jika cache masih segar (< 30 detik), agar tidak menampilkan data usang saat device sudah offline
+            if (parsed && parsed.scada && parsed.timestamp && (Date.now() - parsed.timestamp) < 30000) {
                 updateDashboardUI(parsed);
             }
         } catch (e) {

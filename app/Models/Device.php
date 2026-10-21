@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 
 class Device extends Model
 {
@@ -113,5 +114,81 @@ class Device extends Model
             'power_meter' => 'Power Meter',
             default => 'Meter',
         };
+    }
+
+    /**
+     * Memetakan daftar perangkat menjadi 4 instrumen SCADA standar:
+     * - rms (Card 1): Flowmeter Chiller / Utama
+     * - mhs (Card 2): Water meter Toilet / Sekunder
+     * - hrms (Card 3): Water meter Office / Tersier
+     * - pressure (Card 4): Pressure Sensor / Sensor Tekanan Pipa
+     *
+     * @param  Collection<int, Device>|null  $devices
+     * @return array{rms: ?Device, mhs: ?Device, hrms: ?Device, pressure: ?Device}
+     */
+    public static function resolveScadaInstruments(?Collection $devices = null): array
+    {
+        if ($devices === null) {
+            $devices = static::active()->orderBy('id')->get();
+        }
+
+        // 1. Identifikasi Sensor Tekanan / pH terlebih dahulu (Card 4)
+        $pressureDev = $devices->first(fn ($d) => $d->isPressureSensor() || $d->isPhSensor())
+            ?? $devices->where('slave_id', 4)->first();
+
+        // 2. Kumpulkan instrumen meter aliran (khusus Flow / Water Meter, kecualikan sensor tekanan)
+        $flowDevices = $devices->reject(fn ($d) => $pressureDev && $d->id === $pressureDev->id)
+            ->filter(fn ($d) => ! ($d->isPressureSensor() || $d->isPhSensor()))
+            ->values();
+
+        // Jika tidak ada flow device terpisah yang cocok, gunakan device selain pressureDev
+        if ($flowDevices->isEmpty()) {
+            $flowDevices = $devices->reject(fn ($d) => $pressureDev && $d->id === $pressureDev->id)->values();
+        }
+
+        // 3. Pencocokan spesifik instrumen berdasarkan keyword nama/deskripsi atau Slave ID standar:
+        $rmsDev = $flowDevices->first(function ($d) {
+            $text = strtolower($d->name.' '.$d->description);
+
+            return (str_contains($text, 'chiller') || str_contains($text, 'rms'))
+                && ! str_contains($text, 'h-rms')
+                && ! str_contains($text, 'hrms');
+        }) ?? $flowDevices->firstWhere('slave_id', 1);
+
+        $mhsDev = $flowDevices->reject(fn ($d) => $rmsDev && $d->id === $rmsDev->id)->first(function ($d) {
+            $text = strtolower($d->name.' '.$d->description);
+
+            return str_contains($text, 'toilet') || str_contains($text, 'mhs');
+        }) ?? $flowDevices->reject(fn ($d) => $rmsDev && $d->id === $rmsDev->id)->firstWhere('slave_id', 2);
+
+        $hrmsDev = $flowDevices->reject(fn ($d) => ($rmsDev && $d->id === $rmsDev->id) || ($mhsDev && $d->id === $mhsDev->id))->first(function ($d) {
+            $text = strtolower($d->name.' '.$d->description);
+
+            return str_contains($text, 'office')
+                || str_contains($text, 'hrms')
+                || str_contains($text, 'h-rms')
+                || str_contains($text, 'dn20');
+        }) ?? $flowDevices->reject(fn ($d) => ($rmsDev && $d->id === $rmsDev->id) || ($mhsDev && $d->id === $mhsDev->id))->firstWhere('slave_id', 3);
+
+        // 4. Untuk slot yang belum terisi, distribusikan sisa device yang belum terpakai secara berurutan:
+        $assignedIds = collect([$rmsDev?->id, $mhsDev?->id, $hrmsDev?->id])->filter()->all();
+        $unassigned = $flowDevices->reject(fn ($d) => in_array($d->id, $assignedIds, true))->values();
+
+        if (! $rmsDev && $unassigned->isNotEmpty()) {
+            $rmsDev = $unassigned->shift();
+        }
+        if (! $mhsDev && $unassigned->isNotEmpty()) {
+            $mhsDev = $unassigned->shift();
+        }
+        if (! $hrmsDev && $unassigned->isNotEmpty()) {
+            $hrmsDev = $unassigned->shift();
+        }
+
+        return [
+            'rms' => $rmsDev,
+            'mhs' => $mhsDev,
+            'hrms' => $hrmsDev,
+            'pressure' => $pressureDev,
+        ];
     }
 }

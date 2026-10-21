@@ -297,7 +297,8 @@
                         <th>Daya (kW)</th>
                         <th>Total (kWh)</th>
                     @endif
-                    <th class="text-center pe-4">Sumber</th>
+                    <th class="text-center">Sumber</th>
+                    <th class="text-center pe-4" style="width: 70px;">Aksi</th>
                 </tr>
             </thead>
             <tbody>
@@ -305,8 +306,8 @@
                     <tr>
                         <td class="ps-4 text-muted fw-semibold mono-font">{{ $logs->firstItem() + $index }}</td>
                         <td>
-                            <div class="mono-font fw-semibold text-dark">{{ $log->logged_at->format('d M Y') }}</div>
-                            <small class="text-muted mono-font">{{ $log->logged_at->format('H:i:s') }} WIB</small>
+                            <div class="mono-font fw-semibold text-dark">{{ $log->logged_at->timezone(config('app.timezone', 'Asia/Jakarta'))->format('d M Y') }}</div>
+                            <small class="text-muted mono-font">{{ $log->logged_at->timezone(config('app.timezone', 'Asia/Jakarta'))->format('H:i:s') }} WIB</small>
                         </td>
                         <td>
                             <div class="d-flex align-items-center gap-1">
@@ -380,7 +381,7 @@
                                 @endif
                             </td>
                         @endif
-                        <td class="text-center pe-4">
+                        <td class="text-center">
                             @if($log->is_simulated)
                                 <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-2 py-1" title="Mode Simulator Offline">
                                     Sim
@@ -391,10 +392,19 @@
                                 </span>
                             @endif
                         </td>
+                        <td class="text-center pe-4">
+                            <form action="{{ route('history.destroy', $log->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus baris data log ini?');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2 rounded-pill" title="Hapus baris log ini">
+                                    <i class="bi bi-trash3" style="font-size: 0.75rem;"></i>
+                                </button>
+                            </form>
+                        </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="{{ ($avgPower > 0 || $maxPower > 0) ? 11 : 7 }}" class="text-center py-5 text-muted">
+                        <td colspan="{{ ($avgPower > 0 || $maxPower > 0) ? 12 : 8 }}" class="text-center py-5 text-muted">
                             <i class="bi bi-clock-history fs-1 d-block mb-2 text-secondary opacity-50"></i>
                             <h6 class="fw-bold mb-1">Belum Ada Data Log Telemetri Tersimpan</h6>
                             <p class="small text-muted mb-0">Data log riwayat otomatis dicatat saat instrumen meter merespons (online) pada Gateway RS485 loop.</p>
@@ -433,10 +443,22 @@
                         Pilih rentang waktu data log yang ingin dihapus dari database SQLite lokal untuk menghemat memori laptop:
                     </p>
                     <div class="d-flex flex-column gap-2 mb-3">
+                        <div class="form-check p-2 border border-primary-subtle bg-primary-subtle bg-opacity-10 rounded-3">
+                            <input class="form-check-input ms-1" type="radio" name="range" id="range_today" value="today">
+                            <label class="form-check-label ps-2 fw-bold text-primary" for="range_today">
+                                <i class="bi bi-calendar-event me-1"></i> Hapus data log hari ini (Sesi pengujian meter saat ini)
+                            </label>
+                        </div>
+                        <div class="form-check p-2 border border-warning-subtle bg-warning-subtle rounded-3">
+                            <input class="form-check-input ms-1" type="radio" name="range" id="range_sim" value="simulated_only">
+                            <label class="form-check-label ps-2 fw-semibold text-warning-emphasis" for="range_sim">
+                                <i class="bi bi-cpu me-1"></i> Hapus hanya data anomali simulasi (SIM) — Pertahankan data meter fisik real
+                            </label>
+                        </div>
                         <div class="form-check p-2 border rounded-3">
-                            <input class="form-check-input ms-1" type="radio" name="range" id="range_30" value="older_30_days" checked>
-                            <label class="form-check-label ps-2 fw-semibold text-dark" for="range_30">
-                                Hapus log lebih dari 30 hari yang lalu
+                            <input class="form-check-input ms-1" type="radio" name="range" id="range_1" value="older_24_hours">
+                            <label class="form-check-label ps-2 fw-semibold text-dark" for="range_1">
+                                Hapus log lebih dari 24 jam yang lalu
                             </label>
                         </div>
                         <div class="form-check p-2 border rounded-3">
@@ -446,21 +468,15 @@
                             </label>
                         </div>
                         <div class="form-check p-2 border rounded-3">
-                            <input class="form-check-input ms-1" type="radio" name="range" id="range_1" value="older_24_hours">
-                            <label class="form-check-label ps-2 fw-semibold text-dark" for="range_1">
-                                Hapus log lebih dari 24 jam yang lalu
-                            </label>
-                        </div>
-                        <div class="form-check p-2 border border-warning-subtle bg-warning-subtle rounded-3">
-                            <input class="form-check-input ms-1" type="radio" name="range" id="range_sim" value="simulated_only">
-                            <label class="form-check-label ps-2 fw-semibold text-warning-emphasis" for="range_sim">
-                                Hapus hanya data anomali simulasi (SIM) — Pertahankan data meter fisik real
+                            <input class="form-check-input ms-1" type="radio" name="range" id="range_30" value="older_30_days" checked>
+                            <label class="form-check-label ps-2 fw-semibold text-dark" for="range_30">
+                                Hapus log lebih dari 30 hari yang lalu
                             </label>
                         </div>
                         <div class="form-check p-2 border border-danger-subtle bg-danger-subtle rounded-3">
                             <input class="form-check-input ms-1" type="radio" name="range" id="range_all" value="all">
                             <label class="form-check-label ps-2 fw-bold text-danger" for="range_all">
-                                Hapus SELURUH riwayat data log (Kosongkan tabel)
+                                <i class="bi bi-trash3-fill me-1"></i> Hapus SELURUH riwayat data log (Kosongkan tabel)
                             </label>
                         </div>
                     </div>

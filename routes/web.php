@@ -36,6 +36,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/history', [HistoryController::class, 'index'])->name('history.index');
     Route::post('/history/log-now', [HistoryController::class, 'logNow'])->name('history.log-now');
     Route::delete('/history/purge', [HistoryController::class, 'purgeLogs'])->name('history.purge');
+    Route::delete('/history/{log}', [HistoryController::class, 'destroy'])->name('history.destroy');
     Route::get('/history/export', [HistoryController::class, 'exportCsv'])->name('history.export');
 
     // Device Management Routes

@@ -3,8 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\Device;
+use App\Models\Register;
 use App\Models\User;
+use App\Services\ModbusTcpService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 class DeviceAndRegisterTest extends TestCase
@@ -230,6 +233,70 @@ class DeviceAndRegisterTest extends TestCase
             'device_id' => $device->id,
             'parameter_key' => 'flow_rate',
             'unit' => 'm3/h',
+        ]);
+    }
+
+    public function test_device_test_connection_saves_pressure_telemetry_to_cache_and_log(): void
+    {
+        $server = @stream_socket_server('tcp://127.0.0.1:0', $errno, $errstr);
+        if (! $server) {
+            $this->markTestSkipped('Cannot create socket server for test');
+        }
+
+        $port = (int) parse_url('tcp://'.stream_socket_get_name($server, false), PHP_URL_PORT);
+
+        $device = Device::create([
+            'name' => 'Pressure Sensor',
+            'category' => 'pressure_sensor',
+            'description' => 'Range : 0 - 10 bar (Normal : 1 - 4 bar)',
+            'ip_address' => '127.0.0.1',
+            'port' => $port,
+            'slave_id' => 1,
+            'timeout_ms' => 1500,
+            'is_active' => true,
+        ]);
+
+        Register::create([
+            'device_id' => $device->id,
+            'name' => 'Pipa Tekanan (Pressure Value)',
+            'parameter_key' => 'pressure',
+            'register_address' => 0,
+            'function_code' => 3,
+            'data_type' => 'float32',
+            'byte_order' => 'CDAB',
+            'multiplier' => 1.0,
+            'unit' => 'Bar',
+            'is_active' => true,
+        ]);
+
+        $mockModbus = $this->createMock(ModbusTcpService::class);
+        $mockModbus->method('readRegister')->willReturn([
+            'success' => true,
+            'value' => 20.2,
+            'unit' => 'Bar',
+            'is_simulated' => false,
+        ]);
+        $this->app->instance(ModbusTcpService::class, $mockModbus);
+
+        $response = $this->actingAs($this->user)->postJson(route('devices.test', $device));
+        fclose($server);
+
+        $response->assertStatus(200);
+        $json = $response->json();
+        $this->assertTrue($json['success']);
+        $this->assertStringContainsString('20.2 Bar', $json['message']);
+
+        // Pastikan cache telemetri terisi
+        $cached = Cache::get("device_latest_telemetry_{$device->id}");
+        $this->assertNotNull($cached);
+        $this->assertEquals(20.2, $cached['pressure']);
+        $this->assertTrue($cached['is_online']);
+
+        // Pastikan dicatat ke MeterLog
+        $this->assertDatabaseHas('meter_logs', [
+            'device_id' => $device->id,
+            'ph' => 20.2,
+            'is_simulated' => false,
         ]);
     }
 }

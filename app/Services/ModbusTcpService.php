@@ -25,12 +25,12 @@ class ModbusTcpService
         return Cache::remember($cacheKey, self::OFFLINE_CACHE_TTL, function () use ($ip, $port) {
             $errno = 0;
             $errstr = '';
-            // Timeout 200ms (0.2 detik) agar reliable di jaringan LAN fisik
+            // Timeout 500ms (0.5 detik) agar reliable di jaringan LAN/WiFi fisik
             $socket = @stream_socket_client(
                 "tcp://{$ip}:{$port}",
                 $errno,
                 $errstr,
-                0.2
+                0.5
             );
 
             if ($socket) {

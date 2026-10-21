@@ -44,12 +44,11 @@ class SettingsController extends Controller
     public function scales()
     {
         $devices = Device::active()->orderBy('id')->get();
-        $deviceRms = $devices->where('slave_id', 1)->first() ?? $devices->get(0);
-        $deviceMhs = $devices->where('slave_id', 2)->first() ?? $devices->get(1);
-        $deviceHrms = $devices->where('slave_id', 3)->first() ?? $devices->get(2);
-        $devicePh = $devices->where('slave_id', 4)->first()
-            ?? $devices->first(fn ($d) => $d->isPressureSensor() || $d->isPhSensor())
-            ?? $devices->get(3);
+        $scadaInstruments = Device::resolveScadaInstruments($devices);
+        $deviceRms = $scadaInstruments['rms'];
+        $deviceMhs = $scadaInstruments['mhs'];
+        $deviceHrms = $scadaInstruments['hrms'];
+        $devicePh = $scadaInstruments['pressure'];
 
         $labelRms = $deviceRms?->name ?? 'Flowmeter 1 - Area RMS';
         $labelMhs = $deviceMhs?->name ?? 'Flowmeter 2 - Area Toilet';
