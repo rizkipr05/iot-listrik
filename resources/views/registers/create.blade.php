@@ -58,6 +58,7 @@
                             <select name="parameter_key" id="parameter_key" class="form-select @error('parameter_key') is-invalid @enderror" required>
                                 <option value="flow_rate" {{ old('parameter_key', 'flow_rate') == 'flow_rate' ? 'selected' : '' }}>Flow Rate / Laju Alir (m³/h)</option>
                                 <option value="totalizer" {{ old('parameter_key') == 'totalizer' ? 'selected' : '' }}>Totalizer / Akumulasi Volume (m³)</option>
+                                <option value="pressure" {{ old('parameter_key') == 'pressure' ? 'selected' : '' }}>Tekanan / Pressure Value (Bar)</option>
                                 <option value="ph" {{ old('parameter_key') == 'ph' ? 'selected' : '' }}>Nilai pH / pH Value (pH)</option>
                                 <option value="energy" {{ old('parameter_key') == 'energy' ? 'selected' : '' }}>Total kWh / Energi (kWh)</option>
                                 <option value="voltage" {{ old('parameter_key') == 'voltage' ? 'selected' : '' }}>Tegangan (Voltage V)</option>

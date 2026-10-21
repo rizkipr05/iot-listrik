@@ -68,6 +68,17 @@ class LogMeterDataCommand extends Command
 
                         $params = $readData['parameters'];
 
+                        $pressVal = (float) ($params['pressure']['value'] ?? $params['ph']['value'] ?? 0.0);
+                        if ($pressVal <= 0 && ($device->isPressureSensor() || $device->isPhSensor())) {
+                            foreach ($params as $pData) {
+                                $v = (float) ($pData['value'] ?? 0.0);
+                                if ($v > 0) {
+                                    $pressVal = $v;
+                                    break;
+                                }
+                            }
+                        }
+
                         $log = MeterLog::create([
                             'device_id' => $device->id,
                             'voltage' => $params['voltage']['value'] ?? null,
@@ -78,7 +89,7 @@ class LogMeterDataCommand extends Command
                             'energy' => $params['energy']['value'] ?? null,
                             'totalizer' => $params['totalizer']['value'] ?? null,
                             'flow_rate' => $params['flow_rate']['value'] ?? null,
-                            'ph' => $params['pressure']['value'] ?? $params['ph']['value'] ?? null,
+                            'ph' => $pressVal > 0 ? $pressVal : ($params['pressure']['value'] ?? $params['ph']['value'] ?? null),
                             'raw_parameters' => $params,
                             'is_simulated' => false,
                             'logged_at' => $now,
@@ -91,8 +102,8 @@ class LogMeterDataCommand extends Command
                             'is_online' => true,
                             'flow_rate' => (float) ($params['flow_rate']['value'] ?? 0.0),
                             'totalizer' => (float) ($params['totalizer']['value'] ?? 0.0),
-                            'pressure' => (float) ($params['pressure']['value'] ?? $params['ph']['value'] ?? 0.0),
-                            'ph' => (float) ($params['ph']['value'] ?? $params['pressure']['value'] ?? 0.0),
+                            'pressure' => $pressVal,
+                            'ph' => $pressVal,
                             'voltage' => (float) ($params['voltage']['value'] ?? 0.0),
                             'current' => (float) ($params['current']['value'] ?? 0.0),
                             'power' => (float) ($params['power']['value'] ?? 0.0),

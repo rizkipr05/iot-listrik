@@ -444,4 +444,107 @@ class DashboardScadaTest extends TestCase
         // Pastikan tidak ada duplikasi nama di Card 1 dan Card 4
         $this->assertNotEquals($response->viewData('labelRms'), $response->viewData('labelPh'));
     }
+
+    public function test_pressure_sensor_with_other_parameter_key_and_bar_unit_displays_value(): void
+    {
+        $pressDev = Device::create([
+            'name' => 'PRESSURE SENSOR',
+            'category' => 'pressure_sensor',
+            'description' => 'Range 0 ~ 30 bar',
+            'ip_address' => '192.168.1.200',
+            'port' => 502,
+            'slave_id' => 1,
+            'timeout_ms' => 500,
+            'is_active' => true,
+        ]);
+
+        Register::create([
+            'device_id' => $pressDev->id,
+            'name' => 'Nilai Tekanan (Pressure Value)',
+            'parameter_key' => 'other',
+            'register_address' => 0,
+            'function_code' => 3,
+            'data_type' => 'float32',
+            'byte_order' => 'CDAB',
+            'multiplier' => 1.0,
+            'unit' => 'Bar',
+            'is_active' => true,
+        ]);
+
+        // Simulasikan pembacaan telemetry real yang tersimpan
+        Cache::put("device_online_{$pressDev->id}", true, 300);
+        Cache::put("device_latest_telemetry_{$pressDev->id}", [
+            'is_online' => true,
+            'pressure' => 20.4,
+            'ph' => 20.4,
+            'updated_at' => now()->toIso8601String(),
+        ], 86400);
+
+        Cache::put('scada_latest_telemetry', [
+            'pressure' => ['value' => 20.4, 'status' => 'Warning', 'is_online' => true],
+            'ph' => ['value' => 20.4, 'status' => 'Warning', 'is_online' => true],
+        ], 86400);
+
+        // Uji Dashboard view
+        $dashboardResponse = $this->actingAs($this->user)->get(route('dashboard'));
+        $dashboardResponse->assertStatus(200);
+        $this->assertEquals(20.4, $dashboardResponse->viewData('currentPh'));
+        $this->assertEquals('Warning', $dashboardResponse->viewData('statusPh'));
+        $dashboardResponse->assertSee('20.40');
+
+        // Uji API live telemetry
+        $liveResponse = $this->actingAs($this->user)->getJson(route('api.telemetry.live'));
+        $liveResponse->assertStatus(200);
+        $liveData = $liveResponse->json();
+        $this->assertEquals(20.4, $liveData['scada']['pressure']['value']);
+        $this->assertEquals('Warning', $liveData['scada']['pressure']['status']);
+    }
+
+    public function test_pressure_reading_is_preserved_when_device_offline(): void
+    {
+        $pressDev = Device::create([
+            'name' => 'Pressure Sensor',
+            'category' => 'pressure_sensor',
+            'description' => 'Range 0 ~ 30 bar',
+            'ip_address' => '127.0.0.1',
+            'port' => 65530,
+            'slave_id' => 1,
+            'timeout_ms' => 200,
+            'is_active' => true,
+        ]);
+
+        Register::create([
+            'device_id' => $pressDev->id,
+            'name' => 'Nilai Tekanan (Pressure Value)',
+            'parameter_key' => 'pressure',
+            'register_address' => 0,
+            'function_code' => 3,
+            'data_type' => 'float32',
+            'byte_order' => 'CDAB',
+            'multiplier' => 1.0,
+            'unit' => 'Bar',
+            'is_active' => true,
+        ]);
+
+        // Simulasikan ada log riwayat sebelumnya
+        MeterLog::create([
+            'device_id' => $pressDev->id,
+            'ph' => 20.4,
+            'is_simulated' => false,
+            'logged_at' => now()->subMinute(),
+        ]);
+
+        Cache::put("device_latest_telemetry_{$pressDev->id}", [
+            'is_online' => false,
+            'pressure' => 20.4,
+            'ph' => 20.4,
+            'updated_at' => now()->toIso8601String(),
+        ], 86400);
+
+        // Uji Dashboard view saat offline
+        $dashboardResponse = $this->actingAs($this->user)->get(route('dashboard'));
+        $dashboardResponse->assertStatus(200);
+        $this->assertEquals(20.4, $dashboardResponse->viewData('currentPh'));
+        $this->assertEquals('Offline', $dashboardResponse->viewData('statusPh'));
+    }
 }

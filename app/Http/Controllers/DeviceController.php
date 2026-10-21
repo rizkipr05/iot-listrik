@@ -152,6 +152,10 @@ class DeviceController extends Controller
                     $scada['ph'] = ['value' => $val, 'status' => $status, 'is_online' => true];
                     Cache::put('scada_latest_telemetry', $scada, 86400);
 
+                    $summary = Cache::get('scada_latest_summary', []);
+                    $summary['current_ph'] = $val;
+                    Cache::put('scada_latest_summary', $summary, 86400);
+
                     // Catat ke MeterLog agar historis dan grafik langsung menangkap nilai real
                     MeterLog::create([
                         'device_id' => $device->id,

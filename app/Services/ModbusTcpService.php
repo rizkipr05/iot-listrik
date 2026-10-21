@@ -11,9 +11,9 @@ class ModbusTcpService
 {
     /**
      * Cache waktu gateway dianggap offline (dalam detik).
-     * Diset 10 detik agar deteksi perubahan koneksi fisik RS485/jaringan responsif.
+     * Diset 3 detik agar deteksi perubahan koneksi fisik RS485/jaringan sangat responsif.
      */
-    protected const OFFLINE_CACHE_TTL = 10;
+    protected const OFFLINE_CACHE_TTL = 3;
 
     /**
      * Cek apakah gateway IP:Port dapat dijangkau dalam waktu singkat (maks 200ms).
@@ -144,7 +144,9 @@ class ModbusTcpService
      */
     public function readDeviceRegisters(Device $device, bool $allowSimulation = false): array
     {
-        $registers = $device->registers()->where('is_active', true)->get();
+        $registers = $device->relationLoaded('registers')
+            ? $device->registers->where('is_active', true)
+            : $device->registers()->where('is_active', true)->get();
         $results = [];
 
         // Cek konektivitas gateway sekali saja untuk seluruh register device ini
@@ -215,6 +217,45 @@ class ModbusTcpService
                     'register_address' => $reg->register_address,
                     'data_type' => $reg->data_type,
                 ];
+            }
+        }
+
+        // Normalisasi parameter untuk sensor tekanan dan pH agar parameter key standar selalu terisi
+        if ($device->isPressureSensor()) {
+            $foundPress = null;
+            if (isset($results['pressure']) && (float) ($results['pressure']['value'] ?? 0) > 0) {
+                $foundPress = $results['pressure'];
+            } elseif (isset($results['ph']) && (float) ($results['ph']['value'] ?? 0) > 0) {
+                $foundPress = $results['ph'];
+            } else {
+                foreach ($results as $res) {
+                    if (! empty($res['value']) && (float) $res['value'] > 0) {
+                        $foundPress = $res;
+                        break;
+                    }
+                }
+            }
+            if ($foundPress) {
+                $results['pressure'] = $foundPress;
+                $results['ph'] = $foundPress;
+            }
+        } elseif ($device->isPhSensor()) {
+            $foundPh = null;
+            if (isset($results['ph']) && (float) ($results['ph']['value'] ?? 0) > 0) {
+                $foundPh = $results['ph'];
+            } elseif (isset($results['pressure']) && (float) ($results['pressure']['value'] ?? 0) > 0) {
+                $foundPh = $results['pressure'];
+            } else {
+                foreach ($results as $res) {
+                    if (! empty($res['value']) && (float) $res['value'] > 0) {
+                        $foundPh = $res;
+                        break;
+                    }
+                }
+            }
+            if ($foundPh) {
+                $results['ph'] = $foundPh;
+                $results['pressure'] = $foundPh;
             }
         }
 

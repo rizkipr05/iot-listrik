@@ -25,7 +25,7 @@ class TelemetryController extends Controller
             request()->session()->save();
         }
 
-        $devices = Device::active()->get();
+        $devices = Device::with(['registers' => fn ($q) => $q->where('is_active', true)])->active()->get();
 
         $deviceResults = [];
         $totalPower = 0.0;
@@ -65,6 +65,9 @@ class TelemetryController extends Controller
         foreach ($devices as $dev) {
             $readData = $modbusService->readDeviceRegisters($dev);
             $isDevOnline = (bool) ($readData['is_online'] ?? false);
+            if (! $isDevOnline && Cache::get("device_online_{$dev->id}", false)) {
+                $isDevOnline = true;
+            }
             $isSimulated = (bool) ($readData['is_simulated'] ?? false);
             if ($isDevOnline) {
                 $onlineDevicesCount++;
@@ -76,6 +79,74 @@ class TelemetryController extends Controller
             $readData['is_ph'] = $dev->isPhSensor();
             $readData['is_pressure'] = $dev->isPressureSensor();
             $params = $readData['parameters'];
+
+            $isPhDev = $devicePh ? ($dev->id === $devicePh->id) : ($dev->isPressureSensor() || $dev->isPhSensor());
+            $isRmsDev = $deviceRms && $dev->id === $deviceRms->id;
+            $isMhsDev = $deviceMhs && $dev->id === $deviceMhs->id;
+            $isHrmsDev = $deviceHrms && $dev->id === $deviceHrms->id;
+
+            $frVal = (float) ($params['flow_rate']['value'] ?? 0.0);
+            $totVal = (float) ($params['totalizer']['value'] ?? 0.0);
+
+            // Ekstraksi nilai sensor tekanan / pH secara mendalam
+            $pressVal = 0.0;
+            if ($isPhDev) {
+                if (isset($params['pressure']['value']) && is_numeric($params['pressure']['value']) && (float) $params['pressure']['value'] > 0) {
+                    $pressVal = (float) $params['pressure']['value'];
+                } elseif (isset($params['ph']['value']) && is_numeric($params['ph']['value']) && (float) $params['ph']['value'] > 0) {
+                    $pressVal = (float) $params['ph']['value'];
+                } else {
+                    foreach ($params as $pKey => $pData) {
+                        $v = isset($pData['value']) ? (float) $pData['value'] : 0.0;
+                        if ($v <= 0) {
+                            continue;
+                        }
+                        $unit = strtolower($pData['unit'] ?? '');
+                        $k = strtolower((string) $pKey);
+                        $pName = strtolower($pData['name'] ?? '');
+                        if (in_array($unit, ['bar', 'psi', 'kpa', 'mpa'])
+                            || in_array($k, ['pressure', 'press', 'tekanan', 'ph', 'other'])
+                            || str_contains($pName, 'tekanan')
+                            || str_contains($pName, 'pressure')
+                            || str_contains($pName, 'bar')) {
+                            $pressVal = $v;
+                            break;
+                        }
+                    }
+
+                    if ($pressVal <= 0) {
+                        foreach ($params as $pData) {
+                            $v = isset($pData['value']) ? (float) $pData['value'] : 0.0;
+                            if ($v > 0) {
+                                $pressVal = $v;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // Fallback ke cache sebelumnya jika device sedang offline / jeda siklus
+                $prevCached = Cache::get("device_latest_telemetry_{$dev->id}");
+                if ($pressVal <= 0 && ! empty($prevCached['pressure']) && (float) $prevCached['pressure'] > 0) {
+                    $pressVal = (float) $prevCached['pressure'];
+                }
+                if ($pressVal <= 0 && ! empty($prevCached['ph']) && (float) $prevCached['ph'] > 0) {
+                    $pressVal = (float) $prevCached['ph'];
+                }
+
+                // Fallback ke rekaman log terakhir database (non-simulated)
+                if ($pressVal <= 0) {
+                    $lastLogVal = MeterLog::where('device_id', $dev->id)
+                        ->where('is_simulated', false)
+                        ->whereNotNull('ph')
+                        ->where('ph', '>', 0)
+                        ->latest('logged_at')
+                        ->value('ph');
+                    if ($lastLogVal) {
+                        $pressVal = (float) $lastLogVal;
+                    }
+                }
+            }
 
             // Pencatatan otomatis ke meter_logs saat device online terhubung fisik (bukan simulasi)
             if ($isLoggerEnabled && $isDevOnline && ! $isSimulated) {
@@ -93,7 +164,7 @@ class TelemetryController extends Controller
                         'energy' => $params['energy']['value'] ?? null,
                         'totalizer' => $params['totalizer']['value'] ?? null,
                         'flow_rate' => $params['flow_rate']['value'] ?? null,
-                        'ph' => $params['pressure']['value'] ?? $params['ph']['value'] ?? null,
+                        'ph' => $pressVal > 0 ? $pressVal : ($params['pressure']['value'] ?? $params['ph']['value'] ?? null),
                         'raw_parameters' => $params,
                         'is_simulated' => false,
                         'logged_at' => now(),
@@ -104,10 +175,6 @@ class TelemetryController extends Controller
 
             // Simpan telemetri realtime terakhir ke Cache agar dashboard instan tanpa delay 0 saat navigasi menu
             if ($isDevOnline) {
-                $frVal = (float) ($params['flow_rate']['value'] ?? 0.0);
-                $totVal = (float) ($params['totalizer']['value'] ?? 0.0);
-                $pressVal = (float) ($params['pressure']['value'] ?? $params['ph']['value'] ?? 0.0);
-
                 $prevCached = Cache::get("device_latest_telemetry_{$dev->id}");
                 if ($frVal <= 0 && ! empty($prevCached['flow_rate'])) {
                     $frVal = (float) $prevCached['flow_rate'];
@@ -138,20 +205,14 @@ class TelemetryController extends Controller
                 if ($prevCached) {
                     $prevCached['is_online'] = false;
                     $prevCached['flow_rate'] = 0.0;
-                    $prevCached['pressure'] = 0.0;
-                    $prevCached['ph'] = 0.0;
+                    // JANGAN me-reset totalizer, pressure, dan ph ke 0 agar nilai telemetri terakhir tidak hilang saat offline
                     Cache::put("device_latest_telemetry_{$dev->id}", $prevCached, 86400);
                 }
             }
 
-            $isPhDev = ($devicePh && $dev->id === $devicePh->id) || $dev->isPressureSensor() || $dev->isPhSensor();
-            $isRmsDev = $deviceRms && $dev->id === $deviceRms->id;
-            $isMhsDev = $deviceMhs && $dev->id === $deviceMhs->id;
-            $isHrmsDev = $deviceHrms && $dev->id === $deviceHrms->id;
-
             if ($isPhDev) {
                 $phCount++;
-                $val = $isDevOnline ? (float) ($params['pressure']['value'] ?? $params['ph']['value'] ?? 0) : 0.0;
+                $val = $pressVal;
                 $status = ($val >= 1.0 && $val <= 4.0) ? 'Normal' : ($val > 0 ? 'Warning' : 'Standby');
                 $scadaMeters['pressure'] = ['value' => $val, 'status' => $status, 'is_online' => $isDevOnline];
                 $scadaMeters['ph'] = ['value' => $val, 'status' => $status, 'is_online' => $isDevOnline];
@@ -206,11 +267,60 @@ class TelemetryController extends Controller
             }
 
             $deviceResults[] = $readData;
+            usleep(30000);
         }
 
         $avgVoltage = count($voltages) > 0 ? round(array_sum($voltages) / count($voltages), 1) : 220.0;
         $avgPf = count($pfs) > 0 ? round(array_sum($pfs) / count($pfs), 2) : 0.96;
         $avgFreq = count($freqs) > 0 ? round(array_sum($freqs) / count($freqs), 2) : 50.0;
+
+        // Pastikan Card 4 (Pressure) tidak menjadi 0 jika ada nilai sebelumnya di cache / database
+        if ($scadaMeters['pressure']['value'] <= 0) {
+            $prevScada = Cache::get('scada_latest_telemetry');
+            if (! empty($prevScada['pressure']['value']) && (float) $prevScada['pressure']['value'] > 0) {
+                $pVal = (float) $prevScada['pressure']['value'];
+                $scadaMeters['pressure']['value'] = $pVal;
+                $scadaMeters['ph']['value'] = $pVal;
+                $st = ($pVal >= 1.0 && $pVal <= 4.0) ? 'Normal' : 'Warning';
+                $scadaMeters['pressure']['status'] = $st;
+                $scadaMeters['ph']['status'] = $st;
+                $currentPh = $pVal;
+            } elseif ($devicePh) {
+                $prevDevCache = Cache::get("device_latest_telemetry_{$devicePh->id}");
+                if (! empty($prevDevCache['pressure']) && (float) $prevDevCache['pressure'] > 0) {
+                    $pVal = (float) $prevDevCache['pressure'];
+                    $scadaMeters['pressure']['value'] = $pVal;
+                    $scadaMeters['ph']['value'] = $pVal;
+                    $st = ($pVal >= 1.0 && $pVal <= 4.0) ? 'Normal' : 'Warning';
+                    $scadaMeters['pressure']['status'] = $st;
+                    $scadaMeters['ph']['status'] = $st;
+                    $currentPh = $pVal;
+                }
+            }
+
+            if ($scadaMeters['pressure']['value'] <= 0 && $devicePh) {
+                $lastLogVal = MeterLog::where('device_id', $devicePh->id)
+                    ->where('is_simulated', false)
+                    ->whereNotNull('ph')
+                    ->where('ph', '>', 0)
+                    ->latest('logged_at')
+                    ->value('ph');
+                if ($lastLogVal) {
+                    $pVal = (float) $lastLogVal;
+                    $scadaMeters['pressure']['value'] = $pVal;
+                    $scadaMeters['ph']['value'] = $pVal;
+                    $st = ($pVal >= 1.0 && $pVal <= 4.0) ? 'Normal' : 'Warning';
+                    $scadaMeters['pressure']['status'] = $st;
+                    $scadaMeters['ph']['status'] = $st;
+                    $currentPh = $pVal;
+                }
+            }
+        }
+
+        if ($devicePh && Cache::get("device_online_{$devicePh->id}", false)) {
+            $scadaMeters['pressure']['is_online'] = true;
+            $scadaMeters['ph']['is_online'] = true;
+        }
 
         // Simpan scada telemetri & ringkasan ke Cache agar dashboard instan saat navigasi menu
         Cache::put('scada_latest_telemetry', $scadaMeters, 86400);

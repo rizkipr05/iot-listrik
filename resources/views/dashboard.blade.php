@@ -592,7 +592,7 @@
                                 </div>
                             </div>
                             <div class="mt-1">
-                                <span class="badge {{ $statusPh === 'Normal' ? 'bg-success text-white' : ($statusPh === 'Warning' ? 'bg-warning text-dark' : 'bg-secondary text-white') }} fw-bold px-2 py-0" style="font-size: 0.75rem;" id="phStatusBadge">{{ $statusPh }}</span>
+                                <span class="badge {{ $statusPh === 'Normal' ? 'bg-success text-white' : ($statusPh === 'Warning' ? 'bg-warning text-dark' : ($statusPh === 'Offline' ? 'bg-danger-subtle text-danger border border-danger-subtle' : 'bg-secondary text-white')) }} fw-bold px-2 py-0" style="font-size: 0.75rem;" id="phStatusBadge">{{ $statusPh }}</span>
                             </div>
                             <div class="fw-bold mono-font mt-1 {{ $isPhOnline ? 'text-success' : 'text-danger' }}" style="font-size: 0.75rem; text-transform: lowercase; line-height: 1;" id="statusTextPH">
                                 {{ $isPhOnline ? 'online' : 'offline' }}
@@ -620,10 +620,10 @@
 
                             <!-- Status Detail -->
                             <div class="d-flex align-items-start gap-2">
-                                <i class="bi {{ $statusPh === 'Normal' ? 'bi-check-circle-fill text-success' : ($statusPh === 'Warning' ? 'bi-exclamation-triangle-fill text-warning' : 'bi-pause-circle-fill text-secondary') }} fs-5" id="phStatusIcon"></i>
+                                <i class="bi {{ $statusPh === 'Normal' ? 'bi-check-circle-fill text-success' : ($statusPh === 'Warning' ? 'bi-exclamation-triangle-fill text-warning' : ($statusPh === 'Offline' ? 'bi-x-circle-fill text-danger' : 'bi-pause-circle-fill text-secondary')) }} fs-5" id="phStatusIcon"></i>
                                 <div style="line-height: 1.2;">
                                     <div class="text-muted small" style="font-size: 0.72rem;">Status</div>
-                                    <div class="fw-bold {{ $statusPh === 'Normal' ? 'text-success' : ($statusPh === 'Warning' ? 'text-warning' : 'text-secondary') }} fs-6" id="phStatusDetail">{{ $statusPh }}</div>
+                                    <div class="fw-bold {{ $statusPh === 'Normal' ? 'text-success' : ($statusPh === 'Warning' ? 'text-warning' : ($statusPh === 'Offline' ? 'text-danger' : 'text-secondary')) }} fs-6" id="phStatusDetail">{{ $statusPh }}</div>
                                     <div class="text-secondary" style="font-size: 0.68rem;">(1 ~ 4 bar)</div>
                                 </div>
                             </div>
@@ -1020,6 +1020,7 @@
     }
 
     // Set initial gauge values from server-rendered Blade state
+    window.scadaLastPressVal = {{ (float) $currentPh }};
     setGaugeProgress('circleProgressRMS', {{ $gaugePctRms }});
     setGaugeProgress('circleProgressMHS', {{ $gaugePctMhs }});
     setGaugeProgress('circleProgressHRMS', {{ $gaugePctHrms }});
@@ -1106,7 +1107,12 @@
 
         // Pressure
         const isPressOnline = Boolean(scada.pressure?.is_online ?? scada.ph?.is_online);
-        const pressVal = isPressOnline ? Number(scada.pressure?.value ?? scada.ph?.value ?? 0) : 0;
+        let pressVal = Number(scada.pressure?.value ?? scada.ph?.value ?? data.summary?.current_ph ?? 0);
+        if (pressVal <= 0 && window.scadaLastPressVal > 0) {
+            pressVal = window.scadaLastPressVal;
+        } else if (pressVal > 0) {
+            window.scadaLastPressVal = pressVal;
+        }
         const elValPH = document.getElementById('valPH');
         if (elValPH) elValPH.textContent = pressVal.toFixed(2);
         const elDetailPH = document.getElementById('detailValPH');
@@ -1226,6 +1232,16 @@
             const parsed = JSON.parse(raw);
             // Hanya pulihkan jika cache masih segar (< 30 detik), agar tidak menampilkan data usang saat device sudah offline
             if (parsed && parsed.scada && parsed.timestamp && (Date.now() - parsed.timestamp) < 30000) {
+                if (window.scadaLastPressVal > 0 && Number(parsed.scada?.pressure?.value ?? 0) <= 0) {
+                    if (parsed.scada.pressure) {
+                        parsed.scada.pressure.value = window.scadaLastPressVal;
+                        parsed.scada.pressure.status = (window.scadaLastPressVal >= 1.0 && window.scadaLastPressVal <= 4.0) ? 'Normal' : 'Warning';
+                    }
+                    if (parsed.scada.ph) {
+                        parsed.scada.ph.value = window.scadaLastPressVal;
+                        parsed.scada.ph.status = parsed.scada.pressure ? parsed.scada.pressure.status : 'Normal';
+                    }
+                }
                 updateDashboardUI(parsed);
             }
         } catch (e) {

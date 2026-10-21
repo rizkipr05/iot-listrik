@@ -93,16 +93,23 @@ class Device extends Model
         }
 
         $text = strtolower($this->name.' '.$this->description);
-        if (str_contains($text, 'pressure')
-            || str_contains($text, 'bar')
-            || str_contains($text, 'tekanan')
-            || str_contains($text, 'press')
-            || str_contains($text, 'psi')) {
+        if (preg_match('/\b(pressure|bar|tekanan|press|psi)\b/i', $text)) {
             return true;
         }
 
         if ($this->relationLoaded('registers')) {
             return $this->registers->contains(fn ($r) => in_array($r->parameter_key, ['pressure', 'press', 'tekanan']) || in_array(strtolower($r->unit ?? ''), ['bar', 'psi', 'kpa', 'mpa']));
+        }
+
+        if ($this->exists) {
+            try {
+                return $this->registers()->where(function ($q) {
+                    $q->whereIn('parameter_key', ['pressure', 'press', 'tekanan'])
+                        ->orWhereIn('unit', ['Bar', 'bar', 'psi', 'PSI', 'kPa', 'kpa', 'MPa', 'mpa']);
+                })->exists();
+            } catch (\Throwable) {
+                return false;
+            }
         }
 
         return false;

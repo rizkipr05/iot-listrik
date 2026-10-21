@@ -97,6 +97,10 @@ class DashboardController extends Controller
                 ? (bool) $cachedScada['pressure']['is_online']
                 : ($devicePh ? (bool) Cache::get("device_online_{$devicePh->id}", false) : false));
 
+        if (! $isPhOnline && $devicePh && Cache::get("device_online_{$devicePh->id}", false)) {
+            $isPhOnline = true;
+        }
+
         $currentRmsFlow = $isRmsOnline ? (
             ! empty($cachedDevRms['flow_rate']) && $cachedDevRms['flow_rate'] > 0
                 ? (float) $cachedDevRms['flow_rate']
@@ -155,15 +159,17 @@ class DashboardController extends Controller
                         : 0.0))
         ) : 0.0;
 
-        $currentPh = $isPhOnline ? (
-            ! empty($cachedDevPh['pressure']) && $cachedDevPh['pressure'] > 0
-                ? (float) $cachedDevPh['pressure']
+        $currentPh = ! empty($cachedDevPh['pressure']) && $cachedDevPh['pressure'] > 0
+            ? (float) $cachedDevPh['pressure']
+            : (! empty($cachedDevPh['ph']) && $cachedDevPh['ph'] > 0
+                ? (float) $cachedDevPh['ph']
                 : (! empty($cachedScada['pressure']['value']) && $cachedScada['pressure']['value'] > 0
                     ? (float) $cachedScada['pressure']['value']
-                    : ($latestPh && $latestPh->ph > 0
-                        ? (float) $latestPh->ph
-                        : 0.0))
-        ) : 0.0;
+                    : (! empty($cachedScada['ph']['value']) && $cachedScada['ph']['value'] > 0
+                        ? (float) $cachedScada['ph']['value']
+                        : ($latestPh && $latestPh->ph > 0
+                            ? (float) $latestPh->ph
+                            : 0.0))));
 
         // Ambil riwayat log telemetri real (kecualikan data simulasi dummy)
         $recentLogs = MeterLog::with('device')
@@ -266,7 +272,9 @@ class DashboardController extends Controller
         $gaugeOffsetHrms = round($circumference - ($gaugePctHrms / 100) * $circumference, 1);
         $gaugeOffsetPh = round($circumference - ($gaugePctPh / 100) * $circumference, 1);
 
-        $statusPh = ($currentPh >= 1.0 && $currentPh <= 4.0) ? 'Normal' : ($currentPh > 0 ? 'Warning' : 'Standby');
+        $statusPh = ! $isPhOnline
+            ? 'Offline'
+            : (($currentPh >= 1.0 && $currentPh <= 4.0) ? 'Normal' : ($currentPh > 0 ? 'Warning' : 'Standby'));
 
         return view('dashboard', compact(
             'devices',
