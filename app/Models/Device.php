@@ -50,9 +50,28 @@ class Device extends Model
      */
     public function isFlowMeter(): bool
     {
-        return in_array($this->category, ['flow_meter', 'water_meter', 'digital_water_meter'])
-            || str_contains(strtolower($this->name), 'flow')
-            || str_contains(strtolower($this->name), 'air');
+        if (in_array($this->category, ['flow_meter', 'water_meter', 'digital_water_meter'])) {
+            return true;
+        }
+
+        $text = strtolower($this->name.' '.$this->description);
+        if (str_contains($text, 'flow')
+            || str_contains($text, 'air')
+            || str_contains($text, 'meter')
+            || str_contains($text, 'water')
+            || str_contains($text, 'chiller')
+            || str_contains($text, 'toilet')
+            || str_contains($text, 'office')
+            || str_contains($text, 'debit')
+            || str_contains($text, 'wm')) {
+            return true;
+        }
+
+        if ($this->relationLoaded('registers')) {
+            return $this->registers->contains(fn ($r) => in_array($r->parameter_key, ['flow_rate', 'totalizer', 'flow', 'volume']) || in_array(strtolower($r->unit ?? ''), ['m3/h', 'm³/h', 'm3', 'm³', 'l/min', 'l/h', 'lps', 'gpm']));
+        }
+
+        return false;
     }
 
     /**
@@ -69,9 +88,24 @@ class Device extends Model
      */
     public function isPressureSensor(): bool
     {
-        return $this->category === 'pressure_sensor'
-            || str_contains(strtolower($this->name), 'pressure')
-            || str_contains(strtolower($this->name), 'bar');
+        if ($this->category === 'pressure_sensor') {
+            return true;
+        }
+
+        $text = strtolower($this->name.' '.$this->description);
+        if (str_contains($text, 'pressure')
+            || str_contains($text, 'bar')
+            || str_contains($text, 'tekanan')
+            || str_contains($text, 'press')
+            || str_contains($text, 'psi')) {
+            return true;
+        }
+
+        if ($this->relationLoaded('registers')) {
+            return $this->registers->contains(fn ($r) => in_array($r->parameter_key, ['pressure', 'press', 'tekanan']) || in_array(strtolower($r->unit ?? ''), ['bar', 'psi', 'kpa', 'mpa']));
+        }
+
+        return false;
     }
 
     /**
@@ -150,7 +184,7 @@ class Device extends Model
         $rmsDev = $flowDevices->first(function ($d) {
             $text = strtolower($d->name.' '.$d->description);
 
-            return (str_contains($text, 'chiller') || str_contains($text, 'rms'))
+            return (str_contains($text, 'chiller') || str_contains($text, 'rms') || str_contains($text, '2"') || str_contains($text, '2 inch') || str_contains($text, 'dn50') || str_contains($text, 'electromagnetic'))
                 && ! str_contains($text, 'h-rms')
                 && ! str_contains($text, 'hrms');
         }) ?? $flowDevices->firstWhere('slave_id', 1);
@@ -158,7 +192,7 @@ class Device extends Model
         $mhsDev = $flowDevices->reject(fn ($d) => $rmsDev && $d->id === $rmsDev->id)->first(function ($d) {
             $text = strtolower($d->name.' '.$d->description);
 
-            return str_contains($text, 'toilet') || str_contains($text, 'mhs');
+            return str_contains($text, 'toilet') || str_contains($text, 'mhs') || str_contains($text, '3/4') || str_contains($text, 'ultrasonic');
         }) ?? $flowDevices->reject(fn ($d) => $rmsDev && $d->id === $rmsDev->id)->firstWhere('slave_id', 2);
 
         $hrmsDev = $flowDevices->reject(fn ($d) => ($rmsDev && $d->id === $rmsDev->id) || ($mhsDev && $d->id === $mhsDev->id))->first(function ($d) {
@@ -167,7 +201,9 @@ class Device extends Model
             return str_contains($text, 'office')
                 || str_contains($text, 'hrms')
                 || str_contains($text, 'h-rms')
-                || str_contains($text, 'dn20');
+                || str_contains($text, 'dn20')
+                || str_contains($text, 'photoelectric')
+                || str_contains($text, '1/2');
         }) ?? $flowDevices->reject(fn ($d) => ($rmsDev && $d->id === $rmsDev->id) || ($mhsDev && $d->id === $mhsDev->id))->firstWhere('slave_id', 3);
 
         // 4. Untuk slot yang belum terisi, distribusikan sisa device yang belum terpakai secara berurutan:

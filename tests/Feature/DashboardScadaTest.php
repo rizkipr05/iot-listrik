@@ -391,4 +391,57 @@ class DashboardScadaTest extends TestCase
         $this->assertEquals(20.2, $response->viewData('currentPh'));
         $response->assertSee('20.20');
     }
+
+    public function test_editing_pressure_sensor_name_does_not_affect_card_1_or_duplicate_names(): void
+    {
+        $pressDev = Device::create([
+            'name' => 'Pressure Sensor',
+            'category' => 'pressure_sensor',
+            'description' => 'Range : 0 - 10 bar (Normal : 1 - 4 bar)',
+            'ip_address' => '192.168.1.118',
+            'port' => 502,
+            'slave_id' => 1,
+            'timeout_ms' => 1500,
+            'is_active' => true,
+        ]);
+
+        $chillerDev = Device::create([
+            'name' => 'Flowmeter 2" Area Chiller',
+            'category' => 'flow_meter',
+            'description' => 'Nominal Size : 2 inch | Range : 0 ~ 300 m³/h',
+            'ip_address' => '192.168.1.118',
+            'port' => 502,
+            'slave_id' => 22,
+            'timeout_ms' => 1500,
+            'is_active' => true,
+        ]);
+
+        // Simulasikan user mengedit nama Pressure Sensor menjadi "Pressure Sensor2" melalui Device Management
+        $updateResponse = $this->actingAs($this->user)->put(route('devices.update', $pressDev), [
+            'name' => 'Pressure Sensor2',
+            'category' => 'pressure_sensor',
+            'description' => 'Range : 0 - 10 bar (Normal : 1 - 4 bar)',
+            'ip_address' => '192.168.1.118',
+            'port' => 502,
+            'slave_id' => 1,
+            'timeout_ms' => 1500,
+            'is_active' => 1,
+        ]);
+        $updateResponse->assertRedirect(route('devices.index'));
+
+        // Cek dashboard
+        $response = $this->actingAs($this->user)->get(route('dashboard'));
+        $response->assertStatus(200);
+
+        // Pastikan Card 1 (warna biru) TETAP Flowmeter 2" Area Chiller dan BUKAN Pressure Sensor2
+        $this->assertEquals($chillerDev->id, $response->viewData('deviceRms')?->id);
+        $this->assertEquals('Flowmeter 2" Area Chiller', $response->viewData('labelRms'));
+
+        // Pastikan Card 4 (warna orange) berubah menjadi Pressure Sensor2
+        $this->assertEquals($pressDev->id, $response->viewData('devicePh')?->id);
+        $this->assertEquals('Pressure Sensor2', $response->viewData('labelPh'));
+
+        // Pastikan tidak ada duplikasi nama di Card 1 dan Card 4
+        $this->assertNotEquals($response->viewData('labelRms'), $response->viewData('labelPh'));
+    }
 }
