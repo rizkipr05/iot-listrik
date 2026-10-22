@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Models\AppSetting;
 use App\Models\Device;
 use App\Models\MeterLog;
 use App\Models\Register;
 use App\Models\User;
+use App\Services\ModbusTcpService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
@@ -546,5 +548,176 @@ class DashboardScadaTest extends TestCase
         $dashboardResponse->assertStatus(200);
         $this->assertEquals(20.4, $dashboardResponse->viewData('currentPh'));
         $this->assertEquals('Offline', $dashboardResponse->viewData('statusPh'));
+    }
+
+    public function test_online_pressure_sensor_reading_zero_bar_is_not_overwritten_by_previous_log(): void
+    {
+        $pressDev = Device::create([
+            'name' => 'Pressure Sensor',
+            'category' => 'pressure_sensor',
+            'description' => 'Range 0 ~ 30 bar',
+            'ip_address' => '192.168.1.118',
+            'port' => 502,
+            'slave_id' => 1,
+            'timeout_ms' => 200,
+            'is_active' => true,
+        ]);
+
+        // Simulasikan ada rekaman lama di database sebesar 20.40 Bar
+        MeterLog::create([
+            'device_id' => $pressDev->id,
+            'ph' => 20.4,
+            'is_simulated' => false,
+            'logged_at' => now()->subHour(),
+        ]);
+
+        // Simulasikan device ONLINE dan saat ini membaca 0.0 Bar secara real time
+        Cache::put("device_online_{$pressDev->id}", true, 300);
+        Cache::put("device_latest_telemetry_{$pressDev->id}", [
+            'is_online' => true,
+            'pressure' => 0.0,
+            'ph' => 0.0,
+            'updated_at' => now()->toIso8601String(),
+        ], 86400);
+
+        Cache::put('scada_latest_telemetry', [
+            'pressure' => ['value' => 0.0, 'status' => 'Standby', 'is_online' => true],
+            'ph' => ['value' => 0.0, 'status' => 'Standby', 'is_online' => true],
+        ], 86400);
+
+        // Dashboard harus menampilkan 0.0 Bar, bukan 20.40 Bar
+        $dashboardResponse = $this->actingAs($this->user)->get(route('dashboard'));
+        $dashboardResponse->assertStatus(200);
+        $this->assertEquals(0.0, $dashboardResponse->viewData('currentPh'));
+        $this->assertEquals('Standby', $dashboardResponse->viewData('statusPh'));
+        $dashboardResponse->assertSee('0.00');
+
+        // Uji query Modbus real-time ketika terhubung ke sensor dan membaca nilai 0.0 Bar
+        $mockModbus = $this->mock(ModbusTcpService::class);
+        $mockModbus->shouldReceive('readDeviceRegisters')->andReturn([
+            'device_id' => $pressDev->id,
+            'device_name' => $pressDev->name,
+            'slave_id' => $pressDev->slave_id,
+            'is_online' => true,
+            'is_simulated' => false,
+            'parameters' => [
+                'pressure' => [
+                    'name' => 'Nilai Tekanan',
+                    'value' => 0.0,
+                    'unit' => 'Bar',
+                    'success' => true,
+                ],
+            ],
+        ]);
+        $mockModbus->shouldReceive('isGatewayReachable')->andReturn(true);
+
+        // API telemetri juga harus mempertahankan nilai 0.0 Bar saat online (bukan 20.4 Bar lama)
+        $liveResponse = $this->actingAs($this->user)->getJson(route('api.telemetry.live'));
+        $liveResponse->assertStatus(200);
+        $data = $liveResponse->json();
+        $this->assertEquals(0.0, $data['scada']['pressure']['value']);
+        $this->assertEquals('Standby', $data['scada']['pressure']['status']);
+        $this->assertTrue($data['scada']['pressure']['is_online']);
+    }
+
+    public function test_pressure_normal_range_configuration_and_dynamic_status(): void
+    {
+        $pressDev = Device::create([
+            'name' => 'Pressure Sensor',
+            'category' => 'pressure_sensor',
+            'description' => 'Range 0 ~ 30 bar',
+            'ip_address' => '192.168.1.118',
+            'port' => 502,
+            'slave_id' => 1,
+            'is_active' => true,
+        ]);
+
+        // Simpan rentang normal kustom: 2.0 s/d 8.0 Bar
+        AppSetting::setValue('pressure_normal_min', '2.0');
+        AppSetting::setValue('pressure_normal_max', '8.0');
+
+        Cache::put("device_online_{$pressDev->id}", true, 300);
+
+        // Kasus 1: Nilai 5.0 Bar (Normal, karena di antara 2.0 dan 8.0 Bar)
+        Cache::put("device_latest_telemetry_{$pressDev->id}", [
+            'is_online' => true,
+            'pressure' => 5.0,
+            'ph' => 5.0,
+            'updated_at' => now()->toIso8601String(),
+        ], 86400);
+
+        $response = $this->actingAs($this->user)->get(route('dashboard'));
+        $response->assertStatus(200);
+        $this->assertEquals(5.0, $response->viewData('currentPh'));
+        $this->assertEquals('Normal', $response->viewData('statusPh'));
+        $this->assertEquals(2.0, $response->viewData('pressureNormalMin'));
+        $this->assertEquals(8.0, $response->viewData('pressureNormalMax'));
+        $response->assertSee('(2 ~ 8 bar)');
+
+        // Kasus 2: Nilai 10.0 Bar (Warning, karena di atas 8.0 Bar)
+        Cache::put("device_latest_telemetry_{$pressDev->id}", [
+            'is_online' => true,
+            'pressure' => 10.0,
+            'ph' => 10.0,
+            'updated_at' => now()->toIso8601String(),
+        ], 86400);
+
+        $response2 = $this->actingAs($this->user)->get(route('dashboard'));
+        $this->assertEquals(10.0, $response2->viewData('currentPh'));
+        $this->assertEquals('Warning', $response2->viewData('statusPh'));
+
+        // Kasus 3: Nilai 1.0 Bar (Warning, karena di bawah 2.0 Bar)
+        Cache::put("device_latest_telemetry_{$pressDev->id}", [
+            'is_online' => true,
+            'pressure' => 1.0,
+            'ph' => 1.0,
+            'updated_at' => now()->toIso8601String(),
+        ], 86400);
+
+        $response3 = $this->actingAs($this->user)->get(route('dashboard'));
+        $this->assertEquals(1.0, $response3->viewData('currentPh'));
+        $this->assertEquals('Warning', $response3->viewData('statusPh'));
+    }
+
+    public function test_flowmeter_warning_threshold_and_capacity_influence_status(): void
+    {
+        // Setup meter Office (Meter 3) seperti pada screenshot klien
+        $officeDev = Device::create([
+            'name' => 'WATER METER DN20 | AREA OFFICE',
+            'category' => 'flow_meter',
+            'description' => 'Nominal Size : 1/2 inch | Range : 0 ~ 10 m³/h',
+            'ip_address' => '192.168.1.118',
+            'port' => 502,
+            'slave_id' => 3,
+            'timeout_ms' => 1500,
+            'is_active' => true,
+        ]);
+
+        // Atur kapasitas 250 m³/h dan ambang batas warning 85%
+        AppSetting::setValue('max_flowrate_hrms', '250.0');
+        AppSetting::setValue('flow_warning_percent', '85');
+
+        // Nilai debit aktual 223.1 m³/h (223.1 / 250 = 89.2% -> 89% >= 85% => Status WARNING)
+        Cache::put("device_latest_telemetry_{$officeDev->id}", [
+            'is_online' => true,
+            'flow_rate' => 223.1,
+            'totalizer' => 8.2,
+            'updated_at' => now()->toIso8601String(),
+        ], 86400);
+
+        $response = $this->actingAs($this->user)->get(route('dashboard'));
+        $response->assertStatus(200);
+        $this->assertEquals(89, $response->viewData('gaugePctHrms'));
+        $this->assertEquals('Warning', $response->viewData('statusHrms'));
+        $response->assertSee('id="hrmsStatusBadge"', false);
+        $response->assertSee('Warning');
+
+        // Uji jika kapasitas penuh diubah menjadi 300 m³/h (223.1 / 300 = 74.3% -> 74% < 85% => Status NORMAL)
+        AppSetting::setValue('max_flowrate_hrms', '300.0');
+
+        $response2 = $this->actingAs($this->user)->get(route('dashboard'));
+        $response2->assertStatus(200);
+        $this->assertEquals(74, $response2->viewData('gaugePctHrms'));
+        $this->assertEquals('Normal', $response2->viewData('statusHrms'));
     }
 }

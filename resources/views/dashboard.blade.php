@@ -325,12 +325,12 @@
             </div>
 
             <div class="d-flex align-items-center gap-2">
-                <!-- Tombol Halaman Pengaturan Skala Maksimal Meter -->
-                <a href="{{ route('settings.scales') }}" class="btn btn-sm text-white border border-light-subtle d-flex align-items-center gap-2 px-3 py-2 rounded-3 shadow-sm text-decoration-none" style="background: rgba(255, 255, 255, 0.16); backdrop-filter: blur(4px);" title="Buka Halaman Pengaturan Skala & Rentang Maksimal (Kondisi 100% Gauge)">
+                <!-- Tombol Halaman Pengaturan Skala Maksimal & Ambang Batas Meter -->
+                <a href="{{ route('settings.scales') }}" class="btn btn-sm text-white border border-light-subtle d-flex align-items-center gap-2 px-3 py-2 rounded-3 shadow-sm text-decoration-none" style="background: rgba(255, 255, 255, 0.16); backdrop-filter: blur(4px);" title="Buka Halaman Pengaturan Skala 100% Gauge & Ambang Batas Normal/Warning">
                     <i class="bi bi-sliders text-warning fs-5"></i>
                     <div class="text-start lh-1 d-none d-sm-block">
-                        <div class="fw-bold" style="font-size: 0.78rem; letter-spacing: 0.03em;">ATUR SKALA MAX</div>
-                        <small class="text-info-subtle" style="font-size: 0.65rem;">Halaman Kalibrasi Gauge</small>
+                        <div class="fw-bold" style="font-size: 0.78rem; letter-spacing: 0.03em;">ATUR SKALA MAX & BATAS</div>
+                        <small class="text-info-subtle" style="font-size: 0.65rem;">Kalibrasi Gauge & Warning</small>
                     </div>
                 </a>
 
@@ -369,7 +369,7 @@
                                 <svg class="circular-gauge-svg" viewBox="0 0 100 100">
                                     <circle class="gauge-bg-circle" cx="50" cy="50" r="40"></circle>
                                     <circle class="gauge-progress-circle" id="circleProgressRMS" cx="50" cy="50" r="40"
-                                        stroke="#1d4ed8" stroke-dasharray="251.32" stroke-dashoffset="{{ $gaugeOffsetRms }}">
+                                        stroke="{{ $statusRms === 'Warning' ? '#eab308' : '#1d4ed8' }}" stroke-dasharray="251.32" stroke-dashoffset="{{ $gaugeOffsetRms }}">
                                     </circle>
                                 </svg>
                                 <div class="gauge-inner-text">
@@ -378,8 +378,11 @@
                                     <span class="text-muted" style="font-size: 0.65rem;">m³/h</span>
                                 </div>
                             </div>
-                            <div class="fw-bold mono-font mt-1" style="color: #1d4ed8; font-size: 0.95rem;" id="pctRMS">{{ $gaugePctRms }}%</div>
-                            <div class="fw-bold mono-font {{ $isRmsOnline ? 'text-success' : 'text-danger' }}" style="font-size: 0.75rem; text-transform: lowercase; line-height: 1;" id="statusTextRMS">
+                            <div class="fw-bold mono-font mt-1" style="color: {{ $statusRms === 'Warning' ? '#d97706' : '#1d4ed8' }}; font-size: 0.95rem;" id="pctRMS">{{ $gaugePctRms }}%</div>
+                            <div class="mt-1">
+                                <span class="badge {{ $statusRms === 'Warning' ? 'bg-warning text-dark' : ($statusRms === 'Normal' ? 'bg-success text-white' : 'bg-danger-subtle text-danger border border-danger-subtle') }} fw-bold px-2 py-0" style="font-size: 0.75rem;" id="rmsStatusBadge">{{ $statusRms }}</span>
+                            </div>
+                            <div class="fw-bold mono-font mt-1 {{ $isRmsOnline ? 'text-success' : 'text-danger' }}" style="font-size: 0.75rem; text-transform: lowercase; line-height: 1;" id="statusTextRMS">
                                 {{ $isRmsOnline ? 'online' : 'offline' }}
                             </div>
                         </div>
@@ -440,7 +443,7 @@
                                 <svg class="circular-gauge-svg" viewBox="0 0 100 100">
                                     <circle class="gauge-bg-circle" cx="50" cy="50" r="40"></circle>
                                     <circle class="gauge-progress-circle" id="circleProgressMHS" cx="50" cy="50" r="40"
-                                        stroke="#059669" stroke-dasharray="251.32" stroke-dashoffset="{{ $gaugeOffsetMhs }}">
+                                        stroke="{{ $statusMhs === 'Warning' ? '#eab308' : '#059669' }}" stroke-dasharray="251.32" stroke-dashoffset="{{ $gaugeOffsetMhs }}">
                                     </circle>
                                 </svg>
                                 <div class="gauge-inner-text">
@@ -449,8 +452,11 @@
                                     <span class="text-muted" style="font-size: 0.65rem;">m³/h</span>
                                 </div>
                             </div>
-                            <div class="fw-bold mono-font mt-1" style="color: #059669; font-size: 0.95rem;" id="pctMHS">{{ $gaugePctMhs }}%</div>
-                            <div class="fw-bold mono-font {{ $isMhsOnline ? 'text-success' : 'text-danger' }}" style="font-size: 0.75rem; text-transform: lowercase; line-height: 1;" id="statusTextMHS">
+                            <div class="fw-bold mono-font mt-1" style="color: {{ $statusMhs === 'Warning' ? '#d97706' : '#059669' }}; font-size: 0.95rem;" id="pctMHS">{{ $gaugePctMhs }}%</div>
+                            <div class="mt-1">
+                                <span class="badge {{ $statusMhs === 'Warning' ? 'bg-warning text-dark' : ($statusMhs === 'Normal' ? 'bg-success text-white' : 'bg-danger-subtle text-danger border border-danger-subtle') }} fw-bold px-2 py-0" style="font-size: 0.75rem;" id="mhsStatusBadge">{{ $statusMhs }}</span>
+                            </div>
+                            <div class="fw-bold mono-font mt-1 {{ $isMhsOnline ? 'text-success' : 'text-danger' }}" style="font-size: 0.75rem; text-transform: lowercase; line-height: 1;" id="statusTextMHS">
                                 {{ $isMhsOnline ? 'online' : 'offline' }}
                             </div>
                         </div>
@@ -511,7 +517,7 @@
                                 <svg class="circular-gauge-svg" viewBox="0 0 100 100">
                                     <circle class="gauge-bg-circle" cx="50" cy="50" r="40"></circle>
                                     <circle class="gauge-progress-circle" id="circleProgressHRMS" cx="50" cy="50" r="40"
-                                        stroke="#7c3aed" stroke-dasharray="251.32" stroke-dashoffset="{{ $gaugeOffsetHrms }}">
+                                        stroke="{{ $statusHrms === 'Warning' ? '#eab308' : '#7c3aed' }}" stroke-dasharray="251.32" stroke-dashoffset="{{ $gaugeOffsetHrms }}">
                                     </circle>
                                 </svg>
                                 <div class="gauge-inner-text">
@@ -520,8 +526,11 @@
                                     <span class="text-muted" style="font-size: 0.65rem;">m³/h</span>
                                 </div>
                             </div>
-                            <div class="fw-bold mono-font mt-1" style="color: #7c3aed; font-size: 0.95rem;" id="pctHRMS">{{ $gaugePctHrms }}%</div>
-                            <div class="fw-bold mono-font {{ $isHrmsOnline ? 'text-success' : 'text-danger' }}" style="font-size: 0.75rem; text-transform: lowercase; line-height: 1;" id="statusTextHRMS">
+                            <div class="fw-bold mono-font mt-1" style="color: {{ $statusHrms === 'Warning' ? '#d97706' : '#7c3aed' }}; font-size: 0.95rem;" id="pctHRMS">{{ $gaugePctHrms }}%</div>
+                            <div class="mt-1">
+                                <span class="badge {{ $statusHrms === 'Warning' ? 'bg-warning text-dark' : ($statusHrms === 'Normal' ? 'bg-success text-white' : 'bg-danger-subtle text-danger border border-danger-subtle') }} fw-bold px-2 py-0" style="font-size: 0.75rem;" id="hrmsStatusBadge">{{ $statusHrms }}</span>
+                            </div>
+                            <div class="fw-bold mono-font mt-1 {{ $isHrmsOnline ? 'text-success' : 'text-danger' }}" style="font-size: 0.75rem; text-transform: lowercase; line-height: 1;" id="statusTextHRMS">
                                 {{ $isHrmsOnline ? 'online' : 'offline' }}
                             </div>
                         </div>
@@ -582,7 +591,7 @@
                                 <svg class="circular-gauge-svg" viewBox="0 0 100 100">
                                     <circle class="gauge-bg-circle" cx="50" cy="50" r="40"></circle>
                                     <circle class="gauge-progress-circle" id="circleProgressPH" cx="50" cy="50" r="40"
-                                        stroke="#ea580c" stroke-dasharray="251.32" stroke-dashoffset="{{ $gaugeOffsetPh }}">
+                                        stroke="{{ $statusPh === 'Normal' ? '#10b981' : ($statusPh === 'Warning' ? '#ea580c' : ($statusPh === 'Offline' ? '#ef4444' : '#94a3b8')) }}" stroke-dasharray="251.32" stroke-dashoffset="{{ $gaugeOffsetPh }}">
                                     </circle>
                                 </svg>
                                 <div class="gauge-inner-text">
@@ -624,14 +633,19 @@
                                 <div style="line-height: 1.2;">
                                     <div class="text-muted small" style="font-size: 0.72rem;">Status</div>
                                     <div class="fw-bold {{ $statusPh === 'Normal' ? 'text-success' : ($statusPh === 'Warning' ? 'text-warning' : ($statusPh === 'Offline' ? 'text-danger' : 'text-secondary')) }} fs-6" id="phStatusDetail">{{ $statusPh }}</div>
-                                    <div class="text-secondary" style="font-size: 0.68rem;">(1 ~ 4 bar)</div>
+                                    <div class="text-secondary d-flex align-items-center gap-1" style="font-size: 0.68rem;">
+                                        <span id="pressureNormalRangeText">({{ $pressureNormalMin }} ~ {{ $pressureNormalMax }} bar)</span>
+                                        <a href="{{ route('settings.scales') }}" class="text-decoration-none text-muted" title="Ubah Batasan Nilai Normal & Warning (Min - Max)">
+                                            <i class="bi bi-gear-fill" style="font-size: 0.68rem;"></i>
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="scada-card-footer">
-                    {{ $descPh }}
+                <div class="scada-card-footer" id="footerPH">
+                    <span id="footerDescPH">{{ $descPh }}</span> &bull; Normal : <span id="footerNormalRangePH">{{ $pressureNormalMin }} ~ {{ $pressureNormalMax }} bar</span>
                 </div>
             </div>
         </div>
@@ -1034,19 +1048,18 @@
         let scaleMhs = {{ (float) $maxMhs }};
         let scaleHrms = {{ (float) $maxHrms }};
         let scalePh = {{ (float) $maxPh }};
+        let pressMin = {{ (float) $pressureNormalMin }};
+        let pressMax = {{ (float) $pressureNormalMax }};
+        let flowWarningPct = {{ (int) $flowWarningPct }};
 
         if (data.scales) {
             if (data.scales.rms_max) scaleRms = Number(data.scales.rms_max);
             if (data.scales.mhs_max) scaleMhs = Number(data.scales.mhs_max);
             if (data.scales.hrms_max) scaleHrms = Number(data.scales.hrms_max);
             if (data.scales.pressure_max) scalePh = Number(data.scales.pressure_max);
-        }
-
-        if (data.scales) {
-            if (data.scales.rms_max) scaleRms = Number(data.scales.rms_max);
-            if (data.scales.mhs_max) scaleMhs = Number(data.scales.mhs_max);
-            if (data.scales.hrms_max) scaleHrms = Number(data.scales.hrms_max);
-            if (data.scales.pressure_max) scalePh = Number(data.scales.pressure_max);
+            if (data.scales.pressure_normal_min !== undefined) pressMin = Number(data.scales.pressure_normal_min);
+            if (data.scales.pressure_normal_max !== undefined) pressMax = Number(data.scales.pressure_normal_max);
+            if (data.scales.warning_percent !== undefined) flowWarningPct = Number(data.scales.warning_percent);
 
             const rRms = document.getElementById('rangeTextRMS');
             if (rRms) rRms.textContent = `(Range 0 ~ ${scaleRms} m³/h)`;
@@ -1058,6 +1071,10 @@
             if (rPh) rPh.textContent = `(Range 0 ~ ${scalePh} bar)`;
             const maxTick = document.getElementById('phBarMaxTick');
             if (maxTick) maxTick.textContent = `${scalePh} bar`;
+            const pRangeText = document.getElementById('pressureNormalRangeText');
+            if (pRangeText) pRangeText.textContent = `(${pressMin} ~ ${pressMax} bar)`;
+            const fRangeText = document.getElementById('footerNormalRangePH');
+            if (fRangeText) fRangeText.textContent = `${pressMin} ~ ${pressMax} bar`;
         }
 
         // RMS
@@ -1075,6 +1092,36 @@
         if (elPctRMS) elPctRMS.textContent = rmsPct + '%';
         setGaugeProgress('circleProgressRMS', rmsPct);
 
+        const circleRms = document.getElementById('circleProgressRMS');
+        const badgeRms = document.getElementById('rmsStatusBadge');
+        const elStatusRMS = document.getElementById('statusTextRMS');
+        if (elStatusRMS) {
+            elStatusRMS.textContent = isRmsOnline ? 'online' : 'offline';
+            elStatusRMS.className = `fw-bold mono-font mt-1 ${isRmsOnline ? 'text-success' : 'text-danger'}`;
+        }
+        if (!isRmsOnline) {
+            if (badgeRms) {
+                badgeRms.className = 'badge bg-danger-subtle text-danger border border-danger-subtle fw-bold px-2 py-0';
+                badgeRms.textContent = 'Offline';
+            }
+            if (elPctRMS) elPctRMS.style.color = '#1d4ed8';
+            if (circleRms) circleRms.setAttribute('stroke', '#1d4ed8');
+        } else if (rmsPct >= flowWarningPct) {
+            if (badgeRms) {
+                badgeRms.className = 'badge bg-warning text-dark fw-bold px-2 py-0';
+                badgeRms.textContent = 'Warning';
+            }
+            if (elPctRMS) elPctRMS.style.color = '#d97706';
+            if (circleRms) circleRms.setAttribute('stroke', '#eab308');
+        } else {
+            if (badgeRms) {
+                badgeRms.className = 'badge bg-success text-white fw-bold px-2 py-0';
+                badgeRms.textContent = 'Normal';
+            }
+            if (elPctRMS) elPctRMS.style.color = '#1d4ed8';
+            if (circleRms) circleRms.setAttribute('stroke', '#1d4ed8');
+        }
+
         // MHS
         const isMhsOnline = Boolean(scada.mhs?.is_online);
         const mhs = isMhsOnline ? Number(scada.mhs?.flow_rate ?? 0) : 0;
@@ -1089,6 +1136,36 @@
         const elPctMHS = document.getElementById('pctMHS');
         if (elPctMHS) elPctMHS.textContent = mhsPct + '%';
         setGaugeProgress('circleProgressMHS', mhsPct);
+
+        const circleMhs = document.getElementById('circleProgressMHS');
+        const badgeMhs = document.getElementById('mhsStatusBadge');
+        const elStatusMHS = document.getElementById('statusTextMHS');
+        if (elStatusMHS) {
+            elStatusMHS.textContent = isMhsOnline ? 'online' : 'offline';
+            elStatusMHS.className = `fw-bold mono-font mt-1 ${isMhsOnline ? 'text-success' : 'text-danger'}`;
+        }
+        if (!isMhsOnline) {
+            if (badgeMhs) {
+                badgeMhs.className = 'badge bg-danger-subtle text-danger border border-danger-subtle fw-bold px-2 py-0';
+                badgeMhs.textContent = 'Offline';
+            }
+            if (elPctMHS) elPctMHS.style.color = '#059669';
+            if (circleMhs) circleMhs.setAttribute('stroke', '#059669');
+        } else if (mhsPct >= flowWarningPct) {
+            if (badgeMhs) {
+                badgeMhs.className = 'badge bg-warning text-dark fw-bold px-2 py-0';
+                badgeMhs.textContent = 'Warning';
+            }
+            if (elPctMHS) elPctMHS.style.color = '#d97706';
+            if (circleMhs) circleMhs.setAttribute('stroke', '#eab308');
+        } else {
+            if (badgeMhs) {
+                badgeMhs.className = 'badge bg-success text-white fw-bold px-2 py-0';
+                badgeMhs.textContent = 'Normal';
+            }
+            if (elPctMHS) elPctMHS.style.color = '#059669';
+            if (circleMhs) circleMhs.setAttribute('stroke', '#059669');
+        }
 
         // H-RMS
         const isHrmsOnline = Boolean(scada.h_rms?.is_online);
@@ -1105,14 +1182,53 @@
         if (elPctHRMS) elPctHRMS.textContent = hrmsPct + '%';
         setGaugeProgress('circleProgressHRMS', hrmsPct);
 
+        const circleHrms = document.getElementById('circleProgressHRMS');
+        const badgeHrms = document.getElementById('hrmsStatusBadge');
+        const elStatusHRMS = document.getElementById('statusTextHRMS');
+        if (elStatusHRMS) {
+            elStatusHRMS.textContent = isHrmsOnline ? 'online' : 'offline';
+            elStatusHRMS.className = `fw-bold mono-font mt-1 ${isHrmsOnline ? 'text-success' : 'text-danger'}`;
+        }
+        if (!isHrmsOnline) {
+            if (badgeHrms) {
+                badgeHrms.className = 'badge bg-danger-subtle text-danger border border-danger-subtle fw-bold px-2 py-0';
+                badgeHrms.textContent = 'Offline';
+            }
+            if (elPctHRMS) elPctHRMS.style.color = '#7c3aed';
+            if (circleHrms) circleHrms.setAttribute('stroke', '#7c3aed');
+        } else if (hrmsPct >= flowWarningPct) {
+            if (badgeHrms) {
+                badgeHrms.className = 'badge bg-warning text-dark fw-bold px-2 py-0';
+                badgeHrms.textContent = 'Warning';
+            }
+            if (elPctHRMS) elPctHRMS.style.color = '#d97706';
+            if (circleHrms) circleHrms.setAttribute('stroke', '#eab308');
+        } else {
+            if (badgeHrms) {
+                badgeHrms.className = 'badge bg-success text-white fw-bold px-2 py-0';
+                badgeHrms.textContent = 'Normal';
+            }
+            if (elPctHRMS) elPctHRMS.style.color = '#7c3aed';
+            if (circleHrms) circleHrms.setAttribute('stroke', '#7c3aed');
+        }
+
         // Pressure
         const isPressOnline = Boolean(scada.pressure?.is_online ?? scada.ph?.is_online);
-        let pressVal = Number(scada.pressure?.value ?? scada.ph?.value ?? data.summary?.current_ph ?? 0);
-        if (pressVal <= 0 && window.scadaLastPressVal > 0) {
-            pressVal = window.scadaLastPressVal;
-        } else if (pressVal > 0) {
-            window.scadaLastPressVal = pressVal;
+        let pressVal = 0;
+        if (scada.pressure?.value !== undefined && scada.pressure?.value !== null) {
+            pressVal = Number(scada.pressure.value);
+        } else if (scada.ph?.value !== undefined && scada.ph?.value !== null) {
+            pressVal = Number(scada.ph.value);
+        } else if (data.summary?.current_ph !== undefined && data.summary?.current_ph !== null) {
+            pressVal = Number(data.summary.current_ph);
         }
+
+        if (isPressOnline) {
+            window.scadaLastPressVal = pressVal;
+        } else if (pressVal <= 0 && window.scadaLastPressVal > 0) {
+            pressVal = window.scadaLastPressVal;
+        }
+
         const elValPH = document.getElementById('valPH');
         if (elValPH) elValPH.textContent = pressVal.toFixed(2);
         const elDetailPH = document.getElementById('detailValPH');
@@ -1131,13 +1247,19 @@
             badgeClass = 'badge bg-danger-subtle text-danger border border-danger-subtle fw-bold px-2 py-0';
             detailClass = 'fw-bold text-danger fs-6';
             iconClass = 'bi bi-x-circle-fill fs-5 text-danger';
-        } else if (pressVal >= 1.0 && pressVal <= 4.0) {
+        } else if (pressVal <= 0) {
+            statusText = 'Standby';
+            curClass = 'text-secondary';
+            badgeClass = 'badge bg-secondary text-white fw-bold px-2 py-0';
+            detailClass = 'fw-bold text-secondary fs-6';
+            iconClass = 'bi bi-pause-circle-fill fs-5 text-secondary';
+        } else if (pressVal >= pressMin && pressVal <= pressMax) {
             statusText = 'Normal';
             curClass = 'text-success';
             badgeClass = 'badge bg-success text-white fw-bold px-2 py-0';
             detailClass = 'fw-bold text-success fs-6';
             iconClass = 'bi bi-check-circle-fill fs-5 text-success';
-        } else if (pressVal > 0) {
+        } else {
             statusText = 'Warning';
             curClass = 'text-warning';
             badgeClass = 'badge bg-warning text-dark fw-bold px-2 py-0';
@@ -1166,6 +1288,18 @@
 
         const pressPct = isPressOnline ? Math.min(100, Math.max(0, Math.round((pressVal / Math.max(0.001, scalePh)) * 100))) : 0;
         setGaugeProgress('circleProgressPH', pressPct);
+        const circlePh = document.getElementById('circleProgressPH');
+        if (circlePh) {
+            if (!isPressOnline) {
+                circlePh.setAttribute('stroke', '#ef4444');
+            } else if (pressVal <= 0) {
+                circlePh.setAttribute('stroke', '#94a3b8');
+            } else if (pressVal >= pressMin && pressVal <= pressMax) {
+                circlePh.setAttribute('stroke', '#10b981');
+            } else {
+                circlePh.setAttribute('stroke', '#ea580c');
+            }
+        }
         const pointer = document.getElementById('phPointer');
         if (pointer) pointer.style.left = pressPct + '%';
 

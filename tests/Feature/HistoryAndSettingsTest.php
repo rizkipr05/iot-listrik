@@ -82,6 +82,8 @@ class HistoryAndSettingsTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertSee('Pengaturan Interval Data Logger');
+        $response->assertSee('Skala & Ambang Batas Warning', false);
+        $response->assertSee(route('settings.scales'));
         $response->assertDontSee('name="max_flowrate_rms"', false);
     }
 
@@ -298,6 +300,8 @@ class HistoryAndSettingsTest extends TestCase
         $response->assertSee('name="max_flowrate_mhs"', false);
         $response->assertSee('name="max_flowrate_hrms"', false);
         $response->assertSee('name="max_pressure"', false);
+        $response->assertSee('name="pressure_normal_min"', false);
+        $response->assertSee('name="pressure_normal_max"', false);
         $response->assertSee('name="flow_warning_percent"', false);
     }
 
@@ -308,6 +312,8 @@ class HistoryAndSettingsTest extends TestCase
             'max_flowrate_mhs' => 10.0,
             'max_flowrate_hrms' => 25.0,
             'max_pressure' => 16.0,
+            'pressure_normal_min' => 1.5,
+            'pressure_normal_max' => 5.0,
             'flow_warning_percent' => 90,
         ]);
 
@@ -316,6 +322,8 @@ class HistoryAndSettingsTest extends TestCase
         $this->assertEquals('10', AppSetting::getValue('max_flowrate_mhs'));
         $this->assertEquals('25', AppSetting::getValue('max_flowrate_hrms'));
         $this->assertEquals('16', AppSetting::getValue('max_pressure'));
+        $this->assertEquals('1.5', AppSetting::getValue('pressure_normal_min'));
+        $this->assertEquals('5', AppSetting::getValue('pressure_normal_max'));
         $this->assertEquals('90', AppSetting::getValue('flow_warning_percent'));
     }
 
@@ -394,6 +402,8 @@ class HistoryAndSettingsTest extends TestCase
             'max_flowrate_mhs' => 10.0,
             'max_flowrate_hrms' => 10.0,
             'max_pressure' => 10.0,
+            'pressure_normal_min' => 1.5,
+            'pressure_normal_max' => 5.0,
             'flow_warning_percent' => 85,
         ]);
 
@@ -405,11 +415,15 @@ class HistoryAndSettingsTest extends TestCase
                 'mhs_max' => 10.0,
                 'hrms_max' => 10.0,
                 'pressure_max' => 10.0,
+                'pressure_normal_min' => 1.5,
+                'pressure_normal_max' => 5.0,
                 'warning_percent' => 85,
             ],
         ]);
 
         $this->assertEquals('4', AppSetting::getValue('max_flowrate_rms'));
+        $this->assertEquals('1.5', AppSetting::getValue('pressure_normal_min'));
+        $this->assertEquals('5', AppSetting::getValue('pressure_normal_max'));
     }
 
     public function test_history_displays_pressure_in_bar_and_calculates_proper_flow_aggregates()

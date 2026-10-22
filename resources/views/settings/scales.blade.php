@@ -52,14 +52,14 @@
     <div>
         <div class="d-flex align-items-center gap-2 mb-1">
             <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1 rounded-pill small fw-bold" style="font-size: 0.7rem;">
-                <i class="bi bi-speedometer2 me-1"></i> GAUGE SCALE CALIBRATION
+                <i class="bi bi-speedometer2 me-1"></i> GAUGE SCALE & THRESHOLD CALIBRATION
             </span>
             <span class="badge bg-light text-secondary border rounded-pill px-2 py-1 small mono-font" style="font-size: 0.7rem;">
-                SCADA FULL SCALE 100%
+                SCADA 100% SCALE &bull; NORMAL &bull; WARNING
             </span>
         </div>
-        <h4 class="fw-bold mb-0 text-dark">Pengaturan Skala Maksimal Gauge Meter</h4>
-        <small class="text-muted">Tentukan kapasitas aliran (m³/h) dan tekanan (Bar) sebagai acuan 100% penuh lingkaran meter pada dashboard.</small>
+        <h4 class="fw-bold mb-0 text-dark">Pengaturan Skala Gauge & Ambang Batas Status (Normal / Warning)</h4>
+        <small class="text-muted">Tentukan kapasitas 100% penuh lingkaran meter serta nilai batasan status Normal & Warning untuk aliran dan sensor tekanan pipa.</small>
     </div>
     <div class="d-flex flex-wrap gap-2">
         <a href="{{ route('dashboard') }}" class="btn btn-outline-primary rounded-pill px-3 shadow-sm">
@@ -264,7 +264,7 @@
                             METER 4 (SLAVE ID: 4)
                         </span>
                         <h5 class="fw-bold text-dark mb-0">{{ $labelPh }}</h5>
-                        <small class="text-muted d-block mt-1">{{ $descPh }} &bull; Normal: 1.0 ~ 4.0 Bar</small>
+                        <small class="text-muted d-block mt-1">{{ $descPh }} &bull; Normal: <span id="labelNormalRange">{{ $pressureNormalMin }} ~ {{ $pressureNormalMax }} Bar</span></small>
                     </div>
                     <div class="p-2 bg-warning-subtle text-warning rounded-3 fs-4">
                         <i class="bi bi-speedometer2"></i>
@@ -296,6 +296,75 @@
                         <button type="button" class="btn preset-chip-btn" onclick="applyPreset('max_pressure', 10.0)">10 Bar (Standar)</button>
                         <button type="button" class="btn preset-chip-btn" onclick="applyPreset('max_pressure', 16.0)">16 Bar</button>
                         <button type="button" class="btn preset-chip-btn" onclick="applyPreset('max_pressure', 25.0)">25 Bar</button>
+                        <button type="button" class="btn preset-chip-btn" onclick="applyPreset('max_pressure', 30.0)">30 Bar</button>
+                    </div>
+
+                    <!-- Pengaturan Ambang Batas Status Normal (Min - Max) -->
+                    <div class="mt-4 pt-3 border-top">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <label class="form-label fw-bold small text-secondary mb-0">
+                                <i class="bi bi-shield-check text-success me-1"></i> Rentang Batas Tekanan Normal (Min ~ Max)
+                            </label>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill small px-2 py-0" style="font-size: 0.68rem;">Status: Normal</span>
+                        </div>
+
+                        <!-- Preset Cepat Rentang Tekanan Normal -->
+                        <div class="d-flex flex-wrap align-items-center gap-1 mb-2">
+                            <span class="small text-muted me-1 fw-semibold" style="font-size: 0.72rem;">Preset:</span>
+                            <button type="button" class="btn preset-chip-btn" onclick="applyNormalPreset(1.0, 4.0)">1.0 ~ 4.0 Bar (Standar Pompa)</button>
+                            <button type="button" class="btn preset-chip-btn" onclick="applyNormalPreset(1.5, 3.5)">1.5 ~ 3.5 Bar</button>
+                            <button type="button" class="btn preset-chip-btn" onclick="applyNormalPreset(2.0, 5.0)">2.0 ~ 5.0 Bar</button>
+                            <button type="button" class="btn preset-chip-btn" onclick="applyNormalPreset(2.0, 8.0)">2.0 ~ 8.0 Bar (Tekanan Tinggi)</button>
+                        </div>
+
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label for="pressure_normal_min" class="form-label small text-muted mb-1" style="font-size: 0.75rem;">
+                                    Batas Minimal (Min) <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <input type="number" step="0.1" min="0" max="1000" 
+                                           class="form-control mono-font fw-bold text-success @error('pressure_normal_min') is-invalid @enderror" 
+                                           id="pressure_normal_min" 
+                                           name="pressure_normal_min" 
+                                           value="{{ old('pressure_normal_min', $pressureNormalMin) }}" 
+                                           required>
+                                    <span class="input-group-text bg-light mono-font small text-muted">Bar</span>
+                                </div>
+                                @error('pressure_normal_min')
+                                    <div class="text-danger small">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="col-6">
+                                <label for="pressure_normal_max" class="form-label small text-muted mb-1" style="font-size: 0.75rem;">
+                                    Batas Maksimal (Max) <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <input type="number" step="0.1" min="0.1" max="1000" 
+                                           class="form-control mono-font fw-bold text-success @error('pressure_normal_max') is-invalid @enderror" 
+                                           id="pressure_normal_max" 
+                                           name="pressure_normal_max" 
+                                           value="{{ old('pressure_normal_max', $pressureNormalMax) }}" 
+                                           required>
+                                    <span class="input-group-text bg-light mono-font small text-muted">Bar</span>
+                                </div>
+                                @error('pressure_normal_max')
+                                    <div class="text-danger small">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+
+                        <div class="alert alert-light border rounded-3 p-2 mt-2 mb-0" style="font-size: 0.73rem; background: #f8fafc;">
+                            <div class="text-secondary">
+                                <strong>Logika Status Sensor Tekanan di Dashboard:</strong>
+                                <ul class="mb-0 ps-3 mt-1">
+                                    <li><span class="badge bg-success py-0 px-1">Normal</span> : Tekanan berada di antara <strong>Min s/d Max</strong> (Pipa aman & operasional stabil).</li>
+                                    <li><span class="badge bg-warning text-dark py-0 px-1">Warning</span> : Tekanan melebihi Max (overpressure) atau di bawah Min saat pompa berjalan (indikasi pipa bocor / drop).</li>
+                                    <li><span class="badge bg-secondary py-0 px-1">Standby</span> : Tekanan 0 Bar (pipa kosong / pompa nonaktif).</li>
+                                    <li><span class="badge bg-danger py-0 px-1">Offline</span> : Sensor tidak terhubung / koneksi Modbus terputus.</li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -351,6 +420,21 @@
             el.classList.add('bg-warning-subtle');
             setTimeout(() => {
                 el.classList.remove('bg-warning-subtle');
+            }, 300);
+        }
+    }
+
+    function applyNormalPreset(minVal, maxVal) {
+        const elMin = document.getElementById('pressure_normal_min');
+        const elMax = document.getElementById('pressure_normal_max');
+        if (elMin && elMax) {
+            elMin.value = minVal;
+            elMax.value = maxVal;
+            elMin.classList.add('bg-success-subtle');
+            elMax.classList.add('bg-success-subtle');
+            setTimeout(() => {
+                elMin.classList.remove('bg-success-subtle');
+                elMax.classList.remove('bg-success-subtle');
             }, 300);
         }
     }

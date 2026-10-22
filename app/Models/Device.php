@@ -190,16 +190,20 @@ class Device extends Model
         // 3. Pencocokan spesifik instrumen berdasarkan keyword nama/deskripsi atau Slave ID standar:
         $rmsDev = $flowDevices->first(function ($d) {
             $text = strtolower($d->name.' '.$d->description);
+            $hasTwoInch = (str_contains($text, '2"') || str_contains($text, '2 inch')) && ! str_contains($text, '1/2');
 
-            return (str_contains($text, 'chiller') || str_contains($text, 'rms') || str_contains($text, '2"') || str_contains($text, '2 inch') || str_contains($text, 'dn50') || str_contains($text, 'electromagnetic'))
+            return (str_contains($text, 'chiller') || str_contains($text, 'rms') || $hasTwoInch || str_contains($text, 'dn50') || str_contains($text, 'electromagnetic'))
                 && ! str_contains($text, 'h-rms')
-                && ! str_contains($text, 'hrms');
+                && ! str_contains($text, 'hrms')
+                && ! str_contains($text, 'office')
+                && ! str_contains($text, 'toilet');
         }) ?? $flowDevices->firstWhere('slave_id', 1);
 
         $mhsDev = $flowDevices->reject(fn ($d) => $rmsDev && $d->id === $rmsDev->id)->first(function ($d) {
             $text = strtolower($d->name.' '.$d->description);
 
-            return str_contains($text, 'toilet') || str_contains($text, 'mhs') || str_contains($text, '3/4') || str_contains($text, 'ultrasonic');
+            return (str_contains($text, 'toilet') || str_contains($text, 'mhs') || str_contains($text, '3/4') || str_contains($text, 'ultrasonic'))
+                && ! str_contains($text, 'office');
         }) ?? $flowDevices->reject(fn ($d) => $rmsDev && $d->id === $rmsDev->id)->firstWhere('slave_id', 2);
 
         $hrmsDev = $flowDevices->reject(fn ($d) => ($rmsDev && $d->id === $rmsDev->id) || ($mhsDev && $d->id === $mhsDev->id))->first(function ($d) {

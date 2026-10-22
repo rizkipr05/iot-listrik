@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AppSetting;
 use App\Models\Device;
 use App\Models\MeterLog;
 use App\Services\ModbusTcpService;
@@ -147,7 +148,9 @@ class DeviceController extends Controller
                     $prevCached['ph'] = $val;
 
                     $scada = Cache::get('scada_latest_telemetry', []);
-                    $status = ($val >= 1.0 && $val <= 4.0) ? 'Normal' : ($val > 0 ? 'Warning' : 'Standby');
+                    $pressureNormalMin = (float) AppSetting::getValue('pressure_normal_min', 1.0);
+                    $pressureNormalMax = (float) AppSetting::getValue('pressure_normal_max', 4.0);
+                    $status = ($val <= 0) ? 'Standby' : (($val >= $pressureNormalMin && $val <= $pressureNormalMax) ? 'Normal' : 'Warning');
                     $scada['pressure'] = ['value' => $val, 'status' => $status, 'is_online' => true];
                     $scada['ph'] = ['value' => $val, 'status' => $status, 'is_online' => true];
                     Cache::put('scada_latest_telemetry', $scada, 86400);

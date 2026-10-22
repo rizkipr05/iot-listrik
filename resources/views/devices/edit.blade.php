@@ -63,6 +63,11 @@
                                id="description" 
                                name="description" 
                                value="{{ old('description', $device->description) }}">
+                        @if($device->isPressureSensor() || $device->category === 'pressure_sensor')
+                            <small class="text-muted d-block mt-1" style="font-size: 0.78rem;">
+                                <i class="bi bi-info-circle text-primary me-1"></i> Untuk mengatur rentang operasional status <strong>Normal & Warning</strong> sensor tekanan ini, gunakan menu <a href="{{ route('settings.scales') }}" class="text-decoration-underline fw-bold">Skala & Ambang Batas</a>.
+                            </small>
+                        @endif
                     </div>
 
                     <div class="row g-3 mb-3">

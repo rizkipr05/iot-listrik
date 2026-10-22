@@ -242,6 +242,25 @@
     <!-- Ringkasan Navigasi & Backup Database -->
     <div class="col-lg-5">
         <div class="d-flex flex-column gap-3">
+            <!-- Skala Gauge & Ambang Batas Warning (Normal/Warning) -->
+            <div class="card shadow-sm border-0 p-3" style="border-radius: 16px; border-left: 4px solid #ea580c !important; background: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%);">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="p-3 bg-warning-subtle text-warning-emphasis rounded-3 fs-4">
+                            <i class="bi bi-speedometer2"></i>
+                        </div>
+                        <div>
+                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill small px-2 py-0 fw-bold" style="font-size: 0.68rem;">SCADA CALIBRATION</span>
+                            <h6 class="fw-bold mb-0 text-dark mt-1">Skala & Ambang Batas Warning</h6>
+                            <small class="text-muted d-block" style="font-size: 0.75rem;">Atur kapasitas 100% flow & batas Normal/Warning tekanan pipa.</small>
+                        </div>
+                    </div>
+                    <a href="{{ route('settings.scales') }}" class="btn btn-sm btn-outline-warning text-dark fw-bold rounded-pill px-3 shadow-sm">
+                        Atur &rarr;
+                    </a>
+                </div>
+            </div>
+
             <!-- Backup / Download Database SQLite -->
             <div class="card shadow-sm border-0 p-3" style="border-radius: 16px; background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);">
                 <div class="d-flex align-items-center gap-3 mb-3">

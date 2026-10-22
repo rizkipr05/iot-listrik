@@ -58,12 +58,16 @@ class SettingsController extends Controller
         $descRms = $deviceRms?->description ?: 'Nominal Size : 1 inch | Range : 0 ~ 4 m³/h';
         $descMhs = $deviceMhs?->description ?: 'Nominal Size : 3/4 inch | Range : 0 ~ 10 m³/h';
         $descHrms = $deviceHrms?->description ?: 'Nominal Size : 1/2 inch | Range : 0 ~ 10 m³/h';
-        $descPh = $devicePh?->description ?: 'Range : 0 ~ 10 bar';
+        $rawDescPh = $devicePh?->description ?: 'Range : 0 ~ 10 bar';
+        $descPh = trim(preg_replace('/\s*\|\s*Normal\s*:[^|]+/i', '', $rawDescPh));
+        $descPh = trim(preg_replace('/\s*\(Normal\s*:[^)]+\)/i', '', $descPh));
 
         $maxFlowRms = (float) AppSetting::getValue('max_flowrate_rms', 4.0);
         $maxFlowMhs = (float) AppSetting::getValue('max_flowrate_mhs', 10.0);
         $maxFlowHrms = (float) AppSetting::getValue('max_flowrate_hrms', 10.0);
         $maxPressure = (float) AppSetting::getValue('max_pressure', 10.0);
+        $pressureNormalMin = (float) AppSetting::getValue('pressure_normal_min', 1.0);
+        $pressureNormalMax = (float) AppSetting::getValue('pressure_normal_max', 4.0);
         $flowWarningPct = (int) AppSetting::getValue('flow_warning_percent', 85);
 
         return view('settings.scales', compact(
@@ -71,6 +75,8 @@ class SettingsController extends Controller
             'maxFlowMhs',
             'maxFlowHrms',
             'maxPressure',
+            'pressureNormalMin',
+            'pressureNormalMax',
             'flowWarningPct',
             'labelRms',
             'labelMhs',
@@ -97,18 +103,31 @@ class SettingsController extends Controller
             'max_flowrate_mhs' => ['required', 'numeric', 'min:0.1', 'max:100000'],
             'max_flowrate_hrms' => ['required', 'numeric', 'min:0.1', 'max:100000'],
             'max_pressure' => ['required', 'numeric', 'min:0.1', 'max:1000'],
+            'pressure_normal_min' => ['nullable', 'numeric', 'min:0', 'max:1000'],
+            'pressure_normal_max' => ['nullable', 'numeric', 'min:0.1', 'max:1000', 'gte:pressure_normal_min'],
             'flow_warning_percent' => ['nullable', 'integer', 'min:1', 'max:100'],
         ], [
             'max_flowrate_rms.required' => 'Batas maksimal flowrate meter RMS wajib ditentukan.',
             'max_flowrate_mhs.required' => 'Batas maksimal flowrate meter MHS wajib ditentukan.',
             'max_flowrate_hrms.required' => 'Batas maksimal flowrate meter H-RMS wajib ditentukan.',
             'max_pressure.required' => 'Batas maksimal tekanan / pressure wajib ditentukan.',
+            'pressure_normal_max.gte' => 'Batas maksimal tekanan normal harus lebih besar atau sama dengan batas minimal.',
         ]);
 
         AppSetting::setValue('max_flowrate_rms', (string) $validated['max_flowrate_rms'], 'Kapasitas maksimal flowrate Meter 1 (RMS) untuk 100%');
         AppSetting::setValue('max_flowrate_mhs', (string) $validated['max_flowrate_mhs'], 'Kapasitas maksimal flowrate Meter 2 (MHS) untuk 100%');
         AppSetting::setValue('max_flowrate_hrms', (string) $validated['max_flowrate_hrms'], 'Kapasitas maksimal flowrate Meter 3 (H-RMS) untuk 100%');
         AppSetting::setValue('max_pressure', (string) $validated['max_pressure'], 'Kapasitas maksimal pressure sensor untuk 100%');
+
+        $normalMin = isset($validated['pressure_normal_min']) && is_numeric($validated['pressure_normal_min'])
+            ? (float) $validated['pressure_normal_min']
+            : (float) AppSetting::getValue('pressure_normal_min', 1.0);
+        $normalMax = isset($validated['pressure_normal_max']) && is_numeric($validated['pressure_normal_max'])
+            ? (float) $validated['pressure_normal_max']
+            : (float) AppSetting::getValue('pressure_normal_max', 4.0);
+
+        AppSetting::setValue('pressure_normal_min', (string) $normalMin, 'Batas bawah tekanan operasional normal (Bar)');
+        AppSetting::setValue('pressure_normal_max', (string) $normalMax, 'Batas atas tekanan operasional normal (Bar)');
 
         if (isset($validated['flow_warning_percent'])) {
             AppSetting::setValue('flow_warning_percent', (string) $validated['flow_warning_percent'], 'Ambang batas peringatan aliran tinggi (%)');
@@ -123,6 +142,8 @@ class SettingsController extends Controller
                     'mhs_max' => (float) $validated['max_flowrate_mhs'],
                     'hrms_max' => (float) $validated['max_flowrate_hrms'],
                     'pressure_max' => (float) $validated['max_pressure'],
+                    'pressure_normal_min' => $normalMin,
+                    'pressure_normal_max' => $normalMax,
                     'warning_percent' => (int) ($validated['flow_warning_percent'] ?? 85),
                 ],
             ]);

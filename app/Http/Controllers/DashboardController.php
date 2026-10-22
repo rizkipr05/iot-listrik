@@ -49,13 +49,17 @@ class DashboardController extends Controller
         $descRms = $deviceRms?->description ?: 'Nominal Size : 1 inch | Range : 0 ~ 4 m³/h';
         $descMhs = $deviceMhs?->description ?: 'Nominal Size : 3/4 inch | Range : 0 ~ 10 m³/h';
         $descHrms = $deviceHrms?->description ?: 'Nominal Size : 1/2 inch | Range : 0 ~ 10 m³/h';
-        $descPh = $devicePh?->description ?: 'Range : 0 ~ 10 bar';
+        $rawDescPh = $devicePh?->description ?: 'Range : 0 ~ 10 bar';
+        $descPh = trim(preg_replace('/\s*\|\s*Normal\s*:[^|]+/i', '', $rawDescPh));
+        $descPh = trim(preg_replace('/\s*\(Normal\s*:[^)]+\)/i', '', $descPh));
 
         // Ambil konfigurasi batas maksimal (kondisi 100% skala gauge) dari AppSetting (default: RMS 4.0 m³/h, MHS 10.0 m³/h, HRMS 10.0 m³/h, Pressure 10.0 Bar)
         $maxRms = (float) AppSetting::getValue('max_flowrate_rms', 4.0);
         $maxMhs = (float) AppSetting::getValue('max_flowrate_mhs', 10.0);
         $maxHrms = (float) AppSetting::getValue('max_flowrate_hrms', 10.0);
         $maxPh = (float) AppSetting::getValue('max_pressure', 10.0);
+        $pressureNormalMin = (float) AppSetting::getValue('pressure_normal_min', 1.0);
+        $pressureNormalMax = (float) AppSetting::getValue('pressure_normal_max', 4.0);
         $flowWarningPct = (int) AppSetting::getValue('flow_warning_percent', 85);
 
         // Prioritas pembacaan data realtime instrumen:
@@ -159,17 +163,19 @@ class DashboardController extends Controller
                         : 0.0))
         ) : 0.0;
 
-        $currentPh = ! empty($cachedDevPh['pressure']) && $cachedDevPh['pressure'] > 0
-            ? (float) $cachedDevPh['pressure']
-            : (! empty($cachedDevPh['ph']) && $cachedDevPh['ph'] > 0
-                ? (float) $cachedDevPh['ph']
-                : (! empty($cachedScada['pressure']['value']) && $cachedScada['pressure']['value'] > 0
-                    ? (float) $cachedScada['pressure']['value']
-                    : (! empty($cachedScada['ph']['value']) && $cachedScada['ph']['value'] > 0
-                        ? (float) $cachedScada['ph']['value']
-                        : ($latestPh && $latestPh->ph > 0
-                            ? (float) $latestPh->ph
-                            : 0.0))));
+        if (isset($cachedDevPh['pressure']) && is_numeric($cachedDevPh['pressure'])) {
+            $currentPh = (float) $cachedDevPh['pressure'];
+        } elseif (isset($cachedDevPh['ph']) && is_numeric($cachedDevPh['ph'])) {
+            $currentPh = (float) $cachedDevPh['ph'];
+        } elseif (isset($cachedScada['pressure']['value']) && is_numeric($cachedScada['pressure']['value'])) {
+            $currentPh = (float) $cachedScada['pressure']['value'];
+        } elseif (isset($cachedScada['ph']['value']) && is_numeric($cachedScada['ph']['value'])) {
+            $currentPh = (float) $cachedScada['ph']['value'];
+        } elseif ($latestPh && is_numeric($latestPh->ph)) {
+            $currentPh = (float) $latestPh->ph;
+        } else {
+            $currentPh = 0.0;
+        }
 
         // Ambil riwayat log telemetri real (kecualikan data simulasi dummy)
         $recentLogs = MeterLog::with('device')
@@ -272,9 +278,14 @@ class DashboardController extends Controller
         $gaugeOffsetHrms = round($circumference - ($gaugePctHrms / 100) * $circumference, 1);
         $gaugeOffsetPh = round($circumference - ($gaugePctPh / 100) * $circumference, 1);
 
+        $statusRms = ! $isRmsOnline ? 'Offline' : ($gaugePctRms >= $flowWarningPct ? 'Warning' : 'Normal');
+        $statusMhs = ! $isMhsOnline ? 'Offline' : ($gaugePctMhs >= $flowWarningPct ? 'Warning' : 'Normal');
+        $statusHrms = ! $isHrmsOnline ? 'Offline' : ($gaugePctHrms >= $flowWarningPct ? 'Warning' : 'Normal');
         $statusPh = ! $isPhOnline
             ? 'Offline'
-            : (($currentPh >= 1.0 && $currentPh <= 4.0) ? 'Normal' : ($currentPh > 0 ? 'Warning' : 'Standby'));
+            : ($currentPh <= 0
+                ? 'Standby'
+                : (($currentPh >= $pressureNormalMin && $currentPh <= $pressureNormalMax) ? 'Normal' : 'Warning'));
 
         return view('dashboard', compact(
             'devices',
@@ -299,6 +310,9 @@ class DashboardController extends Controller
             'gaugeOffsetMhs',
             'gaugeOffsetHrms',
             'gaugeOffsetPh',
+            'statusRms',
+            'statusMhs',
+            'statusHrms',
             'statusPh',
             'isRmsOnline',
             'isMhsOnline',
@@ -325,6 +339,8 @@ class DashboardController extends Controller
             'maxMhs',
             'maxHrms',
             'maxPh',
+            'pressureNormalMin',
+            'pressureNormalMax',
             'flowWarningPct'
         ));
     }

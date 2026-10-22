@@ -60,6 +60,13 @@ class TelemetryController extends Controller
         $isLoggerEnabled = AppSetting::getValue('logger_enabled', '1') === '1';
         $loggerInterval = (int) AppSetting::getValue('logger_interval_seconds', '60');
         $loggerInterval = max(5, $loggerInterval);
+        $pressureNormalMin = (float) AppSetting::getValue('pressure_normal_min', 1.0);
+        $pressureNormalMax = (float) AppSetting::getValue('pressure_normal_max', 4.0);
+        $maxRms = (float) AppSetting::getValue('max_flowrate_rms', 4.0);
+        $maxMhs = (float) AppSetting::getValue('max_flowrate_mhs', 10.0);
+        $maxHrms = (float) AppSetting::getValue('max_flowrate_hrms', 10.0);
+        $maxPressure = (float) AppSetting::getValue('max_pressure', 10.0);
+        $flowWarningPct = (int) AppSetting::getValue('flow_warning_percent', 85);
         $nowTimestamp = time();
 
         foreach ($devices as $dev) {
@@ -91,59 +98,56 @@ class TelemetryController extends Controller
             // Ekstraksi nilai sensor tekanan / pH secara mendalam
             $pressVal = 0.0;
             if ($isPhDev) {
-                if (isset($params['pressure']['value']) && is_numeric($params['pressure']['value']) && (float) $params['pressure']['value'] > 0) {
-                    $pressVal = (float) $params['pressure']['value'];
-                } elseif (isset($params['ph']['value']) && is_numeric($params['ph']['value']) && (float) $params['ph']['value'] > 0) {
-                    $pressVal = (float) $params['ph']['value'];
-                } else {
-                    foreach ($params as $pKey => $pData) {
-                        $v = isset($pData['value']) ? (float) $pData['value'] : 0.0;
-                        if ($v <= 0) {
-                            continue;
+                if ($isDevOnline) {
+                    if (isset($params['pressure']['value']) && is_numeric($params['pressure']['value'])) {
+                        $pressVal = (float) $params['pressure']['value'];
+                    } elseif (isset($params['ph']['value']) && is_numeric($params['ph']['value'])) {
+                        $pressVal = (float) $params['ph']['value'];
+                    } else {
+                        $found = false;
+                        foreach ($params as $pKey => $pData) {
+                            $unit = strtolower($pData['unit'] ?? '');
+                            $k = strtolower((string) $pKey);
+                            $pName = strtolower($pData['name'] ?? '');
+                            if (in_array($unit, ['bar', 'psi', 'kpa', 'mpa'])
+                                || in_array($k, ['pressure', 'press', 'tekanan', 'ph', 'other'])
+                                || str_contains($pName, 'tekanan')
+                                || str_contains($pName, 'pressure')
+                                || str_contains($pName, 'bar')) {
+                                if (isset($pData['value']) && is_numeric($pData['value'])) {
+                                    $pressVal = (float) $pData['value'];
+                                    $found = true;
+                                    break;
+                                }
+                            }
                         }
-                        $unit = strtolower($pData['unit'] ?? '');
-                        $k = strtolower((string) $pKey);
-                        $pName = strtolower($pData['name'] ?? '');
-                        if (in_array($unit, ['bar', 'psi', 'kpa', 'mpa'])
-                            || in_array($k, ['pressure', 'press', 'tekanan', 'ph', 'other'])
-                            || str_contains($pName, 'tekanan')
-                            || str_contains($pName, 'pressure')
-                            || str_contains($pName, 'bar')) {
-                            $pressVal = $v;
-                            break;
-                        }
-                    }
 
-                    if ($pressVal <= 0) {
-                        foreach ($params as $pData) {
-                            $v = isset($pData['value']) ? (float) $pData['value'] : 0.0;
-                            if ($v > 0) {
-                                $pressVal = $v;
-                                break;
+                        if (! $found) {
+                            foreach ($params as $pData) {
+                                if (isset($pData['value']) && is_numeric($pData['value'])) {
+                                    $pressVal = (float) $pData['value'];
+                                    break;
+                                }
                             }
                         }
                     }
-                }
-
-                // Fallback ke cache sebelumnya jika device sedang offline / jeda siklus
-                $prevCached = Cache::get("device_latest_telemetry_{$dev->id}");
-                if ($pressVal <= 0 && ! empty($prevCached['pressure']) && (float) $prevCached['pressure'] > 0) {
-                    $pressVal = (float) $prevCached['pressure'];
-                }
-                if ($pressVal <= 0 && ! empty($prevCached['ph']) && (float) $prevCached['ph'] > 0) {
-                    $pressVal = (float) $prevCached['ph'];
-                }
-
-                // Fallback ke rekaman log terakhir database (non-simulated)
-                if ($pressVal <= 0) {
-                    $lastLogVal = MeterLog::where('device_id', $dev->id)
-                        ->where('is_simulated', false)
-                        ->whereNotNull('ph')
-                        ->where('ph', '>', 0)
-                        ->latest('logged_at')
-                        ->value('ph');
-                    if ($lastLogVal) {
-                        $pressVal = (float) $lastLogVal;
+                } else {
+                    // Fallback ke cache sebelumnya jika device sedang offline
+                    $prevCached = Cache::get("device_latest_telemetry_{$dev->id}");
+                    if (isset($prevCached['pressure']) && is_numeric($prevCached['pressure'])) {
+                        $pressVal = (float) $prevCached['pressure'];
+                    } elseif (isset($prevCached['ph']) && is_numeric($prevCached['ph'])) {
+                        $pressVal = (float) $prevCached['ph'];
+                    } else {
+                        // Fallback ke rekaman log terakhir database (non-simulated)
+                        $lastLogVal = MeterLog::where('device_id', $dev->id)
+                            ->where('is_simulated', false)
+                            ->whereNotNull('ph')
+                            ->latest('logged_at')
+                            ->value('ph');
+                        if ($lastLogVal !== null && is_numeric($lastLogVal)) {
+                            $pressVal = (float) $lastLogVal;
+                        }
                     }
                 }
             }
@@ -213,7 +217,11 @@ class TelemetryController extends Controller
             if ($isPhDev) {
                 $phCount++;
                 $val = $pressVal;
-                $status = ($val >= 1.0 && $val <= 4.0) ? 'Normal' : ($val > 0 ? 'Warning' : 'Standby');
+                $status = ! $isDevOnline
+                    ? 'Offline'
+                    : ($val <= 0
+                        ? 'Standby'
+                        : (($val >= $pressureNormalMin && $val <= $pressureNormalMax) ? 'Normal' : 'Warning'));
                 $scadaMeters['pressure'] = ['value' => $val, 'status' => $status, 'is_online' => $isDevOnline];
                 $scadaMeters['ph'] = ['value' => $val, 'status' => $status, 'is_online' => $isDevOnline];
                 $currentPh = $val;
@@ -236,11 +244,17 @@ class TelemetryController extends Controller
                 }
 
                 if ($isRmsDev) {
-                    $scadaMeters['rms'] = ['flow_rate' => $isDevOnline ? $fr : 0.0, 'totalizer' => $tot, 'is_online' => $isDevOnline];
+                    $pct = (int) min(100, max(0, round(($fr / max(0.001, $maxRms)) * 100)));
+                    $st = ! $isDevOnline ? 'Offline' : ($pct >= $flowWarningPct ? 'Warning' : 'Normal');
+                    $scadaMeters['rms'] = ['flow_rate' => $isDevOnline ? $fr : 0.0, 'totalizer' => $tot, 'status' => $st, 'is_online' => $isDevOnline];
                 } elseif ($isMhsDev) {
-                    $scadaMeters['mhs'] = ['flow_rate' => $isDevOnline ? $fr : 0.0, 'totalizer' => $tot, 'is_online' => $isDevOnline];
+                    $pct = (int) min(100, max(0, round(($fr / max(0.001, $maxMhs)) * 100)));
+                    $st = ! $isDevOnline ? 'Offline' : ($pct >= $flowWarningPct ? 'Warning' : 'Normal');
+                    $scadaMeters['mhs'] = ['flow_rate' => $isDevOnline ? $fr : 0.0, 'totalizer' => $tot, 'status' => $st, 'is_online' => $isDevOnline];
                 } elseif ($isHrmsDev) {
-                    $scadaMeters['h_rms'] = ['flow_rate' => $isDevOnline ? $fr : 0.0, 'totalizer' => $tot, 'is_online' => $isDevOnline];
+                    $pct = (int) min(100, max(0, round(($fr / max(0.001, $maxHrms)) * 100)));
+                    $st = ! $isDevOnline ? 'Offline' : ($pct >= $flowWarningPct ? 'Warning' : 'Normal');
+                    $scadaMeters['h_rms'] = ['flow_rate' => $isDevOnline ? $fr : 0.0, 'totalizer' => $tot, 'status' => $st, 'is_online' => $isDevOnline];
                 }
             } else {
                 $electricCount++;
@@ -274,53 +288,53 @@ class TelemetryController extends Controller
         $avgPf = count($pfs) > 0 ? round(array_sum($pfs) / count($pfs), 2) : 0.96;
         $avgFreq = count($freqs) > 0 ? round(array_sum($freqs) / count($freqs), 2) : 50.0;
 
-        // Pastikan Card 4 (Pressure) tidak menjadi 0 jika ada nilai sebelumnya di cache / database
-        if ($scadaMeters['pressure']['value'] <= 0) {
-            $prevScada = Cache::get('scada_latest_telemetry');
-            if (! empty($prevScada['pressure']['value']) && (float) $prevScada['pressure']['value'] > 0) {
-                $pVal = (float) $prevScada['pressure']['value'];
-                $scadaMeters['pressure']['value'] = $pVal;
-                $scadaMeters['ph']['value'] = $pVal;
-                $st = ($pVal >= 1.0 && $pVal <= 4.0) ? 'Normal' : 'Warning';
-                $scadaMeters['pressure']['status'] = $st;
-                $scadaMeters['ph']['status'] = $st;
-                $currentPh = $pVal;
-            } elseif ($devicePh) {
-                $prevDevCache = Cache::get("device_latest_telemetry_{$devicePh->id}");
-                if (! empty($prevDevCache['pressure']) && (float) $prevDevCache['pressure'] > 0) {
-                    $pVal = (float) $prevDevCache['pressure'];
-                    $scadaMeters['pressure']['value'] = $pVal;
-                    $scadaMeters['ph']['value'] = $pVal;
-                    $st = ($pVal >= 1.0 && $pVal <= 4.0) ? 'Normal' : 'Warning';
-                    $scadaMeters['pressure']['status'] = $st;
-                    $scadaMeters['ph']['status'] = $st;
-                    $currentPh = $pVal;
-                }
-            }
-
-            if ($scadaMeters['pressure']['value'] <= 0 && $devicePh) {
-                $lastLogVal = MeterLog::where('device_id', $devicePh->id)
-                    ->where('is_simulated', false)
-                    ->whereNotNull('ph')
-                    ->where('ph', '>', 0)
-                    ->latest('logged_at')
-                    ->value('ph');
-                if ($lastLogVal) {
-                    $pVal = (float) $lastLogVal;
-                    $scadaMeters['pressure']['value'] = $pVal;
-                    $scadaMeters['ph']['value'] = $pVal;
-                    $st = ($pVal >= 1.0 && $pVal <= 4.0) ? 'Normal' : 'Warning';
-                    $scadaMeters['pressure']['status'] = $st;
-                    $scadaMeters['ph']['status'] = $st;
-                    $currentPh = $pVal;
-                }
-            }
-        }
-
         if ($devicePh && Cache::get("device_online_{$devicePh->id}", false)) {
             $scadaMeters['pressure']['is_online'] = true;
             $scadaMeters['ph']['is_online'] = true;
         }
+
+        // Fallback untuk Card 4 (Pressure) HANYA jika device sedang OFFLINE
+        if (! $scadaMeters['pressure']['is_online']) {
+            if ($scadaMeters['pressure']['value'] <= 0) {
+                $prevScada = Cache::get('scada_latest_telemetry');
+                if (isset($prevScada['pressure']['value']) && is_numeric($prevScada['pressure']['value']) && (float) $prevScada['pressure']['value'] > 0) {
+                    $pVal = (float) $prevScada['pressure']['value'];
+                    $scadaMeters['pressure']['value'] = $pVal;
+                    $scadaMeters['ph']['value'] = $pVal;
+                    $currentPh = $pVal;
+                } elseif ($devicePh) {
+                    $prevDevCache = Cache::get("device_latest_telemetry_{$devicePh->id}");
+                    if (isset($prevDevCache['pressure']) && is_numeric($prevDevCache['pressure']) && (float) $prevDevCache['pressure'] > 0) {
+                        $pVal = (float) $prevDevCache['pressure'];
+                        $scadaMeters['pressure']['value'] = $pVal;
+                        $scadaMeters['ph']['value'] = $pVal;
+                        $currentPh = $pVal;
+                    }
+                }
+
+                if ($scadaMeters['pressure']['value'] <= 0 && $devicePh) {
+                    $lastLogVal = MeterLog::where('device_id', $devicePh->id)
+                        ->where('is_simulated', false)
+                        ->whereNotNull('ph')
+                        ->latest('logged_at')
+                        ->value('ph');
+                    if ($lastLogVal !== null && is_numeric($lastLogVal)) {
+                        $pVal = (float) $lastLogVal;
+                        $scadaMeters['pressure']['value'] = $pVal;
+                        $scadaMeters['ph']['value'] = $pVal;
+                        $currentPh = $pVal;
+                    }
+                }
+            }
+        }
+
+        // Hitung status alarm tekanan (Standby / Normal / Warning) berdasarkan nilai terkini dan rentang yang dikonfigurasi
+        $val = (float) $scadaMeters['pressure']['value'];
+        $st = ($val <= 0)
+            ? 'Standby'
+            : (($val >= $pressureNormalMin && $val <= $pressureNormalMax) ? 'Normal' : 'Warning');
+        $scadaMeters['pressure']['status'] = $st;
+        $scadaMeters['ph']['status'] = $st;
 
         // Simpan scada telemetri & ringkasan ke Cache agar dashboard instan saat navigasi menu
         Cache::put('scada_latest_telemetry', $scadaMeters, 86400);
@@ -345,12 +359,6 @@ class TelemetryController extends Controller
         $primaryGatewayPort = $primaryDevice?->port ?? 502;
         $isGatewayOnline = $primaryDevice ? $modbusService->isGatewayReachable($primaryGatewayIp, $primaryGatewayPort) : false;
 
-        $maxRms = (float) AppSetting::getValue('max_flowrate_rms', 4.0);
-        $maxMhs = (float) AppSetting::getValue('max_flowrate_mhs', 10.0);
-        $maxHrms = (float) AppSetting::getValue('max_flowrate_hrms', 10.0);
-        $maxPressure = (float) AppSetting::getValue('max_pressure', 10.0);
-        $flowWarningPct = (int) AppSetting::getValue('flow_warning_percent', 85);
-
         return response()->json([
             'success' => true,
             'timestamp' => now()->format('Y-m-d H:i:s'),
@@ -366,6 +374,8 @@ class TelemetryController extends Controller
                 'mhs_max' => $maxMhs,
                 'hrms_max' => $maxHrms,
                 'pressure_max' => $maxPressure,
+                'pressure_normal_min' => $pressureNormalMin,
+                'pressure_normal_max' => $pressureNormalMax,
                 'warning_percent' => $flowWarningPct,
             ],
             'summary' => [
