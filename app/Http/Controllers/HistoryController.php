@@ -141,6 +141,7 @@ class HistoryController extends Controller
         $avgPh = $avgPressure; // alias kompatibilitas
 
         // Listrik (jika ada instrumen power meter)
+        $hasElectricDevices = $devices->contains(fn ($d) => in_array($d->category, ['electricity', 'kwh_meter', 'power_meter']));
         $avgPower = round($statsQuery->avg('power') ?? 0, 2);
         $maxPower = round($statsQuery->max('power') ?? 0, 2);
         $energyConsumed = round(max(0, ($statsQuery->max('energy') ?? 0) - ($statsQuery->min('energy') ?? 0)), 2);
@@ -180,6 +181,7 @@ class HistoryController extends Controller
             'avgPh',
             'hasPressureSensor',
             'hasPhSensor',
+            'hasElectricDevices',
             'chartLabels',
             'chartPowers',
             'chartCurrents',
@@ -348,8 +350,11 @@ class HistoryController extends Controller
             // Tambahkan BOM agar karakter UTF-8 terbaca rapi di Microsoft Excel
             fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
 
-            // Header kolom CSV
-            fputcsv($handle, [
+            // Deteksi apakah sistem mengelola instrumen listrik / power meter
+            $hasElectricDevices = Device::whereIn('category', ['electricity', 'kwh_meter', 'power_meter'])->exists();
+
+            // Header kolom CSV (Hanya mencantumkan parameter relevan sesuai jenis instrumen terdaftar)
+            $csvHeaders = [
                 'Waktu Log (WIB)',
                 'Nama Device Meter',
                 'Kategori',
@@ -358,20 +363,28 @@ class HistoryController extends Controller
                 'Totalizer Air (m³)',
                 'Flow Rate (m³/h)',
                 'Nilai pH / Pressure (Bar)',
-                'Tegangan L-N (V)',
-                'Arus (A)',
-                'Daya Aktif (kW)',
-                'Frekuensi (Hz)',
-                'Power Factor (PF)',
-                'Energi Akumulasi (kWh)',
-                'Status Sumber Data',
-            ]);
+            ];
+
+            if ($hasElectricDevices) {
+                $csvHeaders = array_merge($csvHeaders, [
+                    'Tegangan L-N (V)',
+                    'Arus (A)',
+                    'Daya Aktif (kW)',
+                    'Frekuensi (Hz)',
+                    'Power Factor (PF)',
+                    'Energi Akumulasi (kWh)',
+                ]);
+            }
+
+            $csvHeaders[] = 'Status Sumber Data';
+
+            fputcsv($handle, $csvHeaders);
 
             // Stream data chunking 200 record untuk hemat memory
-            $query->chunk(200, function ($logs) use ($handle) {
+            $query->chunk(200, function ($logs) use ($handle, $hasElectricDevices) {
                 foreach ($logs as $log) {
                     $isPressure = $log->device && $log->device->isPressureSensor();
-                    fputcsv($handle, [
+                    $row = [
                         $log->logged_at->timezone(config('app.timezone', 'Asia/Jakarta'))->format('Y-m-d H:i:s'),
                         $log->device->name ?? 'Meter Tidak Diketahui',
                         $log->device->category_badge ?? $log->device->category ?? 'meter',
@@ -380,14 +393,22 @@ class HistoryController extends Controller
                         $log->totalizer !== null ? $log->totalizer : '-',
                         $log->flow_rate !== null ? $log->flow_rate : '-',
                         $log->ph !== null ? ($log->ph.($isPressure ? ' Bar' : ' pH')) : '-',
-                        $log->voltage !== null ? $log->voltage : '-',
-                        $log->current !== null ? $log->current : '-',
-                        $log->power !== null ? $log->power : '-',
-                        $log->frequency !== null ? $log->frequency : '-',
-                        $log->power_factor !== null ? $log->power_factor : '-',
-                        $log->energy !== null ? $log->energy : '-',
-                        $log->is_simulated ? 'SIMULATOR' : 'LIVE MODBUS',
-                    ]);
+                    ];
+
+                    if ($hasElectricDevices) {
+                        $row = array_merge($row, [
+                            $log->voltage !== null ? $log->voltage : '-',
+                            $log->current !== null ? $log->current : '-',
+                            $log->power !== null ? $log->power : '-',
+                            $log->frequency !== null ? $log->frequency : '-',
+                            $log->power_factor !== null ? $log->power_factor : '-',
+                            $log->energy !== null ? $log->energy : '-',
+                        ]);
+                    }
+
+                    $row[] = $log->is_simulated ? 'SIMULATOR' : 'LIVE MODBUS';
+
+                    fputcsv($handle, $row);
                 }
             });
 

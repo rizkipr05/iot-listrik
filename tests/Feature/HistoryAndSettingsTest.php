@@ -53,7 +53,8 @@ class HistoryAndSettingsTest extends TestCase
     public function test_user_can_export_history_as_csv()
     {
         $device = Device::create([
-            'name' => 'Meter Export',
+            'name' => 'Water Meter Export',
+            'category' => 'flow_meter',
             'ip_address' => '192.168.1.12',
             'port' => 502,
             'slave_id' => 2,
@@ -61,7 +62,9 @@ class HistoryAndSettingsTest extends TestCase
 
         MeterLog::create([
             'device_id' => $device->id,
-            'voltage' => 222.0,
+            'flow_rate' => 2.5,
+            'totalizer' => 150.0,
+            'voltage' => 222.0, // nilai residu atau mock
             'current' => 15.0,
             'power' => 5.5,
             'energy' => 120.0,
@@ -74,6 +77,45 @@ class HistoryAndSettingsTest extends TestCase
         $response->assertStatus(200);
         $response->assertHeader('content-type', 'text/csv; charset=UTF-8');
         $this->assertStringContainsString('attachment; filename="iot_meter_logs_', $response->headers->get('content-disposition'));
+
+        // Parameter listrik tidak boleh diekspor jika sistem khusus water & pressure meter
+        $content = $response->streamedContent();
+        $this->assertStringContainsString('Totalizer Air (m³)', $content);
+        $this->assertStringContainsString('Flow Rate (m³/h)', $content);
+        $this->assertStringContainsString('Nilai pH / Pressure (Bar)', $content);
+        $this->assertStringNotContainsString('Tegangan L-N (V)', $content);
+        $this->assertStringNotContainsString('Arus (A)', $content);
+        $this->assertStringNotContainsString('Daya Aktif (kW)', $content);
+    }
+
+    public function test_user_can_export_history_as_csv_with_electrical_columns_when_electric_device_exists()
+    {
+        $electricDev = Device::create([
+            'name' => 'Power Meter Utama',
+            'category' => 'power_meter',
+            'ip_address' => '192.168.1.15',
+            'port' => 502,
+            'slave_id' => 10,
+        ]);
+
+        MeterLog::create([
+            'device_id' => $electricDev->id,
+            'voltage' => 226.5,
+            'current' => 12.0,
+            'power' => 2.7,
+            'energy' => 85.0,
+            'is_simulated' => false,
+            'logged_at' => now(),
+        ]);
+
+        $response = $this->actingAs($this->user)->get('/history/export');
+
+        $response->assertStatus(200);
+        $content = $response->streamedContent();
+        $this->assertStringContainsString('Tegangan L-N (V)', $content);
+        $this->assertStringContainsString('Arus (A)', $content);
+        $this->assertStringContainsString('Daya Aktif (kW)', $content);
+        $this->assertStringContainsString('226.5', $content);
     }
 
     public function test_authenticated_user_can_view_settings_page()

@@ -291,7 +291,7 @@
                     <th>Totalizer (m³)</th>
                     <th>Flow Rate (m³/h)</th>
                     <th>{{ $hasPhSensor ? 'Tekanan / pH' : 'Tekanan Pipa (Bar)' }}</th>
-                    @if($avgPower > 0 || $maxPower > 0)
+                    @if($hasElectricDevices)
                         <th>Tegangan (V)</th>
                         <th>Arus (A)</th>
                         <th>Daya (kW)</th>
@@ -351,7 +351,7 @@
                                 <span class="text-muted">-</span>
                             @endif
                         </td>
-                        @if($avgPower > 0 || $maxPower > 0)
+                        @if($hasElectricDevices)
                             <td>
                                 @if($log->voltage !== null)
                                     <span class="mono-font fw-semibold text-primary">{{ number_format($log->voltage, 1) }} V</span>
